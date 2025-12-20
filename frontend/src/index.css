@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+/* Global cursor: more visible colored chalk-like pointer */
+body, button, input, textarea, select, a {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 24 L17 11 L21 15 L8 28 L4 28 Z' fill='%23ffd166' stroke='%23d48806' stroke-width='1.8' stroke-linejoin='round'/></svg>") 2 26, auto;
+}
+
+/* Hover cursor for clickable elements: red chalk */
+button:hover,
+a:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover,
+input[type="reset"]:hover,
+select:hover,
+textarea:hover,
+[role="button"]:hover {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 24 L17 11 L21 15 L8 28 L4 28 Z' fill='%23ff4d4f' stroke='%23a8071a' stroke-width='1.8' stroke-linejoin='round'/></svg>") 2 26, pointer;
+}
+
+/* Dashboard top cards: force red chalk cursor */
+.chalk-red-cursor {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 24 L17 11 L21 15 L8 28 L4 28 Z' fill='%23ff4d4f' stroke='%23a8071a' stroke-width='1.8' stroke-linejoin='round'/></svg>") 2 26, pointer;
+}
