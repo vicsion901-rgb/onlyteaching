@@ -31,7 +31,7 @@ function Layout({ children }) {
   const navChild = `${navBase} pl-9`;
 
   if (isLoginPage) {
-    return <div className="min-h-screen bg-gray-50">{children}</div>;
+    return <div className="min-h-screen bg-white">{children}</div>;
   }
 
   return (

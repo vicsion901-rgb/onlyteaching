@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import client from '../api/client';
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/logo.png';
+import logo from '../assets/logo-login.png';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -30,12 +30,12 @@ function Login() {
   };
 
   return (
-    <div className="relative min-h-screen bg-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white">
       <div className="absolute top-3 left-3 flex items-center gap-3">
         <img
           src={logo}
           alt="온리티칭 로고"
-          className="w-24 h-auto"
+          className="w-28 h-auto bg-white"
         />
       </div>
       <div className="w-full max-w-xl space-y-12">
