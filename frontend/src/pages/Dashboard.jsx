@@ -277,7 +277,7 @@ function Dashboard() {
       {/* AI Prompt Section - Split layout */}
       <div className="bg-white overflow-hidden shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
-          <h2 className="text-lg font-medium leading-6 text-gray-900 mb-4">학생 명부 파일을 드래그해서 올려주세요.</h2>
+          <h2 className="text-lg font-medium leading-6 text-gray-900 mb-4">통합형 업무 도우미</h2>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left: form */}
@@ -313,7 +313,7 @@ function Dashboard() {
                     id="prompt"
                     className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 pb-10"
                     rows={12}
-                    placeholder={'학생 명부 파일을 드래그해서 올려주세요.'}
+                    placeholder={'예시) 학생명부 파일을 드래그 해주시면, 사이트에 자동 연동됩니다.\n\n예시) 000학생 관련해서 발표능력 상, 정리정돈 중, 예의범절 하로 생기부 4줄 작성해줘.'}
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     onKeyDown={(e) => {
