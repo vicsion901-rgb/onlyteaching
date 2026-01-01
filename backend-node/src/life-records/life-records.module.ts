@@ -8,3 +8,10 @@ import { LifeRecordsService } from './life-records.service';
 })
 export class LifeRecordsModule {}
 
+
+
+
+
+
+
+
