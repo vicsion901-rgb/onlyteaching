@@ -6,23 +6,22 @@ import {
   Unique,
 } from 'typeorm';
 
+export type UserStatus = 'PENDING' | 'ACTIVE' | 'REJECTED';
+
 @Entity('users')
-@Unique(['email'])
+@Unique(['schoolCode', 'teacherCode'])
 export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
-  name: string;
+  schoolCode: string;
 
   @Column()
-  email: string;
+  teacherCode: string;
 
-  @Column()
-  passwordHash: string;
-
-  @Column({ default: 'teacher' })
-  role: string;
+  @Column({ default: 'PENDING' })
+  status: UserStatus;
 
   @CreateDateColumn()
   createdAt: Date;

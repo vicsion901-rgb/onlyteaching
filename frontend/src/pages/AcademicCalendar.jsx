@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
 /**
@@ -64,8 +62,8 @@ export default function ElementaryCalendar2026() {
       transition={{ duration: 0.25 }}
     >
       {/* 달력 영역 */}
-      <Card className="lg:col-span-2">
-        <CardContent>
+      <div className="lg:col-span-2 bg-white border rounded-xl shadow-sm">
+        <div className="p-4">
           <h2 className="text-xl font-bold mb-3">2026년 1월 학사일정</h2>
 
           <div className="grid grid-cols-7 gap-2">
@@ -80,13 +78,11 @@ export default function ElementaryCalendar2026() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => handleDateClick(dateKey)}
-                  className={`border rounded-lg p-2 cursor-pointer transition
-                    ${
-                      isSelected
-                        ? "bg-blue-50 border-blue-500"
-                        : "hover:bg-gray-50"
-                    }
-                  `}
+                  className={`border rounded-lg p-2 cursor-pointer transition ${
+                    isSelected
+                      ? "bg-blue-50 border-blue-500"
+                      : "hover:bg-gray-50"
+                  }`}
                 >
                   <div className="font-semibold">{day}</div>
                   <div className="text-xs text-gray-500 mt-1">
@@ -96,18 +92,18 @@ export default function ElementaryCalendar2026() {
               );
             })}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* 사이드 패널 */}
       <div className="flex flex-col gap-4">
         {/* 학년별 행사 */}
-        <Card>
-          <CardContent>
-            <h3 className="font-bold mb-2">학년별 필수 행사</h3>
+        <div className="bg-white border rounded-xl shadow-sm">
+          <div className="p-4 space-y-3">
+            <h3 className="font-bold">학년별 필수 행사</h3>
 
             <select
-              className="border rounded p-2 w-full mb-3"
+              className="border rounded p-2 w-full"
               value={selectedGrade}
               onChange={(e) => setSelectedGrade(e.target.value)}
             >
@@ -120,29 +116,33 @@ export default function ElementaryCalendar2026() {
 
             <div className="flex flex-wrap gap-2">
               {GRADE_EVENTS[selectedGrade].map((event) => (
-                <Button
+                <button
                   key={event}
-                  size="sm"
+                  className={`px-3 py-1 text-sm rounded border ${
+                    selectedDate
+                      ? "bg-blue-600 text-white hover:bg-blue-700"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  }`}
                   onClick={() => addEventToCalendar(event)}
                   disabled={!selectedDate}
                 >
                   {event}
-                </Button>
+                </button>
               ))}
             </div>
 
             {!selectedDate && (
-              <p className="text-xs text-red-500 mt-2">
+              <p className="text-xs text-red-500">
                 📌 날짜를 먼저 선택하세요
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* 파일 업로드 */}
-        <Card>
-          <CardContent>
-            <h3 className="font-bold mb-2">파일로 학사일정 반영</h3>
+        <div className="bg-white border rounded-xl shadow-sm">
+          <div className="p-4 space-y-2">
+            <h3 className="font-bold">파일로 학사일정 반영</h3>
 
             <input
               type="file"
@@ -151,11 +151,11 @@ export default function ElementaryCalendar2026() {
               onChange={handleFileUpload}
             />
 
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-gray-500">
               한글/이미지 파일을 업로드하면 자동으로 학사일정에 반영됩니다.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </Motion.div>
   );

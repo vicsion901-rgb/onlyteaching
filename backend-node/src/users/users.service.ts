@@ -1,54 +1,79 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as bcrypt from 'bcryptjs';
+import * as fs from 'fs';
 import { User } from './entities/user.entity';
+import { OcrService } from './ocr.service';
+import { VerificationService } from './verification.service';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UsersService implements OnModuleInit {
   constructor(
     @InjectRepository(User)
     private readonly usersRepo: Repository<User>,
+    private readonly ocrService: OcrService,
+    private readonly verifyService: VerificationService,
   ) {}
 
   async onModuleInit() {
-    // Seed default account if not present
-    const email = 'master0109@naver.com';
-    const password = 'password123';
-    const existing = await this.usersRepo.findOne({ where: { email } });
+    // Seed a default active account for convenience/login testing
+    const defaultSchoolCode = 'master0109@naver.com';
+    const defaultTeacherCode = 'password123';
+    const existing = await this.usersRepo.findOne({
+      where: { schoolCode: defaultSchoolCode, teacherCode: defaultTeacherCode },
+    });
     if (!existing) {
-      const passwordHash = await this.hashPassword(password);
       await this.usersRepo.save({
-        email,
-        name: 'Master0109',
-        passwordHash,
-        role: 'teacher',
+        schoolCode: defaultSchoolCode,
+        teacherCode: defaultTeacherCode,
+        status: 'ACTIVE',
       });
     }
   }
 
-  async findByEmail(email: string) {
-    return this.usersRepo.findOne({ where: { email } });
-  }
+  async register(dto: CreateUserDto, imagePath: string, schoolName: string) {
+    if (!dto.schoolCode || !dto.teacherCode) {
+      throw new BadRequestException('필수 정보 누락');
+    }
+    if (!imagePath) {
+      throw new BadRequestException('이미지가 필요합니다');
+    }
 
-  async createUser(email: string, name: string, password: string, role = 'teacher') {
-    const passwordHash = await this.hashPassword(password);
-    const user = this.usersRepo.create({ email, name, passwordHash, role });
-    return this.usersRepo.save(user);
-  }
+    const existing = await this.usersRepo.findOne({
+      where: { schoolCode: dto.schoolCode, teacherCode: dto.teacherCode },
+    });
+    if (existing) {
+      throw new BadRequestException('이미 등록된 계정입니다');
+    }
 
-  async setPassword(userId: number, password: string) {
-    const passwordHash = await this.hashPassword(password);
-    await this.usersRepo.update(userId, { passwordHash });
-    return this.usersRepo.findOne({ where: { id: userId } });
-  }
+    const ocr = await this.ocrService.extractText(imagePath);
+    const score = this.verifyService.calculateScore(ocr, schoolName);
+    const decision = this.verifyService.decide(score);
 
-  async hashPassword(plain: string) {
-    return bcrypt.hash(plain, 10);
-  }
+    const user = this.usersRepo.create({
+      ...dto,
+      status:
+        decision === 'AUTO'
+          ? 'ACTIVE'
+          : decision === 'MANUAL'
+            ? 'PENDING'
+            : 'REJECTED',
+    });
 
-  async verifyPassword(plain: string, hashed: string) {
-    return bcrypt.compare(plain, hashed);
+    try {
+      await this.usersRepo.save(user);
+    } catch (err) {
+      throw new InternalServerErrorException('사용자 저장 실패');
+    } finally {
+      try {
+        fs.unlinkSync(imagePath);
+      } catch {
+        // ignore cleanup error
+      }
+    }
+
+    return { status: user.status, score, decision };
   }
 }
 

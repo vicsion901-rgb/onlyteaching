@@ -2,11 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 
+const GRADE_EVENTS = {
+  '1': ['입학식', '기초학력 진단', '현장체험학습'],
+  '2': ['수행평가', '독서행사', '현장체험학습'],
+  '3': ['수행평가', '과학체험', '안전교육'],
+  '4': ['공개수업', '진로체험', '현장체험학습'],
+  '5': ['수련회', '성교육', '수행평가'],
+  '6': ['수학여행', '졸업식', '진로교육'],
+};
+
+
 function Schedule() {
   const navigate = useNavigate();
   const [currentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear] = useState(new Date().getFullYear());
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date().getDate());
   const [events, setEvents] = useState({});
   const [newEventTitle, setNewEventTitle] = useState('');
   const [prompt, setPrompt] = useState('');
@@ -15,6 +25,21 @@ function Schedule() {
   const [response, setResponse] = useState('');
   const [selectedModel] = useState('claude-3-5-sonnet-20241022');
   const [usedModel, setUsedModel] = useState('');
+  const [selectedGrade, setSelectedGrade] = useState('1');
+  const [personalColor, setPersonalColor] = useState('#2563eb');
+  const [dragStartDay, setDragStartDay] = useState(null);
+  const [dragEndDay, setDragEndDay] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragMoved, setDragMoved] = useState(false);
+
+  const COLOR_PRESETS = [
+    '#2563eb', // blue
+    '#16a34a', // green
+    '#ea580c', // orange
+    '#e11d48', // rose
+    '#6d28d9', // purple
+    '#0f172a', // slate
+  ];
 
   // Fetch events from backend
   useEffect(() => {
@@ -24,7 +49,7 @@ function Schedule() {
         // Group events by date
         const eventsByDate = {};
         res.data.forEach(event => {
-          const date = event.start_date;
+          const date = event.date;
           if (!eventsByDate[date]) {
             eventsByDate[date] = [];
           }
@@ -49,16 +74,21 @@ function Schedule() {
     setNewEventTitle('');
   };
 
-  const handleAddEvent = async () => {
-    if (!newEventTitle.trim() || !selectedDate) return;
+  const handleAddEvent = async (titleOverride, colorOverride, dateOverride) => {
+    const title = (titleOverride ?? newEventTitle).trim();
+    const targetDay = dateOverride ?? selectedDate;
+    if (!title || !targetDay) return;
 
-    const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
+    const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(
+      targetDay,
+    ).padStart(2, '0')}`;
+    const color = colorOverride ?? personalColor;
     
     try {
       const response = await client.post('/schedules/', {
-        title: newEventTitle,
-        start_date: dateStr,
-        end_date: dateStr
+        title,
+        date: dateStr,
+        memo: color,
       });
 
       // Update local state
@@ -71,6 +101,67 @@ function Schedule() {
     } catch (error) {
       console.error("Failed to add event", error);
       alert('일정 추가에 실패했습니다.');
+    }
+  };
+
+  const handleAddPresetEvent = (title) => {
+    handleAddEvent(title);
+  };
+
+  const handleRangeCreate = async () => {
+    if (!dragStartDay || !dragEndDay || !dragMoved) return;
+    const start = Math.min(dragStartDay, dragEndDay);
+    const end = Math.max(dragStartDay, dragEndDay);
+    const title = newEventTitle.trim() || '새 일정';
+    for (let d = start; d <= end; d += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      await handleAddEvent(title, personalColor, d);
+    }
+    setDragStartDay(null);
+    setDragEndDay(null);
+    setIsDragging(false);
+    setDragMoved(false);
+  };
+
+  const isInDragRange = (day) => {
+    if (!isDragging || dragStartDay === null) return false;
+    const start = Math.min(dragStartDay, dragEndDay ?? dragStartDay);
+    const end = Math.max(dragStartDay, dragEndDay ?? dragStartDay);
+    return day >= start && day <= end;
+  };
+
+  const handleDeleteEvent = async (eventId, dateStr) => {
+    try {
+      await client.delete(`/schedules/${eventId}`);
+      setEvents((prev) => {
+        const next = { ...prev };
+        if (next[dateStr]) {
+          next[dateStr] = next[dateStr].filter((e) => e.id !== eventId);
+          if (next[dateStr].length === 0) delete next[dateStr];
+        }
+        return next;
+      });
+    } catch (error) {
+      console.error("Failed to delete event", error);
+      alert('일정 삭제에 실패했습니다.');
+    }
+  };
+
+  const handleDeleteAllForDate = async () => {
+    if (!selectedDate) return;
+    const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
+    const targets = events[dateStr] || [];
+    if (targets.length === 0) return;
+    try {
+      await Promise.all(targets.map((ev) => client.delete(`/schedules/${ev.id}`)));
+      setEvents((prev) => {
+        const next = { ...prev };
+        delete next[dateStr];
+        return next;
+      });
+    } catch (error) {
+      console.error("Failed to delete events", error);
+      alert('일괄 삭제에 실패했습니다.');
     }
   };
 
@@ -148,24 +239,60 @@ function Schedule() {
               return (
                 <div
                   key={day}
-                  onClick={() => handleDateClick(day)}
-                  className={`border rounded p-1 min-h-[60px] cursor-pointer transition-colors ${
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setDragStartDay(day);
+                    setDragEndDay(day);
+                    setIsDragging(true);
+                    setDragMoved(false);
+                    handleDateClick(day);
+                  }}
+                  onMouseEnter={() => {
+                    if (isDragging) {
+                      setDragEndDay(day);
+                      if (day !== dragStartDay) setDragMoved(true);
+                    }
+                  }}
+                  onMouseUp={() => {
+                    if (isDragging) {
+                      setDragEndDay(day);
+                      if (dragMoved) {
+                        setTimeout(handleRangeCreate, 0);
+                      } else {
+                        setIsDragging(false);
+                        setDragStartDay(null);
+                        setDragEndDay(null);
+                      }
+                    }
+                  }}
+                  className={`border rounded p-2 min-h-[72px] cursor-pointer transition-colors ${
                     isSelected 
                       ? 'bg-primary-100 border-primary-500' 
-                      : 'border-gray-200 hover:bg-gray-50'
+                      : isInDragRange(day)
+                        ? 'bg-blue-50 border-blue-400'
+                        : 'border-gray-200 hover:bg-gray-50'
                   }`}
                 >
-                  <div className="text-xs font-semibold text-gray-700">{day}</div>
-                  <div className="mt-1 space-y-0.5">
-                    {dayEvents.map((event, idx) => (
-                      <div
-                        key={idx}
-                        className="text-[10px] bg-primary-200 text-primary-900 rounded px-1 py-0.5 truncate"
-                        title={event.title}
-                      >
-                        {event.title}
-                      </div>
-                    ))}
+                  <div className="flex items-start gap-1">
+                    <div className="text-xs font-semibold text-gray-700 mt-0.5">{day}</div>
+                  <div className="flex flex-wrap gap-1 flex-1">
+                    {dayEvents.map((event) => {
+                      const color = event.memo && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(event.memo)
+                        ? event.memo
+                        : '#e2e8f0';
+                      const textColor = color === '#e2e8f0' ? '#0f172a' : 'white';
+                      return (
+                        <span
+                          key={event.id}
+                          className="text-[10px] px-1.5 py-0.5 rounded-full truncate max-w-[88px]"
+                          style={{ backgroundColor: color, color: textColor }}
+                          title={event.title}
+                        >
+                          {event.title}
+                        </span>
+                      );
+                    })}
+                  </div>
                   </div>
                 </div>
               );
@@ -186,35 +313,111 @@ function Schedule() {
                 <label htmlFor="eventTitle" className="block text-sm font-medium text-gray-700 mb-2">
                   행사 추가
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    id="eventTitle"
-                    value={newEventTitle}
-                    onChange={(e) => setNewEventTitle(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddEvent()}
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="행사명 입력"
-                  />
-                  <button
-                    onClick={handleAddEvent}
-                    className="px-3 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm font-medium"
-                  >
-                    추가
-                  </button>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      id="eventTitle"
+                      value={newEventTitle}
+                      onChange={(e) => setNewEventTitle(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddEvent()}
+                      className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="행사명 입력"
+                    />
+                    <button
+                      onClick={handleAddEvent}
+                      className="px-3 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm font-medium"
+                    >
+                      추가
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-gray-600">글자색</span>
+                    {COLOR_PRESETS.map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => setPersonalColor(c)}
+                        className={`w-7 h-7 rounded-full border ${personalColor === c ? 'ring-2 ring-offset-1 ring-primary-500' : 'border-gray-300'}`}
+                        style={{ backgroundColor: c }}
+                        title={c}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
+
+              {/* Grade required events */}
+              <div className="mb-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-700">학년별 필수 행사</span>
+                  <select
+                    className="border rounded px-2 py-1 text-sm"
+                    value={selectedGrade}
+                    onChange={(e) => setSelectedGrade(e.target.value)}
+                  >
+                    {['1', '2', '3', '4', '5', '6'].map((g) => (
+                      <option key={g} value={g}>
+                        초등 {g}학년
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {GRADE_EVENTS[selectedGrade].map((event) => (
+                    <button
+                      key={event}
+                      onClick={() => handleAddPresetEvent(event)}
+                      className="px-3 py-1 text-xs rounded-md bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-100"
+                    >
+                      {event}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
 
               {/* Existing Events */}
               {selectedEvents.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">일정 목록</h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium text-gray-700">일정 목록</h3>
+                    <button
+                      onClick={handleDeleteAllForDate}
+                      className="text-xs text-red-600 hover:text-red-800 font-semibold"
+                    >
+                      일괄삭제
+                    </button>
+                  </div>
                   <div className="space-y-2">
-                    {selectedEvents.map((event, idx) => (
-                      <div key={idx} className="text-sm bg-gray-50 rounded-md px-3 py-2 border border-gray-200">
-                        {event.title}
-                      </div>
-                    ))}
+                    {selectedEvents.map((event) => {
+                      const color = event.memo && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(event.memo)
+                        ? event.memo
+                        : '#e2e8f0';
+                      const textColor = color === '#e2e8f0' ? '#0f172a' : 'white';
+                      const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
+                      return (
+                        <div
+                          key={event.id}
+                          className="flex items-center justify-between text-sm bg-gray-50 rounded-md px-3 py-2 border border-gray-200"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="inline-flex items-center justify-center w-3 h-3 rounded-full"
+                              style={{ backgroundColor: color }}
+                            />
+                            <span className="text-sm" style={{ color: textColor === 'white' ? '#0f172a' : textColor }}>
+                              {event.title}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteEvent(event.id, dateStr)}
+                            className="text-xs text-red-600 hover:text-red-800 font-medium"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -224,7 +427,7 @@ function Schedule() {
       </div>
 
       {/* AI Prompt Section */}
-      <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="bg-white overflow-hidden shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           <h2 className="text-lg font-medium leading-6 text-gray-900 mb-4">학사일정 관련 무엇이든 물어보세요.</h2>
           
