@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 
@@ -10,6 +10,36 @@ function SubjectEvaluation() {
   const [response, setResponse] = useState('');
   const [selectedModel] = useState('claude-3-5-sonnet-20241022');
   const [usedModel, setUsedModel] = useState('');
+  const [achievements, setAchievements] = useState([]);
+  const [achMeta, setAchMeta] = useState({ subjects: [], grade_groups: [], areas: [] });
+  const [gradeFilter, setGradeFilter] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('');
+  const [areaFilter, setAreaFilter] = useState('');
+  const [isAchLoading, setIsAchLoading] = useState(false);
+
+  useEffect(() => {
+    fetchAchievementStandards();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gradeFilter, subjectFilter, areaFilter]);
+
+  const fetchAchievementStandards = async () => {
+    setIsAchLoading(true);
+    try {
+      const res = await client.get('/achievement-standards', {
+        params: {
+          grade_group: gradeFilter || undefined,
+          subject: subjectFilter || undefined,
+          area: areaFilter || undefined,
+        },
+      });
+      setAchievements(res.data?.items || []);
+      setAchMeta(res.data?.meta || { subjects: [], grade_groups: [], areas: [] });
+    } catch (error) {
+      console.error("Failed to load achievement standards", error);
+    } finally {
+      setIsAchLoading(false);
+    }
+  };
 
   const handlePromptSubmit = async (e) => {
     e.preventDefault();
@@ -58,6 +88,97 @@ function SubjectEvaluation() {
         >
           &larr; 업무도우미로 돌아가기
         </button>
+      </div>
+
+      {/* 성취기준 미리보기 */}
+      <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="px-4 py-5 sm:p-6 space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">학년·과목별 성취기준</h2>
+              <p className="text-sm text-gray-500 mt-1">필터를 선택하면 해당 학년군·교과의 성취기준과 임의입력 예시를 볼 수 있습니다.</p>
+            </div>
+            <button
+              onClick={fetchAchievementStandards}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              확인
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <select
+              value={gradeFilter}
+              onChange={(e) => setGradeFilter(e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
+            >
+              <option value="">전체 학년군</option>
+              {(achMeta.grade_groups || []).map((g) => (
+                <option key={g} value={g}>{g}학년군</option>
+              ))}
+            </select>
+            <select
+              value={subjectFilter}
+              onChange={(e) => setSubjectFilter(e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
+            >
+              <option value="">전체 교과</option>
+              {(achMeta.subjects || []).map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <select
+              value={areaFilter}
+              onChange={(e) => setAreaFilter(e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
+            >
+              <option value="">전체 영역</option>
+              {(achMeta.areas || []).map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-3">
+            {isAchLoading && (
+              <div className="text-sm text-gray-500">불러오는 중...</div>
+            )}
+            {!isAchLoading && achievements.length === 0 && (
+              <div className="text-sm text-gray-500">표시할 성취기준이 없습니다.</div>
+            )}
+            {!isAchLoading && achievements.map((item) => (
+              <div
+                key={`${item.id}-${item.code}`}
+                className="border border-gray-200 rounded-lg p-3 bg-gray-50"
+              >
+                <div className="flex justify-between items-start gap-3">
+                  <div className="space-y-1">
+                    <div className="text-xs text-gray-600">{item.subject} · {item.grade_group}학년군</div>
+                    <div className="text-sm font-semibold text-gray-900">{item.standard}</div>
+                  </div>
+                  <div className="text-right text-xs text-gray-500">
+                    <div className="font-medium">{item.area}</div>
+                    <div className="font-mono text-gray-400">{item.code}</div>
+                  </div>
+                </div>
+                <div className="mt-3 space-y-1">
+                  <div className="text-xs font-semibold text-gray-700">임의입력 예시</div>
+                  <div className="grid md:grid-cols-3 gap-2">
+                    {(item.examples || []).map((ex) => (
+                      <div
+                        key={ex.level}
+                        className="text-sm text-gray-800 bg-white border border-gray-200 rounded-md px-2 py-1"
+                      >
+                        <span className="font-medium text-gray-900 mr-1">[{ex.level}]</span>
+                        {ex.text}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* AI Prompt Section */}

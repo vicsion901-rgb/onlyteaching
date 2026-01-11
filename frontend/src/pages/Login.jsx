@@ -127,7 +127,7 @@ function Login() {
             onClick={() => setShowRegister(true)}
             className="w-full flex justify-center items-center py-3 px-4 rounded-lg text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition"
           >
-            회원가입(검증 요청)
+            회원가입
           </button>
         </div>
       </div>

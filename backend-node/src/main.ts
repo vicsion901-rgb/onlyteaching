@@ -5,13 +5,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
 
+  // Allow same-origin and LAN access (frontend may be opened via IP)
   app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:3001',
-      'http://127.0.0.1:5173',
-      'http://127.0.0.1:3001',
-    ],
+    origin: true,
     credentials: true,
   });
 
