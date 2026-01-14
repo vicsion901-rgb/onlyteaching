@@ -429,7 +429,7 @@ function Schedule() {
       {/* AI Prompt Section */}
         <div className="bg-white overflow-hidden shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
-          <h2 className="text-lg font-medium leading-6 text-gray-900 mb-4">학사일정 관련 무엇이든 물어보세요.</h2>
+          <h2 className="text-lg font-medium leading-6 text-gray-900 mb-4">학사일정 관련해서 무엇이든 물어보세요.</h2>
           
           <form onSubmit={handlePromptSubmit}>
             <div className="mb-2">
@@ -439,7 +439,7 @@ function Schedule() {
                   id="prompt"
                   className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 pb-10"
                   rows={12}
-                  placeholder="학사일정 관련 무엇이든 물어보세요."
+                  placeholder="학사 일정 한글 파일을 드래그 해주시면 캘린더에 자동 연동됩니다."
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                 />

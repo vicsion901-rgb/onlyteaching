@@ -48,20 +48,41 @@ export class StudentRecordsService {
     return this.studentRepo.find({ order: { number: 'ASC' } });
   }
 
-  async saveStudents(payload: Array<{ number: number; name: string }>) {
+  async saveStudents(
+    payload: Array<{
+      number: number;
+      name: string;
+      residentNumber?: string;
+      address?: string;
+      sponsor?: string;
+      remark?: string;
+    }>,
+  ) {
     // simple replace-upsert by number
     const normalized = payload
-      .filter((p) => p.number && p.name)
+      .filter(
+        (p) =>
+          p.number &&
+          (p.name || p.residentNumber || p.address || p.sponsor || p.remark),
+      )
       .map((p) => ({
         number: Number(p.number),
-        name: p.name.trim(),
+        name: (p.name || '').trim(),
+        residentNumber: p.residentNumber?.trim() || undefined,
+        address: p.address?.trim() || undefined,
+        sponsor: p.sponsor?.trim() || undefined,
+        remark: p.remark?.trim() || undefined,
       }))
-      .filter((p) => p.number > 0 && p.name.length > 0);
+      .filter((p) => p.number > 0);
 
     for (const item of normalized) {
       const existing = await this.studentRepo.findOne({ where: { number: item.number } });
       if (existing) {
         existing.name = item.name;
+        existing.residentNumber = item.residentNumber;
+        existing.address = item.address;
+        existing.sponsor = item.sponsor;
+        existing.remark = item.remark;
         await this.studentRepo.save(existing);
       } else {
         await this.studentRepo.save(this.studentRepo.create(item));

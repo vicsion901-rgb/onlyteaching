@@ -11,7 +11,17 @@ export class StudentRecordsController {
   }
 
   @Post('bulk')
-  bulkSave(@Body() payload: Array<{ number: number; name: string }>) {
+  bulkSave(
+    @Body()
+    payload: Array<{
+      number: number;
+      name: string;
+      residentNumber?: string;
+      address?: string;
+      sponsor?: string;
+      remark?: string;
+    }>,
+  ) {
     return this.studentRecordsService.saveStudents(payload || []);
   }
 }

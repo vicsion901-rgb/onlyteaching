@@ -16,8 +16,20 @@ export class StudentRecord {
   @Column()
   number: number;
 
-  @Column()
-  name: string;
+@Column({ nullable: true })
+name?: string;
+
+@Column({ nullable: true })
+residentNumber?: string;
+
+@Column({ nullable: true })
+address?: string;
+
+@Column({ nullable: true })
+sponsor?: string;
+
+@Column({ nullable: true })
+remark?: string;
 
   @CreateDateColumn()
   createdAt: Date;

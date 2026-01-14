@@ -2,6 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 
+const EXTRA_FIELDS = [
+  { key: 'residentNumber', label: '주민등록번호' },
+  { key: 'address', label: '주소' },
+  { key: 'sponsor', label: '전액자' },
+  { key: 'remark', label: '비고' },
+  { key: 'none', label: '사용 안함' },
+];
+
+const getFieldWidthClass = () => 'w-32 min-w-[130px]';
+
 function StudentRecords() {
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
@@ -13,19 +23,58 @@ function StudentRecords() {
   const [response, setResponse] = useState('');
   const [selectedModel] = useState('claude-3-5-sonnet-20241022');
   const [usedModel, setUsedModel] = useState('');
+  const [selectedFields, setSelectedFields] = useState(['residentNumber', 'address', 'sponsor']);
   const saveTimeoutRef = useRef(null);
   const hasFetchedRef = useRef(false);
+  const scrollRef = useRef(null);
+  const topScrollRef = useRef(null);
+  const isSyncingScroll = useRef(false);
+  const [scrollWidth, setScrollWidth] = useState(1200);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartX = useRef(0);
+  const dragScrollLeft = useRef(0);
 
   const withPlaceholders = (list) => {
     if (!list) return [];
-    if (list.length >= 30) return list;
-    const start = list.length;
-    const placeholders = Array.from({ length: 30 - start }, (_, i) => ({
-      id: `temp-${start + i + 1}`,
-      number: start + i + 1,
-      name: ''
-    }));
-    return [...list, ...placeholders];
+    const sorted = [...list].sort((a, b) => Number(a.number) - Number(b.number));
+    const maxNum = Math.max(30, sorted.length > 0 ? Number(sorted[sorted.length - 1].number) : 0, 30);
+    const rows = [];
+    for (let num = 1; num <= maxNum; num += 1) {
+      const found = sorted.find((s) => Number(s.number) === num);
+      if (found) {
+        rows.push({
+          ...found,
+          residentNumber: found.residentNumber || '',
+          address: found.address || '',
+          sponsor: found.sponsor || '',
+          remark: found.remark || '',
+        });
+      } else if (rows.length < 30) {
+        rows.push({
+          id: `temp-${num}`,
+          number: num,
+          name: '',
+          residentNumber: '',
+          address: '',
+          sponsor: '',
+          remark: '',
+        });
+      }
+    }
+    // Ensure at least 30 rows
+    while (rows.length < 30) {
+      const num = rows.length + 1;
+      rows.push({
+        id: `temp-${num}`,
+        number: num,
+        name: '',
+        residentNumber: '',
+        address: '',
+        sponsor: '',
+        remark: '',
+      });
+    }
+    return rows;
   };
 
   useEffect(() => {
@@ -48,12 +97,26 @@ function StudentRecords() {
     };
   }, []);
 
+  // Include existing rows even if name is cleared, so 번호 stays.
   const buildPayload = (list) =>
     list
-      .filter((s) => s.name && s.name.trim() !== '')
+      .filter((s) => {
+        const hasNumber = s.number && Number(s.number) > 0;
+        const hasAnyField =
+          (s.name && s.name.trim() !== '') ||
+          (s.residentNumber && s.residentNumber.trim() !== '') ||
+          (s.address && s.address.trim() !== '') ||
+          (s.sponsor && s.sponsor.trim() !== '') ||
+          (s.remark && s.remark.trim() !== '');
+        return hasNumber && hasAnyField;
+      })
       .map((s) => ({
         number: s.number,
-        name: s.name.trim(),
+        name: (s.name || '').trim(),
+        residentNumber: (s.residentNumber || '').trim(),
+        address: (s.address || '').trim(),
+        sponsor: (s.sponsor || '').trim(),
+        remark: (s.remark || '').trim(),
       }));
 
   const saveStudents = async (list, mode = 'manual') => {
@@ -82,22 +145,43 @@ function StudentRecords() {
     }, 1200);
   };
 
-  const handleNameChange = (rowId, newName) => {
-    const next = students.map(student => {
+  const handleFieldChange = (rowId, key, value) => {
+    const next = students.map((student) => {
       const sid = student.student_id ?? student.id;
-      return sid === rowId ? { ...student, name: newName } : student;
+      return sid === rowId ? { ...student, [key]: value } : student;
     });
     setStudents(next);
     triggerAutoSave(next);
   };
 
+  const handleFieldSelectChange = (idx, value) => {
+    setSelectedFields((prev) => {
+      const next = [...prev];
+      if (value === 'none') {
+        next.splice(idx, 1); // remove when selecting "사용 안함"
+      } else {
+        next[idx] = value;
+      }
+      return next;
+    });
+  };
+
+  const visibleFields = selectedFields.filter((f) => f !== 'none');
+
   const addRow = () => {
-    const newId = students.length > 0 ? Math.max(...students.map(s => s.number)) + 1 : 1;
-    setStudents([...students, {
-      id: `temp-${newId}`,
-      number: newId,
-      name: ''
-    }]);
+    const newId = students.length > 0 ? Math.max(...students.map((s) => s.number)) + 1 : 1;
+    setStudents([
+      ...students,
+      {
+        id: `temp-${newId}`,
+        number: newId,
+        name: '',
+        residentNumber: '',
+        address: '',
+        sponsor: '',
+        remark: '',
+      },
+    ]);
   };
 
   const handleSave = async () => {
@@ -142,146 +226,285 @@ function StudentRecords() {
     }
   };
 
+  const syncScrollPositions = (source, target, left) => {
+    if (!source.current || !target.current) return;
+    if (isSyncingScroll.current) return;
+    isSyncingScroll.current = true;
+    target.current.scrollLeft = left;
+    // Allow the other handler to run after this frame
+    setTimeout(() => {
+      isSyncingScroll.current = false;
+    }, 0);
+  };
+
+  const handleTopScroll = () => {
+    if (!topScrollRef.current) return;
+    syncScrollPositions(topScrollRef, scrollRef, topScrollRef.current.scrollLeft);
+  };
+
+  const handleBottomScroll = () => {
+    if (!scrollRef.current) return;
+    syncScrollPositions(scrollRef, topScrollRef, scrollRef.current.scrollLeft);
+  };
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (scrollRef.current) {
+        setScrollWidth(scrollRef.current.scrollWidth || 1200);
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      setScrollWidth(scrollRef.current.scrollWidth || 1200);
+    }
+  }, [selectedFields, students]);
+
+  const scrollByAmount = (delta) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: delta, behavior: 'smooth' });
+    }
+  };
+
+  const handleMouseDown = (e) => {
+    if (!scrollRef.current) return;
+    setIsDragging(true);
+    dragStartX.current = e.pageX;
+    dragScrollLeft.current = scrollRef.current.scrollLeft;
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || !scrollRef.current) return;
+    const walk = dragStartX.current - e.pageX;
+    scrollRef.current.scrollLeft = dragScrollLeft.current + walk;
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">학생명부</h1>
           <p className="mt-1 text-sm text-gray-500">학생 번호와 이름을 관리합니다</p>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600 min-w-[110px] text-right">{saveMessage}</span>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${isSaving ? 'bg-gray-400' : 'bg-primary-600 hover:bg-primary-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors`}
-          >
-            {isSaving ? '저장 중...' : '저장'}
-          </button>
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="text-primary-600 hover:text-primary-900 font-medium"
-          >
-            &larr; 홈으로 돌아가기
-          </button>
+        <div className="flex items-start gap-3">
+          <span className="text-sm text-gray-600 min-w-[130px] text-right pt-2">{saveMessage}</span>
+          <div className="flex flex-col items-end gap-2 mt-8">
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="text-primary-600 hover:text-primary-900 font-medium"
+            >
+              &larr; 홈으로 돌아가기
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isSaving ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors`}
+            >
+              {isSaving ? '저장 중...' : '저장'}
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between sticky top-0 z-10">
-          <span className="text-sm text-gray-700 font-medium">학생 이름 입력 후 저장을 눌러주세요.</span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                  번호
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  이름
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {students.map((student) => (
-                <tr key={student.student_id || student.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {student.number}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="text"
-                      value={student.name}
-                      onChange={(e) => handleNameChange(student.student_id ?? student.id, e.target.value)}
-                      className="w-full border-0 focus:ring-2 focus:ring-primary-500 rounded-md px-3 py-2 text-sm"
-                      placeholder="이름 입력"
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="w-full flex justify-center py-4 border-t border-gray-200">
-          <button
-            onClick={addRow}
-            className="inline-flex items-center px-4 py-2 border border-black text-sm font-medium rounded-md text-white bg-black hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700 transition-colors"
-          >
-            <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            학생 추가
-          </button>
-        </div>
-        
-      </div>
-
-      {/* AI Prompt Section */}
-      <div className="bg-white overflow-hidden shadow rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <h2 className="text-lg font-medium leading-6 text-gray-900 mb-4">학생명부 관련 무엇이든 물어보세요.</h2>
-          
-          <form onSubmit={handlePromptSubmit}>
-            <div className="mb-2">
-              <label htmlFor="prompt" className="sr-only">Prompt</label>
-              <div className="relative">
-                <textarea
-                  id="prompt"
-                  className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 pb-10"
-                  rows={12}
-                  placeholder="학생명부 관련 무엇이든 물어보세요."
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                />
-                <div className="absolute bottom-2 left-2">
-                    <input
-                      type="file"
-                      id="file-upload"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={(e) => setFile(e.target.files[0])}
-                    />
-                    <label
-                      htmlFor="file-upload"
-                      className={`cursor-pointer inline-flex items-center p-1.5 rounded-full hover:bg-gray-100 transition-colors ${file ? 'text-primary-600 bg-primary-50' : 'text-gray-400'}`}
-                      title="이미지 업로드"
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="bg-white shadow rounded-lg overflow-hidden h-full flex flex-col">
+          <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between sticky top-0 z-10">
+            <span className="text-sm text-gray-700 font-medium">학생 이름 입력 후 저장을 눌러주세요.</span>
+          </div>
+          {/* Top horizontal scrollbar */}
+          <div className="bg-gray-50 px-6 py-2 border-b border-gray-200">
+            <div
+              ref={topScrollRef}
+              onScroll={handleTopScroll}
+              className="overflow-x-auto w-full h-3"
+            >
+              <div style={{ width: `${scrollWidth}px` }} className="h-2 rounded-full bg-gray-200" />
+            </div>
+          </div>
+          <div className="relative">
+            <div
+              className="overflow-x-auto w-full cursor-grab active:cursor-grabbing"
+              ref={scrollRef}
+              onScroll={handleBottomScroll}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            >
+              <table className="inline-table table-fixed divide-y divide-gray-200 border-collapse">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                      번호
+                    </th>
+                    <th
+                      scope="col"
+                      className="pl-2 pr-1 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
-                      </svg>
-                      {file && <span className="ml-1 text-xs font-medium">{file.name}</span>}
-                    </label>
-                  </div>
-              </div>
-              <div className="flex justify-end mt-3">
-                <button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isSubmitting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
-                >
-                  {isSubmitting ? '생성 중...' : '생성하기'}
-                </button>
-              </div>
+                      <span className="mr-2">이름</span>
+                    </th>
+                    {visibleFields.map((field, idx) => (
+                      <th
+                        key={`h-${field}-${idx}`}
+                        scope="col"
+                        className={`py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                          idx === 0 ? 'pl-0 pr-1' : 'px-2'
+                        } ${getFieldWidthClass(field)}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={field}
+                            onChange={(e) => handleFieldSelectChange(idx, e.target.value)}
+                            className="text-xs border rounded px-2 py-1 bg-white"
+                          >
+                            {EXTRA_FIELDS.map((opt) => (
+                              <option key={opt.key} value={opt.key}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </th>
+                    ))}
+                    <th scope="col" className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                      <div className="flex items-center justify-start">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFields((prev) => [...prev, 'none'])}
+                          className="inline-flex items-center justify-center h-8 w-8 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm"
+                          title="필드 추가"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {students.map((student) => (
+                    <tr key={student.student_id || student.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900 align-middle">
+                        {student.number}
+                      </td>
+                      <td className="px-2 py-4 whitespace-nowrap align-middle">
+                        <input
+                          type="text"
+                          value={student.name}
+                          onChange={(e) => handleFieldChange(student.student_id ?? student.id, 'name', e.target.value)}
+                          className="w-full min-w-[160px] border-0 focus:ring-2 focus:ring-primary-500 rounded-md px-0 py-2 text-sm"
+                          placeholder=""
+                        />
+                      </td>
+                      {visibleFields.map((field, idx) => (
+                        <td
+                          key={`c-${student.id}-${field}-${idx}`}
+                        className={`px-3 py-4 whitespace-nowrap ${getFieldWidthClass(field)}`}
+                        >
+                          {field ? (
+                            <input
+                              type="text"
+                              value={student[field] || ''}
+                              onChange={(e) => handleFieldChange(student.student_id ?? student.id, field, e.target.value)}
+                              className="w-full border-0 focus:ring-2 focus:ring-primary-500 rounded-md px-3 py-2 text-sm"
+                              placeholder=""
+                            />
+                          ) : null}
+                        </td>
+                      ))}
+                      <td className="px-2 py-4 whitespace-nowrap" />
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </form>
-          {response && (
-            <div className="mt-6 bg-gray-50 rounded-md p-4 border border-gray-200">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-sm font-medium text-gray-900">결과:</h3>
-                {usedModel && (
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    usedModel.startsWith('claude') ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                  }`}>
-                    {usedModel.startsWith('claude') ? '🤖 Claude' : 
-                     usedModel === 'gpt-4o-mini' ? '⚡ GPT-4o Mini' : '🧠 GPT-4o'}
-                  </span>
-                )}
+          </div>
+          <div className="w-full flex justify-center py-4 border-t border-gray-200">
+            <button
+              onClick={addRow}
+              className="inline-flex items-center px-4 py-2 border border-black text-sm font-medium rounded-md text-white bg-black hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700 transition-colors"
+            >
+              <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              학생 추가
+            </button>
+          </div>
+        </div>
+
+        {/* AI Prompt Section */}
+        <div className="bg-white overflow-hidden shadow rounded-lg h-full flex flex-col">
+          <div className="px-4 py-5 sm:p-6 flex-1 flex flex-col">
+            <h2 className="text-lg font-medium leading-6 text-gray-900 mb-4">학생명부 관련해서 무엇이든 물어보세요.</h2>
+            
+            <form onSubmit={handlePromptSubmit} className="flex-1 flex flex-col">
+              <div className="mb-2 flex flex-col" style={{ minHeight: '480px' }}>
+                <label htmlFor="prompt" className="sr-only">Prompt</label>
+                <div className="relative">
+                  <textarea
+                    id="prompt"
+                    className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 pb-10 min-h-[400px] max-h-[560px] whitespace-nowrap"
+                    rows={12}
+                    placeholder="학생명부가 담긴 한글 문서, 엑셀 파일, 이미지 파일을 드래그해 주시면 자동 반영됩니다."
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                  />
+                  <div className="absolute bottom-2 left-2">
+                      <input
+                        type="file"
+                        id="file-upload"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => setFile(e.target.files[0])}
+                      />
+                      <label
+                        htmlFor="file-upload"
+                        className={`cursor-pointer inline-flex items-center p-1.5 rounded-full hover:bg-gray-100 transition-colors ${file ? 'text-primary-600 bg-primary-50' : 'text-gray-400'}`}
+                        title="이미지 업로드"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+                        </svg>
+                        {file && <span className="ml-1 text-xs font-medium">{file.name}</span>}
+                      </label>
+                    </div>
+                </div>
+                <div className="flex justify-end mt-3">
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isSubmitting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
+                  >
+                    {isSubmitting ? '생성 중...' : '생성하기'}
+                  </button>
+                </div>
               </div>
-              <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono bg-white p-3 rounded border border-gray-200">{response}</pre>
-            </div>
-          )}
+            </form>
+            {response && (
+              <div className="mt-6 bg-gray-50 rounded-md p-4 border border-gray-200">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-sm font-medium text-gray-900">결과:</h3>
+                  {usedModel && (
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      usedModel.startsWith('claude') ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {usedModel.startsWith('claude') ? '🤖 Claude' : 
+                       usedModel === 'gpt-4o-mini' ? '⚡ GPT-4o Mini' : '🧠 GPT-4o'}
+                    </span>
+                  )}
+                </div>
+                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono bg-white p-3 rounded border border-gray-200">{response}</pre>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
