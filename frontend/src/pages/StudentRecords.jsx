@@ -10,6 +10,8 @@ const EXTRA_FIELDS = [
   { key: 'none', label: '사용 안함' },
 ];
 
+const ADDABLE_FIELD_KEYS = EXTRA_FIELDS.filter((f) => f.key !== 'none').map((f) => f.key);
+
 const getFieldWidthClass = () => 'w-32 min-w-[130px]';
 
 function StudentRecords() {
@@ -166,7 +168,11 @@ function StudentRecords() {
     });
   };
 
-  const visibleFields = selectedFields.filter((f) => f !== 'none');
+  // Keep stable indexing back into selectedFields even if it already contains "none" entries
+  // (e.g. from a previous session/hot-reload), so selecting "사용 안함" always removes the correct column.
+  const visibleFieldEntries = selectedFields
+    .map((field, originalIdx) => ({ field, originalIdx }))
+    .filter(({ field }) => field !== 'none');
 
   const addRow = () => {
     const newId = students.length > 0 ? Math.max(...students.map((s) => s.number)) + 1 : 1;
@@ -289,12 +295,12 @@ function StudentRecords() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
+      <div className="flex items-start gap-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">학생명부</h1>
           <p className="mt-1 text-sm text-gray-500">학생 번호와 이름을 관리합니다</p>
         </div>
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 ml-auto">
           <span className="text-sm text-gray-600 min-w-[130px] text-right pt-2">{saveMessage}</span>
           <div className="flex flex-col items-end gap-2 mt-8">
             <button 
@@ -314,9 +320,9 @@ function StudentRecords() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="bg-white shadow rounded-lg overflow-hidden h-full flex flex-col">
-          <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between sticky top-0 z-10">
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <div className="bg-white shadow rounded-lg overflow-hidden h-full flex flex-col lg:w-1/2">
+          <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center sticky top-0 z-10">
             <span className="text-sm text-gray-700 font-medium">학생 이름 입력 후 저장을 눌러주세요.</span>
           </div>
           {/* Top horizontal scrollbar */}
@@ -339,31 +345,33 @@ function StudentRecords() {
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-              <table className="inline-table table-fixed divide-y divide-gray-200 border-collapse">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
-                      번호
-                    </th>
-                    <th
-                      scope="col"
-                      className="pl-2 pr-1 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
-                    >
-                      <span className="mr-2">이름</span>
-                    </th>
-                    {visibleFields.map((field, idx) => (
-                      <th
-                        key={`h-${field}-${idx}`}
-                        scope="col"
-                        className={`py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                          idx === 0 ? 'pl-0 pr-1' : 'px-2'
-                        } ${getFieldWidthClass(field)}`}
-                      >
-                        <div className="flex items-center gap-2">
+              {/* Flex-based "table" layout (no table/grid/colgroup/space-between) */}
+              <div className="inline-flex w-max flex-col" data-sr-gapref>
+                {/* Header row */}
+                <div className="bg-gray-50 border-b border-gray-200 px-2 py-3">
+                  <div className="flex items-center justify-start" data-sr-header-parent>
+                    {/* Left group: 번호 + 이름 (fixed group, gap-only) */}
+                    <div className="flex items-center gap-3 whitespace-nowrap flex-shrink-0" data-sr-left>
+                      <div className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[44px]">
+                        번호
+                      </div>
+                      <div className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                        <span data-sr-name>이름</span>
+                      </div>
+                    </div>
+
+                    {/* Right group: selectable tabs accumulate to the right with a single fixed margin-left */}
+                    <div className="flex items-center gap-3 whitespace-nowrap" data-sr-tabs>
+                      {visibleFieldEntries.map(({ field, originalIdx }) => (
+                        <div
+                          key={`h-${field}-${originalIdx}`}
+                          className={getFieldWidthClass(field)}
+                          data-sr-field={field}
+                        >
                           <select
                             value={field}
-                            onChange={(e) => handleFieldSelectChange(idx, e.target.value)}
-                            className="text-xs border rounded px-2 py-1 bg-white"
+                            onChange={(e) => handleFieldSelectChange(originalIdx, e.target.value)}
+                            className="text-xs border rounded px-2 py-1 bg-white w-full"
                           >
                             {EXTRA_FIELDS.map((opt) => (
                               <option key={opt.key} value={opt.key}>
@@ -372,58 +380,102 @@ function StudentRecords() {
                             ))}
                           </select>
                         </div>
-                      </th>
-                    ))}
-                    <th scope="col" className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
-                      <div className="flex items-center justify-start">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedFields((prev) => [...prev, 'none'])}
-                          className="inline-flex items-center justify-center h-8 w-8 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm"
-                          title="필드 추가"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {students.map((student) => (
-                    <tr key={student.student_id || student.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900 align-middle">
-                        {student.number}
-                      </td>
-                      <td className="px-2 py-4 whitespace-nowrap align-middle">
-                        <input
-                          type="text"
-                          value={student.name}
-                          onChange={(e) => handleFieldChange(student.student_id ?? student.id, 'name', e.target.value)}
-                          className="w-full min-w-[160px] border-0 focus:ring-2 focus:ring-primary-500 rounded-md px-0 py-2 text-sm"
-                          placeholder=""
-                        />
-                      </td>
-                      {visibleFields.map((field, idx) => (
-                        <td
-                          key={`c-${student.id}-${field}-${idx}`}
-                        className={`px-3 py-4 whitespace-nowrap ${getFieldWidthClass(field)}`}
-                        >
-                          {field ? (
-                            <input
-                              type="text"
-                              value={student[field] || ''}
-                              onChange={(e) => handleFieldChange(student.student_id ?? student.id, field, e.target.value)}
-                              className="w-full border-0 focus:ring-2 focus:ring-primary-500 rounded-md px-3 py-2 text-sm"
-                              placeholder=""
-                            />
-                          ) : null}
-                        </td>
                       ))}
-                      <td className="px-2 py-4 whitespace-nowrap" />
-                    </tr>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedFields((prev) => {
+                            const used = new Set(prev);
+                            const nextKey = ADDABLE_FIELD_KEYS.find((k) => !used.has(k)) || 'residentNumber';
+                            return [...prev, nextKey];
+                          })
+                        }
+                        className="inline-flex items-center justify-center h-8 w-8 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm"
+                        title="필드 추가"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Body rows */}
+                <div className="bg-white">
+                  {students.map((student) => (
+                    <div
+                      key={student.student_id || student.id}
+                      className="flex items-center border-b border-gray-200 hover:bg-gray-50 px-2"
+                    >
+                      {/* Left group cells */}
+                      <div className="flex items-center gap-3 whitespace-nowrap py-2 flex-shrink-0" data-sr-left>
+                        <div className="w-[44px] text-sm font-medium text-gray-900">
+                          {student.number}
+                        </div>
+                        <div className="w-[180px]">
+                          <input
+                            type="text"
+                            value={student.name}
+                            onChange={(e) =>
+                              handleFieldChange(student.student_id ?? student.id, 'name', e.target.value)
+                            }
+                            className="w-full min-w-0 border-0 focus:ring-2 focus:ring-primary-500 rounded-md px-0 py-2 text-sm"
+                            placeholder=""
+                          />
+                        </div>
+                      </div>
+
+                      {/* Right group cells */}
+                      <div className="flex items-center gap-3 whitespace-nowrap py-2" data-sr-tabs>
+                        {visibleFieldEntries.map(({ field, originalIdx }) => (
+                          <div key={`c-${student.id}-${field}-${originalIdx}`} className={getFieldWidthClass(field)}>
+                            {field ? (
+                              <input
+                                type="text"
+                                value={student[field] || ''}
+                                onChange={(e) =>
+                                  handleFieldChange(student.student_id ?? student.id, field, e.target.value)
+                                }
+                                className="w-full border-0 focus:ring-2 focus:ring-primary-500 rounded-md px-3 py-2 text-sm"
+                                placeholder=""
+                              />
+                            ) : null}
+                          </div>
+                        ))}
+                        {/* Spacer so rows match header height even if right group empty */}
+                        <div className="w-8" />
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </div>
+              <style>{`
+                /* Use 번호–이름 "실제 간격"을 기준값으로 삼아 이름–주민등록번호 간격에 그대로 복제 */
+                [data-sr-gapref] {
+                  --sr-gap: 12px;
+                }
+                /* Force header spacing between '이름' and '주민등록번호' regardless of layout changes */
+                [data-sr-header-parent] {
+                  justify-content: flex-start !important;
+                  gap: 0 !important;
+                }
+                [data-sr-tabs] {
+                  margin-left: var(--sr-gap) !important;
+                }
+                [data-sr-left] {
+                  gap: var(--sr-gap) !important;
+                }
+                [data-sr-field="residentNumber"] {
+                  width: auto !important;
+                  min-width: unset !important;
+                  flex: 0 0 auto !important;
+                }
+                [data-sr-field="residentNumber"] select {
+                  width: auto !important;
+                  min-width: unset !important;
+                  flex: 0 0 auto !important;
+                }
+              `}</style>
             </div>
           </div>
           <div className="w-full flex justify-center py-4 border-t border-gray-200">
@@ -440,7 +492,7 @@ function StudentRecords() {
         </div>
 
         {/* AI Prompt Section */}
-        <div className="bg-white overflow-hidden shadow rounded-lg h-full flex flex-col">
+        <div className="bg-white overflow-hidden shadow rounded-lg h-full flex flex-col lg:w-1/2">
           <div className="px-4 py-5 sm:p-6 flex-1 flex flex-col">
             <h2 className="text-lg font-medium leading-6 text-gray-900 mb-4">학생명부 관련해서 무엇이든 물어보세요.</h2>
             
@@ -490,7 +542,7 @@ function StudentRecords() {
             </form>
             {response && (
               <div className="mt-6 bg-gray-50 rounded-md p-4 border border-gray-200">
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-2 mb-2">
                   <h3 className="text-sm font-medium text-gray-900">결과:</h3>
                   {usedModel && (
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
