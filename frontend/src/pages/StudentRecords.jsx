@@ -20,6 +20,297 @@ const formatResidentNumber = (value) => {
   return `${digits.slice(0, 6)}-${digits.slice(6)}`;
 };
 
+const TESSERACT_CDN = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+
+const loadTesseract = () =>
+  new Promise((resolve, reject) => {
+    if (typeof window !== 'undefined' && window.Tesseract) return resolve(window.Tesseract);
+    const existing = document.querySelector(`script[src="${TESSERACT_CDN}"]`);
+    if (existing) {
+      existing.addEventListener('load', () => resolve(window.Tesseract));
+      existing.addEventListener('error', reject);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = TESSERACT_CDN;
+    script.async = true;
+    script.onload = () => resolve(window.Tesseract);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+
+const digitsOnly = (s) => String(s || '').replace(/\D/g, '');
+
+const isBlank = (s) => !s || String(s).trim() === '';
+
+const normalizeHeader = (s) => String(s || '').replace(/\s+/g, '');
+
+const cleanHangulName = (s) => {
+  const raw = String(s || '');
+  // Keep Hangul and spaces only.
+  const cleaned = raw.replace(/[^가-힣\s]/g, '').replace(/\s+/g, ' ').trim();
+  return cleaned.length >= 2 ? cleaned : '';
+};
+
+const isValidRrnDigits = (digits13) => {
+  const d = String(digits13 || '');
+  if (!/^\d{13}$/.test(d)) return false;
+  const yy = Number(d.slice(0, 2));
+  const mm = Number(d.slice(2, 4));
+  const dd = Number(d.slice(4, 6));
+  // Basic plausibility checks (month/day range). We don't infer century here.
+  if (!(mm >= 1 && mm <= 12)) return false;
+  if (!(dd >= 1 && dd <= 31)) return false;
+  // 7th digit typically 1-4 (Korean resident reg.); allow 5-8 for foreigners to avoid false negatives.
+  const g = Number(d[6]);
+  if (!(g >= 1 && g <= 8)) return false;
+  // Avoid obviously bogus values (all same digit).
+  if (/^(\d)\1{12}$/.test(d)) return false;
+  return true;
+};
+
+const cleanAddress = (s) => {
+  const raw = String(s || '').replace(/\s+/g, ' ').trim();
+  const hangulCount = (raw.match(/[가-힣]/g) || []).length;
+  // If it's mostly not Korean text, treat as garbage.
+  if (hangulCount < 3) return '';
+  // Strip weird control chars.
+  return raw.replace(/[^\w가-힣\s\-()\.·,]/g, '').trim();
+};
+
+const median = (arr) => {
+  if (!arr.length) return 0;
+  const a = [...arr].sort((x, y) => x - y);
+  const mid = Math.floor(a.length / 2);
+  return a.length % 2 === 0 ? (a[mid - 1] + a[mid]) / 2 : a[mid];
+};
+
+const clusterWordsIntoRows = (words) => {
+  const w = (words || [])
+    .filter((x) => x && x.text && String(x.text).trim() !== '')
+    .map((x) => ({
+      text: String(x.text),
+      bbox: x.bbox,
+      x: (x.bbox.x0 + x.bbox.x1) / 2,
+      y: (x.bbox.y0 + x.bbox.y1) / 2,
+      h: x.bbox.y1 - x.bbox.y0,
+    }))
+    .sort((a, b) => a.y - b.y);
+
+  const hMed = median(w.map((x) => x.h)) || 14;
+  const threshold = Math.max(8, hMed * 0.7);
+
+  const rows = [];
+  for (const item of w) {
+    const last = rows[rows.length - 1];
+    if (!last || Math.abs(item.y - last.y) > threshold) {
+      rows.push({ y: item.y, items: [item] });
+    } else {
+      last.items.push(item);
+      last.y = (last.y * (last.items.length - 1) + item.y) / last.items.length;
+    }
+  }
+  return rows.map((r) => r.items.sort((a, b) => a.x - b.x));
+};
+
+const parseRosterFromOcrWords = (words) => {
+  const rows = clusterWordsIntoRows(words);
+  if (!rows.length) return [];
+
+  const headerKeys = {
+    name: ['성명', '이름'],
+    residentNumber: ['주민등록번호', '주민번호', '주민등록'],
+    address: ['주소'],
+  };
+
+  const headerIdx = rows.findIndex((r) => {
+    const joined = normalizeHeader(r.map((x) => x.text).join(''));
+    const hits =
+      (headerKeys.name.some((k) => joined.includes(k)) ? 1 : 0) +
+      (headerKeys.residentNumber.some((k) => joined.includes(k)) ? 1 : 0) +
+      (headerKeys.address.some((k) => joined.includes(k)) ? 1 : 0);
+    return hits >= 2;
+  });
+
+  const rrnPattern = /(\d{6})[- ]?(\d{7})/;
+
+  const extractRowNumberFromRow = (r) => {
+    // Excel roster usually has "순" column at far left with 1..N.
+    // Pick the left-most short integer token as row number.
+    const candidates = (r || [])
+      .map((w) => {
+        const t = String(w.text || '').trim();
+        const d = digitsOnly(t);
+        const n = d ? Number(d) : NaN;
+        return { n, x: w.x, len: d.length };
+      })
+      .filter((c) => Number.isFinite(c.n) && c.len > 0 && c.len <= 2 && c.n >= 1 && c.n <= 60);
+
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => a.x - b.x);
+    return candidates[0].n;
+  };
+
+  const extractRrnDigitsFromText = (text) => {
+    const s = String(text || '');
+    const m = s.match(rrnPattern);
+    if (m) return `${m[1]}${m[2]}`;
+    const d = digitsOnly(s);
+    return d.length === 13 ? d : '';
+  };
+
+  const extractRrnDigitsFromRow = (r) => {
+    for (const w of r) {
+      const d = extractRrnDigitsFromText(w.text);
+      if (d) return d;
+    }
+    return '';
+  };
+
+  const looksLikeDataRow = (r) => {
+    // Only treat as a student row if we can find an actual 주민번호 token (13 digits / 6-7 pattern).
+    return Boolean(extractRrnDigitsFromRow(r));
+  };
+
+  const pickNameNearRrn = (r) => {
+    // Find the 주민번호 token, then pick the nearest Hangul-heavy token to its left.
+    const rrnIdx = r.findIndex((w) => Boolean(extractRrnDigitsFromText(w.text)));
+    if (rrnIdx < 0) return '';
+    const left = r.slice(0, rrnIdx).reverse();
+    const candidate = left.find((w) => (w.text.match(/[가-힣]/g) || []).length >= 2);
+    const picked = candidate ? candidate.text.trim() : '';
+    return cleanHangulName(picked);
+  };
+
+  const parseByResidentNumberPattern = () => {
+    const out = [];
+    for (const r of rows) {
+      if (!looksLikeDataRow(r)) continue;
+      const rrnDigits = extractRrnDigitsFromRow(r);
+      if (!rrnDigits || !isValidRrnDigits(rrnDigits)) continue;
+      const name = pickNameNearRrn(r);
+      const number = extractRowNumberFromRow(r);
+
+      // Address is optional; try to grab Hangul text to the right of rrn that looks like an address.
+      const rrnIdx = r.findIndex((w) => Boolean(extractRrnDigitsFromText(w.text)));
+      const rightText = rrnIdx >= 0 ? r.slice(rrnIdx + 1).map((x) => x.text).join(' ').trim() : '';
+      const address =
+        /[가-힣]/.test(rightText) && /(로|길|동|번지|호)/.test(rightText) ? cleanAddress(rightText) : '';
+
+      const item = {
+        name: cleanHangulName(name),
+        residentNumber: rrnDigits ? formatResidentNumber(rrnDigits) : '',
+        address: cleanAddress(address),
+        number,
+      };
+      // If something is unclear, keep it empty rather than adding garbage.
+      if (isBlank(item.name)) item.name = '';
+      if (isBlank(item.address)) item.address = '';
+      if (isBlank(item.residentNumber)) item.residentNumber = '';
+      if (isBlank(item.name) && isBlank(item.residentNumber) && isBlank(item.address)) continue;
+      out.push(item);
+    }
+    return out;
+  };
+
+  // Try header-based parsing first. If header isn't detected, fall back to 주민번호 패턴 기반 파싱.
+  if (headerIdx < 0) {
+    return parseByResidentNumberPattern();
+  }
+
+  const startIdx = headerIdx;
+  const headerRow = rows[startIdx];
+
+  const findHeaderX = (keys) => {
+    const joined = headerRow.map((x) => ({ t: normalizeHeader(x.text), x: x.x }));
+    const hit = joined.find((w) => keys.some((k) => w.t.includes(k)));
+    return hit ? hit.x : null;
+  };
+
+  const colCenters = [
+    { key: 'name', x: findHeaderX(headerKeys.name) },
+    { key: 'residentNumber', x: findHeaderX(headerKeys.residentNumber) },
+    { key: 'address', x: findHeaderX(headerKeys.address) },
+  ].filter((c) => typeof c.x === 'number');
+
+  // If we can't locate at least 2 header columns, fall back to 주민번호 패턴 기반 파싱.
+  if (colCenters.length < 2) return parseByResidentNumberPattern();
+
+  colCenters.sort((a, b) => a.x - b.x);
+  const bounds = [];
+  for (let i = 0; i < colCenters.length - 1; i += 1) {
+    bounds.push((colCenters[i].x + colCenters[i + 1].x) / 2);
+  }
+
+  const assignCol = (x) => {
+    for (let i = 0; i < bounds.length; i += 1) {
+      if (x < bounds[i]) return colCenters[i].key;
+    }
+    return colCenters[colCenters.length - 1].key;
+  };
+
+  const out = [];
+  for (const r of rows.slice(startIdx + 1)) {
+    const cells = { name: [], residentNumber: [], address: [] };
+    for (const w of r) {
+      const key = assignCol(w.x);
+      if (cells[key]) cells[key].push(w.text);
+    }
+    const name = cleanHangulName((cells.name || []).join(' ').trim());
+    const rrnDigitsRaw = extractRrnDigitsFromText((cells.residentNumber || []).join(' '));
+    const rrnDigits = isValidRrnDigits(rrnDigitsRaw) ? rrnDigitsRaw : '';
+    const address = cleanAddress((cells.address || []).join(' ').trim());
+    const item = {
+      name,
+      residentNumber: rrnDigits ? formatResidentNumber(rrnDigits) : '',
+      address,
+      number: extractRowNumberFromRow(r),
+    };
+    // Hard filter: only accept rows that have a valid 13-digit 주민번호.
+    const rrnLen = digitsOnly(item.residentNumber).length;
+    if (rrnLen !== 13) continue;
+    out.push(item);
+  }
+  // If header-based parse yielded nothing, fall back to 주민번호 패턴 기반 파싱.
+  return out.length ? out : parseByResidentNumberPattern();
+};
+
+const preprocessImageForOcr = async (file) => {
+  const img = await createImageBitmap(file);
+  const scale = 2; // upscale helps OCR a lot for phone photos
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return file;
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  // Simple grayscale + contrast + threshold (binarize)
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = imageData.data;
+  const threshold = 170;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i];
+    const g = d[i + 1];
+    const b = d[i + 2];
+    // luminance
+    let y = 0.299 * r + 0.587 * g + 0.114 * b;
+    // contrast stretch
+    y = (y - 128) * 1.3 + 128;
+    const v = y > threshold ? 255 : 0;
+    d[i] = v;
+    d[i + 1] = v;
+    d[i + 2] = v;
+  }
+  ctx.putImageData(imageData, 0, 0);
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+  return blob || file;
+};
+
 function StudentRecords() {
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
@@ -32,6 +323,9 @@ function StudentRecords() {
   const [selectedModel] = useState('claude-3-5-sonnet-20241022');
   const [usedModel, setUsedModel] = useState('');
   const [selectedFields, setSelectedFields] = useState(['residentNumber', 'address', 'sponsor']);
+  const [isOcrRunning, setIsOcrRunning] = useState(false);
+  const [ocrMessage, setOcrMessage] = useState('');
+  const ocrInputRef = useRef(null);
   const saveTimeoutRef = useRef(null);
   const saveSeqRef = useRef(0);
   const hasFetchedRef = useRef(false);
@@ -305,6 +599,109 @@ function StudentRecords() {
     setIsDragging(false);
   };
 
+  // Treat a row as "filled" only if it contains meaningful data.
+  // This prevents OCR garbage like "~", "i", etc. from blocking auto-fill.
+  const isRowFilled = (s) => {
+    const name = String(s?.name || '').trim();
+    const rrnDigits = digitsOnly(String(s?.residentNumber || ''));
+    const address = String(s?.address || '').trim();
+    const sponsor = String(s?.sponsor || '').trim();
+    const remark = String(s?.remark || '').trim();
+
+    const nameHangul = (name.match(/[가-힣]/g) || []).length;
+    const addressHangul = (address.match(/[가-힣]/g) || []).length;
+
+    return Boolean(
+      nameHangul >= 2 ||
+        rrnDigits.length === 13 ||
+        addressHangul >= 3 ||
+        sponsor !== '' ||
+        remark !== '',
+    );
+  };
+
+  const applyOcrRowsToStudents = (current, ocrRows) => {
+    const next = current.map((s) => ({ ...s }));
+    const fillRow = (idx, r) => {
+      next[idx] = {
+        ...next[idx],
+        name: r.name || '',
+        residentNumber: r.residentNumber ? formatResidentNumber(r.residentNumber) : '',
+        address: r.address || '',
+      };
+    };
+
+    // 1) If OCR extracted explicit row numbers ("순"), map them directly.
+    for (const r of ocrRows) {
+      if (!r || !r.number) continue;
+      const idx = Number(r.number) - 1;
+      if (idx < 0 || idx >= next.length) continue;
+      if (isRowFilled(next[idx])) continue; // don't overwrite meaningful user-entered rows
+      fillRow(idx, r);
+    }
+
+    // 2) Fill remaining OCR rows into the next empty rows.
+    let cursor = 0;
+    for (const r of ocrRows) {
+      if (r && r.number) continue; // already mapped above
+      while (cursor < next.length && isRowFilled(next[cursor])) cursor += 1;
+      if (cursor >= next.length) break;
+      fillRow(cursor, r || {});
+      cursor += 1;
+    }
+    return next;
+  };
+
+  const handleRosterImageOcr = async (imgFile) => {
+    if (!imgFile) return;
+    try {
+      setIsOcrRunning(true);
+      setOcrMessage('OCR 라이브러리 로딩 중...');
+      const Tesseract = await loadTesseract();
+      if (!Tesseract || typeof Tesseract.recognize !== 'function') {
+        throw new Error('Tesseract 로드 실패');
+      }
+
+      setOcrMessage('이미지 전처리 중...');
+      const preprocessed = await preprocessImageForOcr(imgFile);
+
+      setOcrMessage('OCR 인식 중...');
+      const res = await Tesseract.recognize(preprocessed, 'kor+eng', {
+        logger: (m) => {
+          if (m && m.status === 'recognizing text' && typeof m.progress === 'number') {
+            setOcrMessage(`OCR 인식 중... ${(m.progress * 100).toFixed(0)}%`);
+          }
+        },
+      });
+
+      // Some builds may not populate words reliably; fall back to lines (still has bbox+text).
+      const words = (res?.data?.words && res.data.words.length > 0 ? res.data.words : res?.data?.lines) || [];
+      const parsed = parseRosterFromOcrWords(words);
+      if (!parsed.length) {
+        setOcrMessage('인식 실패: 표에서 주민번호(######-#######) 패턴을 찾지 못했어요. 더 선명한 이미지로 다시 시도해 주세요.');
+        return;
+      }
+
+      // Ensure needed columns are visible so user can verify results.
+      setSelectedFields((prev) => {
+        const next = [...prev];
+        if (!next.includes('residentNumber')) next.push('residentNumber');
+        if (!next.includes('address')) next.push('address');
+        return next;
+      });
+
+      const merged = applyOcrRowsToStudents(students, parsed);
+      setStudents(merged);
+      triggerAutoSave(merged);
+      setOcrMessage(`인식 완료: ${parsed.length}명 반영`);
+    } catch (e) {
+      console.error(e);
+      setOcrMessage('OCR 실패: 이미지가 선명한지/표가 잘 보이는지 확인해 주세요.');
+    } finally {
+      setIsOcrRunning(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-6">
@@ -336,6 +733,32 @@ function StudentRecords() {
         <div className="bg-white shadow rounded-lg overflow-hidden h-full flex flex-col lg:w-1/2">
           <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center sticky top-0 z-10">
             <span className="text-sm text-gray-700 font-medium">학생 이름 입력 후 저장을 눌러주세요.</span>
+            <div className="ml-auto flex items-center gap-3">
+              {ocrMessage ? <span className="text-xs text-gray-600">{ocrMessage}</span> : null}
+              <input
+                ref={ocrInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files && e.target.files[0];
+                  if (f) handleRosterImageOcr(f);
+                  // allow selecting same file again
+                  e.target.value = '';
+                }}
+              />
+              <button
+                type="button"
+                disabled={isOcrRunning}
+                onClick={() => ocrInputRef.current && ocrInputRef.current.click()}
+                className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium border ${
+                  isOcrRunning ? 'bg-gray-200 text-gray-500 border-gray-200' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                }`}
+                title="엑셀 학생명부 이미지 업로드(OCR)"
+              >
+                명부 이미지 OCR
+              </button>
+            </div>
           </div>
           {/* Top horizontal scrollbar */}
           <div className="bg-gray-50 px-6 py-2 border-b border-gray-200">
@@ -356,6 +779,12 @@ function StudentRecords() {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const f = e.dataTransfer?.files?.[0];
+                if (f) handleRosterImageOcr(f);
+              }}
             >
               {/* Flex-based "table" layout (no table/grid/colgroup/space-between) */}
               <div className="inline-flex w-max flex-col" data-sr-gapref>
