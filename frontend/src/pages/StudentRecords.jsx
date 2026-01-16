@@ -12,7 +12,7 @@ const EXTRA_FIELDS = [
 
 const ADDABLE_FIELD_KEYS = EXTRA_FIELDS.filter((f) => f.key !== 'none').map((f) => f.key);
 
-const getFieldWidthClass = () => 'w-32 min-w-[130px]';
+const getFieldWidthClass = () => 'w-[180px] min-w-[180px]';
 
 function StudentRecords() {
   const navigate = useNavigate();
@@ -27,6 +27,7 @@ function StudentRecords() {
   const [usedModel, setUsedModel] = useState('');
   const [selectedFields, setSelectedFields] = useState(['residentNumber', 'address', 'sponsor']);
   const saveTimeoutRef = useRef(null);
+  const saveSeqRef = useRef(0);
   const hasFetchedRef = useRef(false);
   const scrollRef = useRef(null);
   const topScrollRef = useRef(null);
@@ -122,18 +123,23 @@ function StudentRecords() {
       }));
 
   const saveStudents = async (list, mode = 'manual') => {
+    const seq = (saveSeqRef.current += 1);
     setIsSaving(true);
     setSaveMessage(mode === 'auto' ? '자동 저장 중...' : '저장 중...');
     try {
       const payload = buildPayload(list);
       const res = await client.post('/student-records/bulk', payload);
       const savedList = Array.isArray(res.data) ? res.data : [];
+      // Ignore out-of-order responses so stale saves don't overwrite newer edits.
+      if (seq !== saveSeqRef.current) return;
       setStudents(withPlaceholders(savedList));
       setSaveMessage(mode === 'auto' ? '자동 저장되었습니다.' : '저장되었습니다.');
     } catch (error) {
       console.error("Failed to save students", error);
+      if (seq !== saveSeqRef.current) return;
       setSaveMessage('저장 중 오류가 발생했습니다.');
     } finally {
+      if (seq !== saveSeqRef.current) return;
       setIsSaving(false);
     }
   };
@@ -352,10 +358,10 @@ function StudentRecords() {
                   <div className="flex items-center justify-start" data-sr-header-parent>
                     {/* Left group: 번호 + 이름 (fixed group, gap-only) */}
                     <div className="flex items-center gap-3 whitespace-nowrap flex-shrink-0" data-sr-left>
-                      <div className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[44px]">
+                      <div className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-[44px]">
                         번호
                       </div>
-                      <div className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      <div className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-[120px]">
                         <span data-sr-name>이름</span>
                       </div>
                     </div>
@@ -409,17 +415,17 @@ function StudentRecords() {
                     >
                       {/* Left group cells */}
                       <div className="flex items-center gap-3 whitespace-nowrap py-2 flex-shrink-0" data-sr-left>
-                        <div className="w-[44px] text-sm font-medium text-gray-900">
+                        <div className="w-[44px] text-sm font-medium text-gray-900 text-center">
                           {student.number}
                         </div>
-                        <div className="w-[180px]">
+                        <div className="w-[120px]">
                           <input
                             type="text"
                             value={student.name}
                             onChange={(e) =>
                               handleFieldChange(student.student_id ?? student.id, 'name', e.target.value)
                             }
-                            className="w-full min-w-0 border-0 focus:ring-2 focus:ring-primary-500 rounded-md px-0 py-2 text-sm"
+                            className="w-full min-w-0 border-0 focus:ring-2 focus:ring-primary-500 rounded-md px-0 py-2 text-sm text-center"
                             placeholder=""
                           />
                         </div>
@@ -464,16 +470,6 @@ function StudentRecords() {
                 }
                 [data-sr-left] {
                   gap: var(--sr-gap) !important;
-                }
-                [data-sr-field="residentNumber"] {
-                  width: auto !important;
-                  min-width: unset !important;
-                  flex: 0 0 auto !important;
-                }
-                [data-sr-field="residentNumber"] select {
-                  width: auto !important;
-                  min-width: unset !important;
-                  flex: 0 0 auto !important;
                 }
               `}</style>
             </div>

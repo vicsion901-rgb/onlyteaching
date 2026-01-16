@@ -16,20 +16,20 @@ export class StudentRecord {
   @Column()
   number: number;
 
-@Column({ nullable: true })
-name?: string;
+  @Column({ type: 'text', nullable: true })
+  name: string | null;
 
-@Column({ nullable: true })
-residentNumber?: string;
+  @Column({ type: 'text', nullable: true })
+  residentNumber: string | null;
 
-@Column({ nullable: true })
-address?: string;
+  @Column({ type: 'text', nullable: true })
+  address: string | null;
 
-@Column({ nullable: true })
-sponsor?: string;
+  @Column({ type: 'text', nullable: true })
+  sponsor: string | null;
 
-@Column({ nullable: true })
-remark?: string;
+  @Column({ type: 'text', nullable: true })
+  remark: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

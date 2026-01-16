@@ -68,10 +68,11 @@ export class StudentRecordsService {
       .map((p) => ({
         number: Number(p.number),
         name: (p.name || '').trim(),
-        residentNumber: p.residentNumber?.trim() || undefined,
-        address: p.address?.trim() || undefined,
-        sponsor: p.sponsor?.trim() || undefined,
-        remark: p.remark?.trim() || undefined,
+        // Use null (not undefined) so clearing a field persists in DB (typeorm may ignore undefined updates).
+        residentNumber: p.residentNumber?.trim() ? p.residentNumber.trim() : null,
+        address: p.address?.trim() ? p.address.trim() : null,
+        sponsor: p.sponsor?.trim() ? p.sponsor.trim() : null,
+        remark: p.remark?.trim() ? p.remark.trim() : null,
       }))
       .filter((p) => p.number > 0);
 
