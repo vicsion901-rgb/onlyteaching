@@ -14,6 +14,12 @@ const ADDABLE_FIELD_KEYS = EXTRA_FIELDS.filter((f) => f.key !== 'none').map((f) 
 
 const getFieldWidthClass = () => 'w-[180px] min-w-[180px]';
 
+const formatResidentNumber = (value) => {
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 13);
+  if (digits.length <= 6) return digits;
+  return `${digits.slice(0, 6)}-${digits.slice(6)}`;
+};
+
 function StudentRecords() {
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
@@ -377,7 +383,7 @@ function StudentRecords() {
                           <select
                             value={field}
                             onChange={(e) => handleFieldSelectChange(originalIdx, e.target.value)}
-                            className="text-xs border rounded px-2 py-1 bg-white w-full"
+                            className="text-xs border rounded px-2 py-1 bg-white w-full text-center"
                           >
                             {EXTRA_FIELDS.map((opt) => (
                               <option key={opt.key} value={opt.key}>
@@ -438,10 +444,16 @@ function StudentRecords() {
                             {field ? (
                               <input
                                 type="text"
+                                inputMode={field === 'residentNumber' ? 'numeric' : undefined}
                                 value={student[field] || ''}
-                                onChange={(e) =>
-                                  handleFieldChange(student.student_id ?? student.id, field, e.target.value)
-                                }
+                                onChange={(e) => {
+                                  const nextValue =
+                                    field === 'residentNumber'
+                                      ? formatResidentNumber(e.target.value)
+                                      : e.target.value;
+                                  handleFieldChange(student.student_id ?? student.id, field, nextValue);
+                                }}
+                                maxLength={field === 'residentNumber' ? 14 : undefined}
                                 className="w-full border-0 focus:ring-2 focus:ring-primary-500 rounded-md px-3 py-2 text-sm"
                                 placeholder=""
                               />
