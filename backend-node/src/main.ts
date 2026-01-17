@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as path from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
@@ -20,6 +21,14 @@ async function bootstrap() {
   // ✅ 여기 두 줄만 고침
   const document = SwaggerModule.createDocument(app as any, config);
   SwaggerModule.setup('api', app as any, document);
+
+  // Mount custom Express routes (legacy-style) under NestJS (Express adapter)
+  // This keeps the requested file location: backend-node/routes/creativeActivities.js
+  const expressInstance = app.getHttpAdapter().getInstance();
+  // Works both in src (dev) and dist (prod): __dirname/src or __dirname/dist -> ../routes
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const creativeActivitiesRouter = require(path.resolve(__dirname, '..', 'routes', 'creativeActivities.js'));
+  expressInstance.use('/creative-activities', creativeActivitiesRouter);
 
   const port = Number(process.env.PORT) || 3000;
   const host = process.env.HOST || '0.0.0.0'; // bind all interfaces for LAN access
