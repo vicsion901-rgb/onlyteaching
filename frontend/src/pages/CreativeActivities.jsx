@@ -194,12 +194,18 @@ function CreativeActivities() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">학년</label>
-              <input
-                value={form.grade}
-                onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))}
+              <select
+                value={String(form.grade)}
+                onChange={(e) => setForm((p) => ({ ...p, grade: Number(e.target.value) }))}
                 className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
-                inputMode="numeric"
-              />
+              >
+                <option value="1">1학년</option>
+                <option value="2">2학년</option>
+                <option value="3">3학년</option>
+                <option value="4">4학년</option>
+                <option value="5">5학년</option>
+                <option value="6">6학년</option>
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">학기</label>
