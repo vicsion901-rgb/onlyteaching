@@ -326,6 +326,8 @@ function StudentRecords() {
   const [isOcrRunning, setIsOcrRunning] = useState(false);
   const [ocrMessage, setOcrMessage] = useState('');
   const ocrInputRef = useRef(null);
+  const hwpInputRef = useRef(null);
+  const excelInputRef = useRef(null);
   const saveTimeoutRef = useRef(null);
   const saveSeqRef = useRef(0);
   const hasFetchedRef = useRef(false);
@@ -485,8 +487,8 @@ function StudentRecords() {
     setStudents([
       ...students,
       {
-        id: `temp-${newId}`,
-        number: newId,
+      id: `temp-${newId}`,
+      number: newId,
         name: '',
         residentNumber: '',
         address: '',
@@ -712,12 +714,12 @@ function StudentRecords() {
         <div className="flex items-start gap-3 ml-auto">
           <span className="text-sm text-gray-600 min-w-[130px] text-right pt-2">{saveMessage}</span>
           <div className="flex flex-col items-end gap-2 mt-8">
-            <button 
-              onClick={() => navigate('/dashboard')}
-              className="text-primary-600 hover:text-primary-900 font-medium"
-            >
-              &larr; 홈으로 돌아가기
-            </button>
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="text-primary-600 hover:text-primary-900 font-medium"
+          >
+            &larr; 홈으로 돌아가기
+          </button>
             <button
               onClick={handleSave}
               disabled={isSaving}
@@ -732,34 +734,8 @@ function StudentRecords() {
       <div className="flex flex-col gap-6 lg:flex-row">
         <div className="bg-white shadow rounded-lg overflow-hidden h-full flex flex-col lg:w-1/2">
           <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center sticky top-0 z-10">
-            <span className="text-sm text-gray-700 font-medium">학생 이름 입력 후 저장을 눌러주세요.</span>
-            <div className="ml-auto flex items-center gap-3">
-              {ocrMessage ? <span className="text-xs text-gray-600">{ocrMessage}</span> : null}
-              <input
-                ref={ocrInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files && e.target.files[0];
-                  if (f) handleRosterImageOcr(f);
-                  // allow selecting same file again
-                  e.target.value = '';
-                }}
-              />
-              <button
-                type="button"
-                disabled={isOcrRunning}
-                onClick={() => ocrInputRef.current && ocrInputRef.current.click()}
-                className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium border ${
-                  isOcrRunning ? 'bg-gray-200 text-gray-500 border-gray-200' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
-                }`}
-                title="엑셀 학생명부 이미지 업로드(OCR)"
-              >
-                명부 이미지 OCR
-              </button>
-            </div>
-          </div>
+          <span className="text-sm text-gray-700 font-medium">학생 이름 입력 후 저장을 눌러주세요.</span>
+        </div>
           {/* Top horizontal scrollbar */}
           <div className="bg-gray-50 px-6 py-2 border-b border-gray-200">
             <div
@@ -843,7 +819,7 @@ function StudentRecords() {
 
                 {/* Body rows */}
                 <div className="bg-white">
-                  {students.map((student) => (
+              {students.map((student) => (
                     <div
                       key={student.student_id || student.id}
                       className="flex items-center border-b border-gray-200 hover:bg-gray-50 px-2"
@@ -851,12 +827,12 @@ function StudentRecords() {
                       {/* Left group cells */}
                       <div className="flex items-center gap-3 whitespace-nowrap py-2 flex-shrink-0" data-sr-left>
                         <div className="w-[44px] text-sm font-medium text-gray-900 text-center">
-                          {student.number}
+                    {student.number}
                         </div>
                         <div className="w-[120px]">
-                          <input
-                            type="text"
-                            value={student.name}
+                    <input
+                      type="text"
+                      value={student.name}
                             onChange={(e) =>
                               handleFieldChange(student.student_id ?? student.id, 'name', e.target.value)
                             }
@@ -883,7 +859,7 @@ function StudentRecords() {
                                   handleFieldChange(student.student_id ?? student.id, field, nextValue);
                                 }}
                                 maxLength={field === 'residentNumber' ? 14 : undefined}
-                                className="w-full border-0 focus:ring-2 focus:ring-primary-500 rounded-md px-3 py-2 text-sm"
+                      className="w-full border-0 focus:ring-2 focus:ring-primary-500 rounded-md px-3 py-2 text-sm"
                                 placeholder=""
                               />
                             ) : null}
@@ -914,85 +890,155 @@ function StudentRecords() {
                 }
               `}</style>
             </div>
-          </div>
-          <div className="w-full flex justify-center py-4 border-t border-gray-200">
-            <button
-              onClick={addRow}
-              className="inline-flex items-center px-4 py-2 border border-black text-sm font-medium rounded-md text-white bg-black hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700 transition-colors"
-            >
-              <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              학생 추가
-            </button>
-          </div>
         </div>
+        <div className="w-full flex justify-center py-4 border-t border-gray-200">
+          <button
+            onClick={addRow}
+            className="inline-flex items-center px-4 py-2 border border-black text-sm font-medium rounded-md text-white bg-black hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700 transition-colors"
+          >
+            <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            학생 추가
+          </button>
+        </div>
+      </div>
 
-        {/* AI Prompt Section */}
+      {/* AI Prompt Section */}
         <div className="bg-white overflow-hidden shadow rounded-lg h-full flex flex-col lg:w-1/2">
           <div className="px-4 py-5 sm:p-6 flex-1 flex flex-col">
             <h2 className="text-lg font-medium leading-6 text-gray-900 mb-4">학생명부 관련해서 무엇이든 물어보세요.</h2>
             
             <form onSubmit={handlePromptSubmit} className="flex-1 flex flex-col">
               <div className="mb-2 flex flex-col" style={{ minHeight: '480px' }}>
-                <label htmlFor="prompt" className="sr-only">Prompt</label>
-                <div className="relative">
-                  <textarea
-                    id="prompt"
+              <label htmlFor="prompt" className="sr-only">Prompt</label>
+              <div className="relative">
+                <textarea
+                  id="prompt"
                     className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 pb-10 min-h-[400px] max-h-[560px] whitespace-nowrap"
-                    rows={12}
+                  rows={12}
                     placeholder="학생명부가 담긴 한글 문서, 엑셀 파일, 이미지 파일을 드래그해 주시면 자동 반영됩니다."
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                  />
-                  <div className="absolute bottom-2 left-2">
-                      <input
-                        type="file"
-                        id="file-upload"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={(e) => setFile(e.target.files[0])}
-                      />
-                      <label
-                        htmlFor="file-upload"
-                        className={`cursor-pointer inline-flex items-center p-1.5 rounded-full hover:bg-gray-100 transition-colors ${file ? 'text-primary-600 bg-primary-50' : 'text-gray-400'}`}
-                        title="이미지 업로드"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
-                        </svg>
-                        {file && <span className="ml-1 text-xs font-medium">{file.name}</span>}
-                      </label>
-                    </div>
-                </div>
-                <div className="flex justify-end mt-3">
-                  <button 
-                    type="submit" 
-                    disabled={isSubmitting}
-                    className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isSubmitting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
-                  >
-                    {isSubmitting ? '생성 중...' : '생성하기'}
-                  </button>
-                </div>
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                />
+                  <div className="absolute bottom-2 left-2 flex flex-wrap items-center gap-2">
+                    {/* 업로드(공통): AI 프롬프트 파일로도 저장 + 학생명부 OCR도 동시에 실행 */}
+                    <input
+                      ref={ocrInputRef}
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const f = e.target.files && e.target.files[0];
+                        if (f) {
+                          setFile(f);
+                          handleRosterImageOcr(f);
+                        }
+                        // 같은 파일 재선택 가능하도록 초기화
+                        e.target.value = '';
+                      }}
+                    />
+
+                    {/* 한글 파일 업로드(.hwp/.hwpx) */}
+                    <input
+                      ref={hwpInputRef}
+                      type="file"
+                      className="hidden"
+                      accept=".hwp,.hwpx"
+                      onChange={(e) => {
+                        const f = e.target.files && e.target.files[0];
+                        if (f) setFile(f);
+                        // 같은 파일 재선택 가능하도록 초기화
+                        e.target.value = '';
+                      }}
+                    />
+
+                    {/* 액셀 파일 업로드(.xls/.xlsx/.csv) */}
+                    <input
+                      ref={excelInputRef}
+                      type="file"
+                      className="hidden"
+                      accept=".xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                      onChange={(e) => {
+                        const f = e.target.files && e.target.files[0];
+                        if (f) setFile(f);
+                        // 같은 파일 재선택 가능하도록 초기화
+                        e.target.value = '';
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      disabled={isOcrRunning}
+                      onClick={() => ocrInputRef.current && ocrInputRef.current.click()}
+                      className={`inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border ${
+                        isOcrRunning
+                          ? 'bg-gray-200 text-gray-500 border-gray-200'
+                          : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                      }`}
+                      title="이미지 파일 업로드(학생명부 OCR)"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+                      </svg>
+                      <span>이미지 파일(jpg, png) 업로드</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => hwpInputRef.current && hwpInputRef.current.click()}
+                      className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium border ${
+                        isSubmitting ? 'bg-gray-200 text-gray-500 border-gray-200' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                      }`}
+                      title="한글 파일 업로드(.hwp/.hwpx)"
+                    >
+                      한글 파일 업로드
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => excelInputRef.current && excelInputRef.current.click()}
+                      className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium border ${
+                        isSubmitting ? 'bg-gray-200 text-gray-500 border-gray-200' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                      }`}
+                      title="액셀 파일 업로드(.xls/.xlsx/.csv)"
+                    >
+                      액셀 파일 업로드
+                    </button>
+
+                    {ocrMessage ? <span className="text-xs text-gray-600">{ocrMessage}</span> : null}
+                  </div>
               </div>
-            </form>
-            {response && (
-              <div className="mt-6 bg-gray-50 rounded-md p-4 border border-gray-200">
+              <div className="flex justify-end mt-3">
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isSubmitting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
+                >
+                  {isSubmitting ? '생성 중...' : '생성하기'}
+                </button>
+              </div>
+            </div>
+          </form>
+          {response && (
+            <div className="mt-6 bg-gray-50 rounded-md p-4 border border-gray-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-sm font-medium text-gray-900">결과:</h3>
-                  {usedModel && (
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      usedModel.startsWith('claude') ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {usedModel.startsWith('claude') ? '🤖 Claude' : 
-                       usedModel === 'gpt-4o-mini' ? '⚡ GPT-4o Mini' : '🧠 GPT-4o'}
-                    </span>
-                  )}
-                </div>
-                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono bg-white p-3 rounded border border-gray-200">{response}</pre>
+                <h3 className="text-sm font-medium text-gray-900">결과:</h3>
+                {usedModel && (
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    usedModel.startsWith('claude') ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {usedModel.startsWith('claude') ? '🤖 Claude' : 
+                     usedModel === 'gpt-4o-mini' ? '⚡ GPT-4o Mini' : '🧠 GPT-4o'}
+                  </span>
+                )}
               </div>
-            )}
+              <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono bg-white p-3 rounded border border-gray-200">{response}</pre>
+            </div>
+          )}
           </div>
         </div>
       </div>

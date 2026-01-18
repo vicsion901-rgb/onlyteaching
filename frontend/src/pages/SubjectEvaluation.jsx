@@ -109,7 +109,11 @@ function SubjectEvaluation() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <select
               value={gradeFilter}
-              onChange={(e) => setGradeFilter(e.target.value)}
+              onChange={(e) => {
+                setGradeFilter(e.target.value);
+                // 학년군이 바뀌면 기존 영역 선택은 불일치할 수 있으니 초기화
+                setAreaFilter('');
+              }}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
             >
               <option value="">전체 학년군</option>
@@ -119,7 +123,11 @@ function SubjectEvaluation() {
             </select>
             <select
               value={subjectFilter}
-              onChange={(e) => setSubjectFilter(e.target.value)}
+              onChange={(e) => {
+                setSubjectFilter(e.target.value);
+                // 과목이 바뀌면 영역 목록도 바뀌므로 초기화
+                setAreaFilter('');
+              }}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
             >
               <option value="">전체 교과</option>

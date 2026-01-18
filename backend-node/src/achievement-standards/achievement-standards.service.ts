@@ -48,19 +48,29 @@ export class AchievementStandardsService implements OnModuleInit {
     const rows = await qb.getMany();
 
     // Distinct meta for dropdowns
+    // IMPORTANT: meta는 "현재 선택된 다른 필터"를 반영해야 한다.
+    // 예) 과학을 선택했다면 areas는 과학의 영역만 내려줘야 함.
+    const applyFilters = (
+      qb2: ReturnType<Repository<AchievementStandard>['createQueryBuilder']>,
+      { subject, grade_group, area }: Filters,
+      omit: keyof Filters,
+    ) => {
+      if (omit !== 'subject' && subject) qb2.andWhere('a.subject = :subject', { subject });
+      if (omit !== 'grade_group' && grade_group) qb2.andWhere('a.grade_group = :grade_group', { grade_group });
+      if (omit !== 'area' && area) qb2.andWhere('a.area = :area', { area });
+      return qb2;
+    };
+
     const [subjectRows, gradeRows, areaRows] = await Promise.all([
-      this.repo
-        .createQueryBuilder('a')
+      applyFilters(this.repo.createQueryBuilder('a'), filters, 'subject')
         .select('DISTINCT a.subject', 'subject')
         .orderBy('a.subject', 'ASC')
         .getRawMany(),
-      this.repo
-        .createQueryBuilder('a')
+      applyFilters(this.repo.createQueryBuilder('a'), filters, 'grade_group')
         .select('DISTINCT a.grade_group', 'grade_group')
         .orderBy('a.grade_group', 'ASC')
         .getRawMany(),
-      this.repo
-        .createQueryBuilder('a')
+      applyFilters(this.repo.createQueryBuilder('a'), filters, 'area')
         .select('DISTINCT a.area', 'area')
         .orderBy('a.area', 'ASC')
         .getRawMany(),
