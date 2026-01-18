@@ -174,3 +174,4 @@ CREATE INDEX IF NOT EXISTS idx_creative_activity_attachments_activity
 COMMIT;
 
 
+

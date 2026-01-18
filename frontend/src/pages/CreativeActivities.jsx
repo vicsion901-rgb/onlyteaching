@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 
@@ -7,10 +7,13 @@ function CreativeActivities() {
   const [students, setStudents] = useState([]);
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [activities, setActivities] = useState([]);
+  const [selectedActivityIds, setSelectedActivityIds] = useState([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const selectAllRef = useRef(null);
 
   const nowYear = useMemo(() => new Date().getFullYear(), []);
   const [form, setForm] = useState({
@@ -85,8 +88,7 @@ function CreativeActivities() {
     setForm((prev) => ({ ...prev, detail: { ...(prev.detail || {}), ...patch } }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const saveActivity = async () => {
     setErrorMsg('');
 
     if (!form.student_id) {
@@ -130,6 +132,79 @@ function CreativeActivities() {
       setErrorMsg(e?.message || '저장 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await saveActivity();
+  };
+
+  const toggleSelected = (id) => {
+    setSelectedActivityIds((prev) => {
+      const n = Number(id);
+      const set = new Set(prev.map(Number));
+      if (set.has(n)) set.delete(n);
+      else set.add(n);
+      return Array.from(set);
+    });
+  };
+
+  const clearSelected = () => setSelectedActivityIds([]);
+
+  const allActivityIds = useMemo(() => activities.map((a) => Number(a.id)).filter((n) => Number.isFinite(n)), [activities]);
+  const selectedSet = useMemo(() => new Set(selectedActivityIds.map(Number)), [selectedActivityIds]);
+  const selectedCountInList = useMemo(
+    () => allActivityIds.reduce((acc, id) => (selectedSet.has(id) ? acc + 1 : acc), 0),
+    [allActivityIds, selectedSet],
+  );
+  const isAllSelected = allActivityIds.length > 0 && selectedCountInList === allActivityIds.length;
+  const isSomeSelected = selectedCountInList > 0 && selectedCountInList < allActivityIds.length;
+
+  useEffect(() => {
+    if (!selectAllRef.current) return;
+    selectAllRef.current.indeterminate = isSomeSelected;
+  }, [isSomeSelected]);
+
+  useEffect(() => {
+    // 목록이 바뀌면(학생 변경/새로고침/삭제 후) 현재 목록에 없는 선택값은 제거
+    setSelectedActivityIds((prev) => prev.map(Number).filter((id) => allActivityIds.includes(id)));
+  }, [allActivityIds]);
+
+  const toggleSelectAll = () => {
+    setSelectedActivityIds((prev) => {
+      const prevSet = new Set(prev.map(Number));
+      const next = new Set(prevSet);
+      if (isAllSelected) {
+        // 전체 해제: 현재 목록에 있는 것만 해제
+        allActivityIds.forEach((id) => next.delete(id));
+      } else {
+        // 전체 선택: 현재 목록의 id를 모두 포함
+        allActivityIds.forEach((id) => next.add(id));
+      }
+      return Array.from(next);
+    });
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!selectedActivityIds || selectedActivityIds.length === 0) return;
+    const count = selectedActivityIds.length;
+    if (!window.confirm(`선택한 활동 ${count}건을 삭제할까요?`)) return;
+
+    setIsDeleting(true);
+    setErrorMsg('');
+    try {
+      for (const id of selectedActivityIds) {
+        const res = await client.delete(`/creative-activities/${id}`);
+        if (!res.data?.success) throw new Error(res.data?.error || '삭제 실패');
+      }
+      clearSelected();
+      await fetchActivities(selectedStudentId);
+    } catch (e) {
+      console.error(e);
+      setErrorMsg(e?.message || '삭제 중 오류가 발생했습니다.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -405,8 +480,28 @@ function CreativeActivities() {
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">활동 목록</h2>
-          <div className="text-sm text-gray-500">
-            {isLoadingActivities ? '불러오는 중...' : `${activities.length}건`}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={saveActivity}
+              className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900 disabled:opacity-50"
+              disabled={isSaving || isDeleting}
+              title="현재 입력된 내용을 추가(저장)합니다."
+            >
+              {isSaving ? '추가 중...' : '추가'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+              disabled={selectedActivityIds.length === 0 || isSaving || isDeleting}
+              title="목록에서 선택한 항목을 삭제합니다."
+            >
+              {isDeleting ? '삭제 중...' : '삭제'}
+            </button>
+            <div className="text-sm text-gray-500 ml-2">
+              {isLoadingActivities ? '불러오는 중...' : `${activities.length}건`}
+            </div>
           </div>
         </div>
 
@@ -417,6 +512,19 @@ function CreativeActivities() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-600 border-b">
+                  <th className="py-2 pr-3 w-16">
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={selectAllRef}
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4"
+                        aria-label="전체 선택"
+                      />
+                      <span>선택</span>
+                    </div>
+                  </th>
                   <th className="py-2 pr-3">영역</th>
                   <th className="py-2 pr-3">활동명</th>
                   <th className="py-2 pr-3">일자</th>
@@ -426,7 +534,25 @@ function CreativeActivities() {
               </thead>
               <tbody>
                 {activities.map((a) => (
-                  <tr key={a.id} className="border-b last:border-b-0">
+                  <tr
+                    key={a.id}
+                    className={[
+                      'border-b last:border-b-0 cursor-pointer',
+                      selectedActivityIds.map(Number).includes(Number(a.id)) ? 'bg-primary-50' : 'hover:bg-gray-50',
+                    ].join(' ')}
+                    onClick={() => toggleSelected(a.id)}
+                    title="삭제할 항목은 체크(선택) 후 삭제 버튼을 누르세요."
+                  >
+                    <td className="py-2 pr-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedActivityIds.map(Number).includes(Number(a.id))}
+                        onChange={() => toggleSelected(a.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-4 w-4"
+                        aria-label="삭제 선택"
+                      />
+                    </td>
                     <td className="py-2 pr-3">
                       {a.area === 'autonomous' ? '자율' : null}
                       {a.area === 'club' ? '동아리' : null}

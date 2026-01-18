@@ -234,6 +234,36 @@ router.get('/student/:studentId', async (req, res) => {
   }
 });
 
+// 소프트 삭제: deleted_at만 채우고 목록 조회에서는 제외
+router.delete('/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id) || id <= 0) {
+    return res.status(400).json({ success: false, error: 'id must be a number' });
+  }
+
+  try {
+    const result = await db.run(
+      `
+        UPDATE creative_activities
+        SET deleted_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        WHERE id = ?
+          AND deleted_at IS NULL
+      `,
+      [id],
+    );
+
+    if (!result || result.changes === 0) {
+      return res.status(404).json({ success: false, error: '삭제할 항목을 찾지 못했습니다.' });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(err);
+    return res.status(500).json({ success: false, error: '창체 삭제 실패' });
+  }
+});
+
 module.exports = router;
 
 
