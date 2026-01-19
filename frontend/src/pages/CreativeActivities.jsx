@@ -15,6 +15,13 @@ function CreativeActivities() {
   const [errorMsg, setErrorMsg] = useState('');
   const selectAllRef = useRef(null);
 
+  // Button styles: force visible text regardless of parent/global text styles.
+  // Tailwind "!" modifier ensures the color/leading are not overridden by surrounding styles.
+  const actionBtnBase =
+    'inline-flex items-center justify-center gap-1 rounded-md shadow-sm font-semibold text-sm leading-[1.2] ' +
+    '!text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ' +
+    'disabled:opacity-60 disabled:cursor-not-allowed disabled:!text-white';
+
   const nowYear = useMemo(() => new Date().getFullYear(), []);
   const [form, setForm] = useState({
     student_id: '',
@@ -81,7 +88,6 @@ function CreativeActivities() {
       fetchActivities(selectedStudentId);
       setForm((prev) => ({ ...prev, student_id: Number(selectedStudentId) }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStudentId]);
 
   const setDetail = (patch) => {
@@ -468,8 +474,11 @@ function CreativeActivities() {
           <div className="flex justify-end">
             <button
               type="submit"
-              className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
+              className={`${actionBtnBase} px-4 py-2 bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500`}
               disabled={isSaving}
+              aria-label="창의적 체험활동 저장"
+              aria-disabled={isSaving}
+              aria-busy={isSaving}
             >
               {isSaving ? '저장 중...' : '저장'}
             </button>
@@ -484,18 +493,24 @@ function CreativeActivities() {
             <button
               type="button"
               onClick={saveActivity}
-              className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900 disabled:opacity-50"
+              className={`${actionBtnBase} px-3 py-2 bg-gray-800 hover:bg-gray-900 focus-visible:ring-gray-800`}
               disabled={isSaving || isDeleting}
               title="현재 입력된 내용을 추가(저장)합니다."
+              aria-label="활동 추가 저장"
+              aria-disabled={isSaving || isDeleting}
+              aria-busy={isSaving}
             >
               {isSaving ? '추가 중...' : '추가'}
             </button>
             <button
               type="button"
               onClick={handleDeleteSelected}
-              className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+              className={`${actionBtnBase} px-3 py-2 bg-red-600 hover:bg-red-700 focus-visible:ring-red-600`}
               disabled={selectedActivityIds.length === 0 || isSaving || isDeleting}
               title="목록에서 선택한 항목을 삭제합니다."
+              aria-label={`선택된 활동 삭제 (${selectedActivityIds.length}건)`}
+              aria-disabled={selectedActivityIds.length === 0 || isSaving || isDeleting}
+              aria-busy={isDeleting}
             >
               {isDeleting ? '삭제 중...' : '삭제'}
             </button>
