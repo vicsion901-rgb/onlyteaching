@@ -18,7 +18,6 @@ const TOPIC_MAP = {
 function Dashboard() {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState('');
-  const [file, setFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState('');
   const [selectedModel] = useState('claude-3-5-sonnet-20241022');
@@ -186,39 +185,12 @@ function Dashboard() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      let res;
-      if (file) {
-        const formData = new FormData();
-        formData.append('file', file);
-        if (prompt) formData.append('prompt', prompt);
-        formData.append('ai_model', selectedModel);
-        
-        res = await client.post('/prompts/upload', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        
-        // If it's a student list upload, show success message and maybe redirect or refresh
-        if (res.data.students) {
-          setResponse(`학생 명부 인식이 완료되었습니다.\n총 ${res.data.count}명의 학생이 등록되었습니다.\n\n[인식된 학생 목록]\n${res.data.students.map(s => `${s.number}번 ${s.name}`).join(', ')}`);
-          setUsedModel(selectedModel);
-          setFile(null); // Reset file
-          // Trigger a refresh of the layout sidebar status if possible, or just let user navigate
-          // Ideally we would use a context or global state, but for now a reload or navigation will update it
-          window.dispatchEvent(new Event('student-records-updated')); // Custom event if we want to listen
-        } else {
-           setResponse(res.data.generated_document || JSON.stringify(res.data, null, 2));
-           setUsedModel(res.data.ai_model || selectedModel);
-        }
-      } else {
-        res = await client.post('/prompts/', { 
-          content: prompt,
-          ai_model: selectedModel 
-        });
-        setResponse(res.data.generated_document);
-        setUsedModel(res.data.ai_model);
-      }
+      const res = await client.post('/prompts/', { 
+        content: prompt,
+        ai_model: selectedModel 
+      });
+      setResponse(res.data.generated_document);
+      setUsedModel(res.data.ai_model);
     } catch (error) {
       console.error("Failed to submit prompt", error);
       setResponse("오류가 발생했습니다. 다시 시도해주세요.");
@@ -313,7 +285,7 @@ function Dashboard() {
                     id="prompt"
                     className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 pb-10"
                     rows={12}
-                    placeholder={'예시) 학생명부 파일을 드래그 해주시면, 사이트에 자동 연동됩니다.\n\n예시) 000학생 관련해서 발표능력 상, 정리정돈 중, 예의범절 하로 생기부 4줄 작성해줘.'}
+                    placeholder={'예시) 000학생 관련해서 발표능력 상, 정리정돈 중, 예의범절 하로 생기부 4줄 작성해줘.'}
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     onKeyDown={(e) => {
@@ -323,26 +295,6 @@ function Dashboard() {
                       }
                     }}
                   />
-                  <div className="absolute bottom-2 left-2">
-                      <input
-                        type="file"
-                        id="file-upload"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={(e) => setFile(e.target.files[0])}
-                      />
-                      <label
-                        htmlFor="file-upload"
-                        className={`cursor-pointer inline-flex items-center p-1.5 rounded-full hover:bg-gray-100 transition-colors ${file ? 'text-primary-600 bg-primary-50' : 'text-gray-400'}`}
-                        title="이미지 업로드"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
-                        </svg>
-                        {file && <span className="ml-1 text-xs font-medium">{file.name}</span>}
-                      </label>
-                    </div>
                 </div>
                 <div className="flex justify-end mt-3">
                   <button 

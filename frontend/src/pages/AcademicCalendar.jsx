@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
  * OnlyTeaching 초등 학사일정 (2026)
  * - 날짜 선택
  * - 학년별 필수 행사 추가
- * - 파일 업로드(시뮬레이션)
  */
 
 /* 🔑 ESLint 규칙 대응: 대문자 변수로 감싸기 */
@@ -40,17 +39,6 @@ export default function ElementaryCalendar2026() {
     setCalendarEvents((prev) => ({
       ...prev,
       [selectedDate]: [...(prev[selectedDate] || []), event],
-    }));
-  };
-
-  // 파일 업로드 (시뮬레이션)
-  const handleFileUpload = () => {
-    const detectedEvent = "현장체험학습";
-    const detectedDate = "2026-01-20";
-
-    setCalendarEvents((prev) => ({
-      ...prev,
-      [detectedDate]: [...(prev[detectedDate] || []), detectedEvent],
     }));
   };
 
@@ -139,23 +127,7 @@ export default function ElementaryCalendar2026() {
           </div>
         </div>
 
-        {/* 파일 업로드 */}
-        <div className="bg-white border rounded-xl shadow-sm">
-          <div className="p-4 space-y-2">
-            <h3 className="font-bold">파일로 학사일정 반영</h3>
-
-            <input
-              type="file"
-              accept=".hwp,.png,.jpg,.jpeg"
-              className="w-full"
-              onChange={handleFileUpload}
-            />
-
-            <p className="text-xs text-gray-500">
-              한글/이미지 파일을 업로드하면 자동으로 학사일정에 반영됩니다.
-            </p>
-          </div>
-        </div>
+        {/* 파일 업로드 기능 제거 (OCR/이미지 업로드 제거 정책) */}
       </div>
     </Motion.div>
   );

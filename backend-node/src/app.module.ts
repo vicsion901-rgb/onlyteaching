@@ -8,6 +8,7 @@ import { HealthModule } from './health/health.module';
 import { LifeRecordsModule } from './life-records/life-records.module';
 import { UsersModule } from './users/users.module';
 import { AchievementStandardsModule } from './achievement-standards/achievement-standards.module';
+import { ExcelModule } from './excel/excel.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AchievementStandardsModule } from './achievement-standards/achievement-
     UsersModule,
     LifeRecordsModule,
     AchievementStandardsModule,
+    ExcelModule, // ✅ 엑셀 업로드/자동매핑 모듈 추가
   ],
 })
 export class AppModule {}

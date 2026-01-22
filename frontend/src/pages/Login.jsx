@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import client from '../api/client';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo-login.png';
@@ -12,7 +12,6 @@ function Login() {
   const [isRegisterLoading, setIsRegisterLoading] = useState(false);
   const [registerResult, setRegisterResult] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
-  const fileRef = useRef(null);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -46,17 +45,12 @@ function Login() {
     setRegisterResult(null);
     setIsRegisterLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('schoolCode', regSchoolCode);
-      formData.append('teacherCode', regTeacherCode);
-      if (fileRef.current?.files?.[0]) {
-        formData.append('image', fileRef.current.files[0]);
-      }
-      const res = await client.post('/users/register', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const res = await client.post('/users/register', {
+        schoolCode: regSchoolCode,
+        teacherCode: regTeacherCode,
       });
       setRegisterResult(res.data);
-      alert(`등록 완료: status=${res.data.status}, score=${res.data.score}`);
+      alert(`등록 완료: status=${res.data.status}`);
     } catch (error) {
       console.error('Register error:', error);
       const msg =
@@ -139,7 +133,7 @@ function Login() {
               <div>
                 <div className="text-xl font-bold text-gray-900">교사 등록(승인 요청)</div>
                 <p className="text-sm text-gray-500">
-                  나이스 화면 캡처를 업로드해 학교/교사 검증을 진행합니다.
+                  OCR/이미지 업로드 기반 검증을 제거했습니다. 등록 후 관리자 승인까지 기다려주세요.
                 </p>
               </div>
               <button
@@ -173,16 +167,6 @@ function Login() {
                   onChange={(e) => setRegTeacherCode(e.target.value)}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">나이스 캡처 이미지</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={fileRef}
-                  required
-                  className="w-full text-sm"
-                />
-              </div>
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -202,8 +186,6 @@ function Login() {
               {registerResult && (
                 <div className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-md p-3">
                   <div>상태: {registerResult.status}</div>
-                  <div>점수: {registerResult.score}</div>
-                  <div>결정: {registerResult.decision}</div>
                 </div>
               )}
             </form>
