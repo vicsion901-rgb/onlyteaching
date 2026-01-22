@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type { Express } from 'express';
 
 @Injectable()
 export class PromptsService {
-  async handlePrompt(content?: string, ai_model?: string, file?: Express.Multer.File) {
+  async handlePrompt(content?: string, ai_model?: string) {
     const usedModel = ai_model || 'onlyteaching-local';
     const text = (content || '').trim();
 
@@ -12,9 +11,6 @@ export class PromptsService {
     const sentences = this.buildSentences(keywords, studentName);
 
     const parts = [...sentences];
-    if (file) {
-      parts.push(`첨부 파일: ${file.originalname}`);
-    }
     // 한 문단으로, 문장 사이 한 칸
     const generated_document = parts.join(' ').replace(/\s+/g, ' ').trim();
 

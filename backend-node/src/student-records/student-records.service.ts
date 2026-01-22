@@ -53,12 +53,16 @@ export class StudentRecordsService {
       number: number;
       name: string;
       residentNumber?: string;
+      birthDate?: string;
       address?: string;
       sponsor?: string;
       remark?: string;
     }>,
+    opts?: { mode?: 'replace' | 'upsert' },
   ) {
-    // simple replace-upsert by number
+    const mode = opts?.mode || 'replace';
+
+    // normalize + filter invalid
     const normalized = payload
       .filter(
         (p) =>
@@ -70,39 +74,37 @@ export class StudentRecordsService {
         name: (p.name || '').trim(),
         // Use null (not undefined) so clearing a field persists in DB (typeorm may ignore undefined updates).
         residentNumber: p.residentNumber?.trim() ? p.residentNumber.trim() : null,
+        birthDate: p.birthDate?.trim() ? p.birthDate.trim() : null,
         address: p.address?.trim() ? p.address.trim() : null,
         sponsor: p.sponsor?.trim() ? p.sponsor.trim() : null,
         remark: p.remark?.trim() ? p.remark.trim() : null,
       }))
       .filter((p) => p.number > 0);
 
-    for (const item of normalized) {
-      const existing = await this.studentRepo.findOne({ where: { number: item.number } });
-      if (existing) {
-        existing.name = item.name;
-        existing.residentNumber = item.residentNumber;
-        existing.address = item.address;
-        existing.sponsor = item.sponsor;
-        existing.remark = item.remark;
-        await this.studentRepo.save(existing);
-      } else {
-        await this.studentRepo.save(this.studentRepo.create(item));
+    return this.studentRepo.manager.transaction(async (trx) => {
+      const repo = trx.getRepository(StudentRecord);
+
+      if (normalized.length > 0) {
+        // Upsert by unique key (number). SQLite supports ON CONFLICT.
+        await repo.upsert(normalized, ['number']);
       }
-    }
 
-    // Remove rows not in payload
-    const numbers = normalized.map((n) => n.number);
-    if (numbers.length > 0) {
-      await this.studentRepo
-        .createQueryBuilder()
-        .delete()
-        .from(StudentRecord)
-        .where('number NOT IN (:...nums)', { nums: numbers })
-        .execute();
-    } else {
-      await this.studentRepo.clear();
-    }
+      if (mode === 'replace') {
+        // 기존 동작 유지: payload에 없는 번호는 제거
+        const numbers = normalized.map((n) => n.number);
+        if (numbers.length > 0) {
+          await repo
+            .createQueryBuilder()
+            .delete()
+            .from(StudentRecord)
+            .where('number NOT IN (:...nums)', { nums: numbers })
+            .execute();
+        } else {
+          await repo.clear();
+        }
+      }
 
-    return this.listStudents();
+      return repo.find({ order: { number: 'ASC' } });
+    });
   }
 }

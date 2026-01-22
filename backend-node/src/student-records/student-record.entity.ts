@@ -23,6 +23,9 @@ export class StudentRecord {
   residentNumber: string | null;
 
   @Column({ type: 'text', nullable: true })
+  birthDate: string | null;
+
+  @Column({ type: 'text', nullable: true })
   address: string | null;
 
   @Column({ type: 'text', nullable: true })

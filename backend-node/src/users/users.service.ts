@@ -1,10 +1,7 @@
 import { BadRequestException, Injectable, InternalServerErrorException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as fs from 'fs';
 import { User } from './entities/user.entity';
-import { OcrService } from './ocr.service';
-import { VerificationService } from './verification.service';
 import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
@@ -12,8 +9,6 @@ export class UsersService implements OnModuleInit {
   constructor(
     @InjectRepository(User)
     private readonly usersRepo: Repository<User>,
-    private readonly ocrService: OcrService,
-    private readonly verifyService: VerificationService,
   ) {}
 
   async onModuleInit() {
@@ -32,12 +27,9 @@ export class UsersService implements OnModuleInit {
     }
   }
 
-  async register(dto: CreateUserDto, imagePath: string, schoolName: string) {
+  async register(dto: CreateUserDto) {
     if (!dto.schoolCode || !dto.teacherCode) {
       throw new BadRequestException('필수 정보 누락');
-    }
-    if (!imagePath) {
-      throw new BadRequestException('이미지가 필요합니다');
     }
 
     const existing = await this.usersRepo.findOne({
@@ -47,33 +39,20 @@ export class UsersService implements OnModuleInit {
       throw new BadRequestException('이미 등록된 계정입니다');
     }
 
-    const ocr = await this.ocrService.extractText(imagePath);
-    const score = this.verifyService.calculateScore(ocr, schoolName);
-    const decision = this.verifyService.decide(score);
-
     const user = this.usersRepo.create({
       ...dto,
-      status:
-        decision === 'AUTO'
-          ? 'ACTIVE'
-          : decision === 'MANUAL'
-            ? 'PENDING'
-            : 'REJECTED',
+      // OCR 기반 검증을 제거했으므로, 기본 상태는 PENDING (관리자 승인)
+      status: 'PENDING',
     });
 
     try {
       await this.usersRepo.save(user);
     } catch (err) {
       throw new InternalServerErrorException('사용자 저장 실패');
-    } finally {
-      try {
-        fs.unlinkSync(imagePath);
-      } catch {
-        // ignore cleanup error
-      }
     }
 
-    return { status: user.status, score, decision };
+    // 기존 프론트 호환: score/decision은 null 반환
+    return { status: user.status, score: null, decision: null };
   }
 }
 
