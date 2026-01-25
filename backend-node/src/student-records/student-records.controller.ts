@@ -3,11 +3,15 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import type { Express } from 'express';
 import { StudentRecordsService } from './student-records.service';
+import { OCRService } from './ocr.service';
 import { parseStudentExcel } from './excel-upload.util';
 
 @Controller('student-records')
 export class StudentRecordsController {
-  constructor(private readonly studentRecordsService: StudentRecordsService) {}
+  constructor(
+    private readonly studentRecordsService: StudentRecordsService,
+    private readonly ocrService: OCRService,
+  ) {}
 
   @Get('list')
   list() {
@@ -56,5 +60,35 @@ export class StudentRecordsController {
 
     const saved = await this.studentRecordsService.saveStudents(payload, { mode: 'upsert' });
     return { mapping, students, saved, count: students.length };
+  }
+
+  @Post('upload-image')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  async uploadImage(@UploadedFile() file: Express.Multer.File) {
+    const buf = file?.buffer;
+    if (!buf || !Buffer.isBuffer(buf)) {
+      return { mapping: {}, students: [], saved: [], count: 0 };
+    }
+    return this.ocrService.parseImage(buf);
+  }
+
+  @Post('upload-hwp')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 20 * 1024 * 1024 }, 
+    }),
+  )
+  async uploadHwp(@UploadedFile() file: Express.Multer.File) {
+    const buf = file?.buffer;
+    if (!buf || !Buffer.isBuffer(buf)) {
+      return { mapping: {}, students: [], saved: [], count: 0 };
+    }
+    return this.ocrService.parseHwp(buf);
   }
 }

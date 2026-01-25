@@ -4,6 +4,7 @@ import client from '../api/client';
 
 const EXTRA_FIELDS = [
   { key: 'residentNumber', label: '주민등록번호' },
+  { key: 'birthDate', label: '생년월일' },
   { key: 'address', label: '주소' },
   { key: 'sponsor', label: '전액자' },
   { key: 'remark', label: '비고' },
@@ -36,6 +37,8 @@ function StudentRecords() {
   const [usedModel, setUsedModel] = useState('');
   const [selectedFields, setSelectedFields] = useState(['residentNumber', 'address', 'sponsor']);
   const excelInputRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const hwpInputRef = useRef(null);
   const saveTimeoutRef = useRef(null);
   const saveSeqRef = useRef(0);
   const hasFetchedRef = useRef(false);
@@ -58,6 +61,7 @@ function StudentRecords() {
         rows.push({
           ...found,
           residentNumber: found.residentNumber || '',
+          birthDate: found.birthDate || '',
           address: found.address || '',
           sponsor: found.sponsor || '',
           remark: found.remark || '',
@@ -68,6 +72,7 @@ function StudentRecords() {
           number: num,
           name: '',
           residentNumber: '',
+          birthDate: '',
           address: '',
           sponsor: '',
           remark: '',
@@ -82,6 +87,7 @@ function StudentRecords() {
         number: num,
         name: '',
         residentNumber: '',
+        birthDate: '',
         address: '',
         sponsor: '',
         remark: '',
@@ -118,6 +124,7 @@ function StudentRecords() {
         const hasAnyField =
           (s.name && s.name.trim() !== '') ||
           (s.residentNumber && s.residentNumber.trim() !== '') ||
+          (s.birthDate && s.birthDate.trim() !== '') ||
           (s.address && s.address.trim() !== '') ||
           (s.sponsor && s.sponsor.trim() !== '') ||
           (s.remark && s.remark.trim() !== '');
@@ -127,6 +134,7 @@ function StudentRecords() {
         number: s.number,
         name: (s.name || '').trim(),
         residentNumber: (s.residentNumber || '').trim(),
+        birthDate: (s.birthDate || '').trim(),
         address: (s.address || '').trim(),
         sponsor: (s.sponsor || '').trim(),
         remark: (s.remark || '').trim(),
@@ -199,6 +207,7 @@ function StudentRecords() {
       number: newId,
         name: '',
         residentNumber: '',
+        birthDate: '',
         address: '',
         sponsor: '',
         remark: '',
@@ -262,6 +271,23 @@ function StudentRecords() {
       setStudents(withPlaceholders(savedList));
       setSaveMessage(`엑셀 반영 완료: ${res.data?.count ?? savedList.length}명`);
 
+      // Auto-switch 'residentNumber' -> 'birthDate' if residentNumber is empty but birthDate is filled
+      const hasResidentNumber = savedList.some((s) => s.residentNumber && s.residentNumber.trim());
+      const hasBirthDate = savedList.some((s) => s.birthDate && s.birthDate.trim());
+
+      if (!hasResidentNumber && hasBirthDate) {
+        setSelectedFields((prev) => {
+          const next = [...prev];
+          const idx = next.indexOf('residentNumber');
+          if (idx !== -1) {
+            next[idx] = 'birthDate';
+          } else if (!next.includes('birthDate')) {
+            next.unshift('birthDate');
+          }
+          return next;
+        });
+      }
+
       // 관리자용 컬럼 매핑 UI를 위해 mapping 정보를 반환값으로 제공(현재는 결과 영역에 표시)
       if (res.data?.mapping) {
         setResponse(JSON.stringify({ mapping: res.data.mapping }, null, 2));
@@ -270,6 +296,66 @@ function StudentRecords() {
       console.error('Excel upload failed', e);
       // 요구사항: 오류 메시지는 띄우지 않고 조용히 유지 (상단 상태만 초기화)
       setSaveMessage('');
+    }
+  };
+
+  const handleImageUpload = async (f) => {
+    if (!f) return;
+    try {
+      setSaveMessage('이미지 OCR 분석 중...');
+      const formData = new FormData();
+      formData.append('file', f);
+      const res = await client.post('/student-records/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      
+      const savedList = Array.isArray(res.data?.saved) ? res.data.saved : [];
+      if (savedList.length > 0) {
+        setStudents(withPlaceholders(savedList));
+        setSaveMessage(`OCR 반영 완료: ${savedList.length}명`);
+      } else {
+        setSaveMessage('OCR 결과가 없습니다.');
+      }
+
+      if (res.data?.text) {
+        setResponse(`[OCR 추출 텍스트]\n${res.data.text}`);
+      }
+    } catch (e) {
+      console.error('Image upload failed', e);
+      setSaveMessage('이미지 처리 실패');
+    }
+  };
+
+  const handleHwpUpload = async (f) => {
+    if (!f) return;
+    try {
+      setSaveMessage('한글 파일 분석 중...');
+      const formData = new FormData();
+      formData.append('file', f);
+      const res = await client.post('/student-records/upload-hwp', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (res.data?.error) {
+        setSaveMessage('한글 파일 처리 실패 (지원 예정)');
+        setResponse(`[오류] ${res.data.error}`);
+        return;
+      }
+      
+      const savedList = Array.isArray(res.data?.saved) ? res.data.saved : [];
+      if (savedList.length > 0) {
+        setStudents(withPlaceholders(savedList));
+        setSaveMessage(`한글 파일 반영 완료: ${savedList.length}명`);
+      } else {
+        setSaveMessage('데이터를 찾을 수 없습니다.');
+      }
+
+      if (res.data?.text) {
+        setResponse(`[HWP 추출 텍스트]\n${res.data.text}`);
+      }
+    } catch (e) {
+      console.error('HWP upload failed', e);
+      setSaveMessage('한글 파일 처리 실패');
     }
   };
 
@@ -559,7 +645,7 @@ function StudentRecords() {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                 />
-                  <div className="absolute bottom-2 left-2 flex flex-wrap items-center gap-2">
+                    <div className="absolute bottom-2 left-2 flex flex-wrap items-center gap-2">
                     {/* 액셀 파일 업로드(.xls/.xlsx/.csv) */}
                     <input
                       ref={excelInputRef}
@@ -569,7 +655,18 @@ function StudentRecords() {
                       onChange={(e) => {
                         const f = e.target.files && e.target.files[0];
                         if (f) handleExcelUpload(f);
-                        // 같은 파일 재선택 가능하도록 초기화
+                        e.target.value = '';
+                      }}
+                    />
+                    {/* 한글 파일 업로드 */}
+                    <input
+                      ref={hwpInputRef}
+                      type="file"
+                      className="hidden"
+                      // accept 속성 제거: OS에서 .hwp 파일 연결 프로그램이 없는 경우 파일 선택이 불가능한 문제 해결
+                      onChange={(e) => {
+                        const f = e.target.files && e.target.files[0];
+                        if (f) handleHwpUpload(f);
                         e.target.value = '';
                       }}
                     />
@@ -584,6 +681,17 @@ function StudentRecords() {
                       title="액셀 파일 업로드(.xls/.xlsx/.csv)"
                     >
                       액셀 파일 업로드
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => hwpInputRef.current && hwpInputRef.current.click()}
+                      className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium border ${
+                        isSubmitting ? 'bg-gray-200 text-gray-500 border-gray-200' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                      }`}
+                      title="한글 파일 업로드(.hwp)"
+                    >
+                      한글 파일 업로드
                     </button>
                   </div>
               </div>

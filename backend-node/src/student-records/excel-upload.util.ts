@@ -13,7 +13,7 @@ type FieldKey = keyof StudentUploadRow;
 const DICT: Record<FieldKey, string[]> = {
   student_number: ['번호', '순번', 'No', '학생번호'],
   name: ['이름', '성명', '학생명', 'Name'],
-  birth_date: ['생년월일', '출생일', '출생일자', 'DOB', 'Birth'],
+  birth_date: ['생년월일', '생일', '출생일', '출생일자', 'DOB', 'Birth'],
   resident_id: ['주민등록번호', '주민번호', 'RRN', 'ID Number'],
   address: ['주소', '거주지', '집주소', 'Address'],
 };
@@ -61,6 +61,100 @@ const bestMatch = (header: string, candidates: string[]) => {
     const sim = similarity(h, cc);
     best = Math.max(best, includesScore, sim);
   }
+  return best;
+};
+
+type HeaderDetectResult = {
+  headerRowIndex: number;
+  header: string[];
+  fieldToCol: Partial<Record<FieldKey, { col: number; header: string; score: number }>>;
+  matchedFields: number;
+  totalScore: number;
+};
+
+/**
+ * 엑셀 파일은 종종 "제목/안내 문구"가 상단에 1~몇 줄 존재합니다.
+ * 기존 로직(0번째 행만 헤더로 가정)에서는 이런 파일에서 자동 매핑이 깨져
+ * 이름/주소가 비어버리는 문제가 생깁니다.
+ *
+ * 따라서 앞부분 N행을 스캔해서 "헤더로 보이는 행"을 자동 탐지합니다.
+ */
+const detectHeaderRow = (rows: unknown[][], scanLimit = 30): HeaderDetectResult => {
+  const limit = Math.min(rows.length, Math.max(1, scanLimit));
+
+  let best: HeaderDetectResult = {
+    headerRowIndex: 0,
+    header: (rows[0] || []).map((h) => String(h ?? '').trim()),
+    fieldToCol: {},
+    matchedFields: 0,
+    totalScore: 0,
+  };
+
+  const isTitleLikeSingleCell = (cells: unknown[]) => {
+    const nonEmpty = (cells || [])
+      .map((c) => String(c ?? '').trim())
+      .filter((s) => s !== '');
+    if (nonEmpty.length !== 1) return false;
+    const only = nonEmpty[0];
+    // "학생명부", "학생", "명부" 같은 제목성 문구는 헤더가 아님
+    return /학생|명부/.test(only) && only.length >= 2;
+  };
+
+  for (let r = 0; r < limit; r += 1) {
+    const row = rows[r] || [];
+    const header = row.map((h) => String(h ?? '').trim());
+
+    // 제목성 단일 셀 행은 헤더 후보에서 강하게 제외
+    if (isTitleLikeSingleCell(row)) continue;
+
+    const fieldToCol: Partial<Record<FieldKey, { col: number; header: string; score: number }>> = {};
+    let matchedFields = 0;
+    let totalScore = 0;
+
+    for (const field of Object.keys(DICT) as FieldKey[]) {
+      let bestForField = { col: -1, header: '', score: 0 };
+      for (let i = 0; i < header.length; i += 1) {
+        const h = header[i];
+        const score = bestMatch(h, DICT[field]);
+        if (score > bestForField.score) bestForField = { col: i, header: h, score };
+      }
+      if (bestForField.col >= 0 && bestForField.score >= 0.75) {
+        fieldToCol[field] = bestForField;
+        matchedFields += 1;
+        totalScore += bestForField.score;
+      }
+    }
+
+    // 이름 컬럼이 없으면 헤더로 보기 어렵기 때문에 우선순위를 낮춤
+    const nameScore = fieldToCol.name?.score ?? 0;
+    const effectiveTotal = totalScore + (nameScore >= 0.75 ? 0.5 : 0);
+
+    const isBetter =
+      matchedFields > best.matchedFields ||
+      (matchedFields === best.matchedFields && effectiveTotal > best.totalScore);
+
+    if (isBetter) {
+      best = {
+        headerRowIndex: r,
+        header,
+        fieldToCol,
+        matchedFields,
+        totalScore: effectiveTotal,
+      };
+    }
+  }
+
+  // 최소한 2개 이상(예: 이름+번호/주소 등) 매칭이 안 되면 기존(0행)로 폴백
+  if (best.matchedFields < 2) {
+    return {
+      headerRowIndex: 0,
+      header: (rows[0] || []).map((h) => String(h ?? '').trim()),
+      fieldToCol: {},
+      matchedFields: 0,
+      totalScore: 0,
+    };
+  }
+
   return best;
 };
 
@@ -139,22 +233,11 @@ export const parseStudentExcel = (buffer: Buffer) => {
     return { mapping: {}, students: [] as StudentUploadRow[] };
   }
 
-  const header = (rows[0] || []).map((h) => String(h ?? '').trim());
-  const fieldToCol: Partial<Record<FieldKey, { col: number; header: string; score: number }>> = {};
-
-  // compute best header per field
-  for (const field of Object.keys(DICT) as FieldKey[]) {
-    let best = { col: -1, header: '', score: 0 };
-    for (let i = 0; i < header.length; i += 1) {
-      const h = header[i];
-      const score = bestMatch(h, DICT[field]);
-      if (score > best.score) best = { col: i, header: h, score };
-    }
-    // threshold: allow partial/messy headers but ignore very weak matches
-    if (best.col >= 0 && best.score >= 0.75) {
-      fieldToCol[field] = best;
-    }
-  }
+  // ✅ 헤더 행 자동 탐지 (상단 제목/안내 문구가 있어도 매핑이 유지되도록)
+  const detected = detectHeaderRow(rows, 30);
+  const headerRowIndex = detected.headerRowIndex;
+  const header = detected.header;
+  const fieldToCol = detected.fieldToCol;
 
   const mapping = Object.fromEntries(
     (Object.keys(DICT) as FieldKey[]).map((k) => [
@@ -164,9 +247,11 @@ export const parseStudentExcel = (buffer: Buffer) => {
         : null,
     ]),
   );
+  // 디버깅/검증용 메타(프론트에서 보여주거나 서버 로그로 확인 가능)
+  (mapping as any).__meta = { sheetName, headerRowIndex };
 
   const students: StudentUploadRow[] = [];
-  for (let r = 1; r < rows.length; r += 1) {
+  for (let r = headerRowIndex + 1; r < rows.length; r += 1) {
     const row = rows[r] || [];
     const get = (field: FieldKey) => {
       const m = fieldToCol[field];
@@ -182,7 +267,9 @@ export const parseStudentExcel = (buffer: Buffer) => {
 
     const numRaw = get('student_number');
     const numDigits = String(numRaw || '').replace(/\D/g, '');
-    const student_number = numDigits ? String(Number(numDigits)) : String(r); // fallback to row index
+    // fallback은 "데이터 행 번호"로 (헤더 위치를 고려)
+    const fallbackNo = String(Math.max(1, r - headerRowIndex));
+    const student_number = numDigits ? String(Number(numDigits)) : fallbackNo;
 
     const item: StudentUploadRow = {
       student_number,

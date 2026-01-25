@@ -1,34 +1,24 @@
-// src/excel/utils/parseExcel.ts
 import * as XLSX from 'xlsx';
 
-export type Matrix = string[][];
+export function parseExcelToMatrix(buffer: Buffer): { matrix: string[][] } {
+  const wb = XLSX.read(buffer, { type: 'buffer' });
 
-/**
- * 엑셀을 2차원 배열(Matrix)로 파싱한다.
- * - header:1 사용 → 컬럼 헤더 깨짐 방지
- * - 빈 행 제거
- * - 모든 셀을 문자열로 정규화
- */
-export function parseExcelToMatrix(
-  buffer: Buffer,
-): { sheetName: string; matrix: Matrix } {
-  const workbook = XLSX.read(buffer, { type: 'buffer' });
-  const sheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[sheetName];
+  // 첫 시트 고정 (NEIS도 보통 첫 시트)
+  const sheetName = wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
 
-  const raw = XLSX.utils.sheet_to_json(worksheet, {
+  // ✅ 핵심: header:1 => 2D 배열로 받기 / defval:'' => 빈칸도 유지
+  const matrix = XLSX.utils.sheet_to_json(ws, {
     header: 1,
-    raw: false,
     defval: '',
+    raw: false,
     blankrows: false,
   }) as any[][];
 
-  const matrix: Matrix = raw
-    .map((row) =>
-      row.map((cell) => (cell ?? '').toString().trim()),
-    )
-    // 완전히 빈 행 제거
-    .filter((row) => row.some((cell) => cell !== ''));
+  // string[][]로 정리 (trim)
+  const normalized = matrix.map((row) =>
+    (row ?? []).map((cell) => (cell ?? '').toString().trim()),
+  );
 
-  return { sheetName, matrix };
-}          
+  return { matrix: normalized };
+}

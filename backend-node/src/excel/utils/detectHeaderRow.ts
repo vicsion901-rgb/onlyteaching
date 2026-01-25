@@ -1,63 +1,93 @@
-// src/excel/utils/detectHeaderRow.ts
 import { normalizeColumnName } from './normalizeColumn';
 
-/**
- * 엑셀에서 "헤더 행"으로 가장 그럴듯한 행을 자동 탐지한다.
- * - 의미 있는 단어 매칭 수
- * - 한글/영문 포함 비율
- * - 숫자-only 셀 비율 (감점)
- */
-export function detectHeaderRowIndex(
-  matrix: string[][],
-  candidateTokens: string[],
-): number {
-  const tokens = candidateTokens
-    .map(normalizeColumnName)
-    .filter(Boolean);
+const HEADER_KEYWORDS = [
+  '번호',
+  '순번',
+  '학생번호',
+  '이름',
+  '성명',
+  '학생명',
+  '생년월일',
+  '출생',
+  '주민등록',
+  '주민번호',
+  '주소',
+  '거주지',
+  '반',
+  '학년',
+  '성별',
+];
 
-  let bestIndex = 0;
-  let bestScore = -Infinity;
+function nonEmptyCount(row: string[]) {
+  return row.filter((c) => (c ?? '').toString().trim() !== '').length;
+}
 
-  const scanLimit = Math.min(matrix.length, 25);
+function looksLikeTitleRow(row: string[]): boolean {
+  const cells = row.map((c) => (c ?? '').toString().trim()).filter(Boolean);
+  if (cells.length === 0) return true;
+
+  // 한 셀만 크게 있고(병합제목), 나머지 비어 있으면 제목행
+  if (cells.length === 1 && cells[0].length >= 6) return true;
+
+  const joined = cells.join(' ');
+  const n = normalizeColumnName(joined);
+
+  // "학생명부/학년도/명부" 포함하면 제목행 취급
+  if (n.includes('학생명부') || n.includes('학년도') || n.includes('명부')) return true;
+
+  // 숫자 거의 없고 글자만 긴 경우 제목행 가능성
+  const digitCount = joined.replace(/[^0-9]/g, '').length;
+  if (digitCount === 0 && joined.length >= 8) return true;
+
+  return false;
+}
+
+export function detectHeaderRowIndex(matrix: string[][], _candidateTokens: string[]): number {
+  let bestIdx = 0;
+  let bestScore = -1e9;
+
+  const scanLimit = Math.min(matrix.length, 40);
 
   for (let i = 0; i < scanLimit; i++) {
-    const row = matrix[i];
-    const normalizedRow = row.map(normalizeColumnName);
+    const row = matrix[i] ?? [];
+    if (looksLikeTitleRow(row)) continue;
 
-    // 의미 토큰 매칭 수
-    const hitCount = normalizedRow.reduce((acc, cell) => {
-      if (!cell) return acc;
-      const matched = tokens.some(
-        (t) => cell.includes(t) || t.includes(cell),
-      );
-      return acc + (matched ? 1 : 0);
-    }, 0);
-
-    // 숫자만 있는 셀 개수 (감점 요소)
-    const numericOnlyCount = row.reduce(
-      (acc, cell) =>
-        /^\d+$/.test(cell ?? '') ? acc + 1 : acc,
-      0,
-    );
-
-    // 한글/영문 포함 셀 개수 (가산점)
-    const alphaCount = row.reduce(
-      (acc, cell) =>
-        /[a-zA-Z가-힣]/.test(cell ?? '') ? acc + 1 : acc,
-      0,
-    );
+    const ne = nonEmptyCount(row);
+    if (ne < 2) continue; // 최소 2개 이상 채워진 행만 후보
 
     // 점수 계산
-    const score =
-      hitCount * 3 +
-      alphaCount * 0.5 -
-      numericOnlyCount * 1.5;
+    let score = 0;
+
+    // 헤더는 보통 텍스트가 많음
+    for (const cell of row) {
+      const v = (cell ?? '').toString().trim();
+      if (!v) continue;
+
+      const n = normalizeColumnName(v);
+
+      // 숫자만이면 헤더 가능성 낮음
+      if (/^\d+$/.test(v)) score -= 2;
+
+      // 키워드 포함이면 크게 가산
+      for (const kw of HEADER_KEYWORDS) {
+        const nkw = normalizeColumnName(kw);
+        if (n === nkw) score += 12;
+        else if (n.includes(nkw) || nkw.includes(n)) score += 8;
+      }
+
+      // 한글/영문 포함이면 가산
+      if (/[가-힣a-zA-Z]/.test(v)) score += 2;
+    }
+
+    // 보너스: 헤더는 보통 3개 이상 채워짐
+    if (ne >= 3) score += 5;
+    if (ne >= 5) score += 5;
 
     if (score > bestScore) {
       bestScore = score;
-      bestIndex = i;
+      bestIdx = i;
     }
   }
 
-  return bestIndex;
+  return bestIdx;
 }
