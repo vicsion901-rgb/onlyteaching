@@ -29,8 +29,9 @@ export class AchievementStandardsService implements OnModuleInit {
   async findAll(filters: Filters) {
     const qb = this.repo
       .createQueryBuilder('a')
-      .orderBy('a.subject', 'ASC')
-      .addOrderBy('a.grade_group', 'ASC')
+      // 사용자가 보기 편하도록 '학년군' -> '교과' -> '코드' 순으로 정렬
+      .orderBy('a.grade_group', 'ASC')
+      .addOrderBy('a.subject', 'ASC')
       .addOrderBy('a.code', 'ASC');
 
     if (filters.subject) {

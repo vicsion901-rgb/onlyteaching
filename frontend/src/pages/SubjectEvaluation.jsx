@@ -100,7 +100,7 @@ function SubjectEvaluation() {
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
             >
               <option value="">전체 학년군</option>
-              {(achMeta.grade_groups || []).map((g) => (
+              {(achMeta.grade_groups || []).sort().map((g) => (
                 <option key={g} value={g}>{g}학년군</option>
               ))}
             </select>
@@ -114,7 +114,7 @@ function SubjectEvaluation() {
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
             >
               <option value="">전체 교과</option>
-              {(achMeta.subjects || []).map((s) => (
+              {(achMeta.subjects || []).sort().map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
@@ -124,7 +124,7 @@ function SubjectEvaluation() {
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
             >
               <option value="">전체 영역</option>
-              {(achMeta.areas || []).map((a) => (
+              {(achMeta.areas || []).sort().map((a) => (
                 <option key={a} value={a}>{a}</option>
               ))}
             </select>
@@ -148,8 +148,7 @@ function SubjectEvaluation() {
                     <div className="text-sm font-semibold text-gray-900">{item.standard}</div>
                   </div>
                   <div className="text-right text-xs text-gray-500">
-                    <div className="font-medium">{item.area}</div>
-                    <div className="font-mono text-gray-400">{item.code}</div>
+                    <div className="font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">{item.area}</div>
                   </div>
                 </div>
                 <div className="mt-3 space-y-1">
