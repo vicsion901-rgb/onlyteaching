@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import logo from '../assets/logo-dashboard.png';
 
 
 function Layout({ children }) {
@@ -38,13 +39,18 @@ function Layout({ children }) {
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 fixed h-full z-10 flex flex-col">
-        <div className="h-16 flex items-center px-6 border-b border-gray-200">
-          <Link to="/dashboard" className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity">
-            <div className="flex flex-col leading-tight">
-              <span className="font-bold" style={{ fontSize: '27px', color: '#7c3aed' }}>On1yTeaching</span>
-              <span className="font-medium" style={{ fontSize: '15px', color: '#6b7280' }}>오직 가르치기만 하십시오.</span>
+        <div className="h-20 flex items-center px-4 border-b border-gray-200">
+    <Link to="/dashboard" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity w-full">
+            <img
+              src={logo}
+              alt="Logo"
+              className="w-14 h-14 flex-shrink-0"
+            />
+            <div className="ml-2 flex flex-col text-sm text-gray-600 font-medium flex-1">
+              <span>업무를 더 쉽게,</span>
+              <span className="text-right">교사를 더 자유롭게</span>
             </div>
-            <span className="text-xs font-semibold text-white bg-primary-500 px-2 py-1 rounded-full">홈</span>
+            <span className="ml-2 text-xs font-semibold text-white bg-primary-500 px-2 py-1 rounded-full flex-shrink-0">홈</span>
           </Link>
         </div>
         <nav className="p-4 space-y-[2.25rem] flex-1 overflow-y-auto pb-6">

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 
-const GREETING_TEXT = '선생님, 안녕하세요';
+const GREETING_TEXT = 'On1yTeaching';
 
 const TOPIC_MAP = {
   schedule: { emoji: '📅', title: '학사일정', route: '/schedule' },
@@ -201,13 +201,14 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center">
+      <div className="flex flex-col">
         <h1
-          className="text-3xl font-bold text-gray-900"
+          className="text-3xl font-bold text-gray-900 italic"
           style={{ letterSpacing: '0.06em' }}
         >
           {greeting || GREETING_TEXT}
         </h1>
+        <span className="text-base text-gray-500 mt-1">오직 가르치기만 하십시오.</span>
       </div>
       
       {/* Quick Access Tabs (top 4 by click count, no prompt highlighting) */}
