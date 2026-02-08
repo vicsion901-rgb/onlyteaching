@@ -1,8 +1,9 @@
+// @ts-nocheck
 const path = require('path');
 const sqlite3 = require('sqlite3');
 
 // Single shared connection (sqlite3 is serialized by default)
-const DB_PATH = path.resolve(__dirname, '..', 'db.sqlite');
+const DB_PATH = path.resolve(__dirname, '..', '..', 'db.sqlite');
 const db = new sqlite3.Database(DB_PATH);
 
 // Ensure FK constraints
@@ -41,6 +42,10 @@ const exec = (sql) =>
   });
 
 module.exports = { run, get, all, exec };
+
+
+
+
 
 
 

@@ -12,11 +12,31 @@ import { ExcelModule } from './excel/excel.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'sqlite',
-      database: 'db.sqlite',
-      autoLoadEntities: true,
-      synchronize: true,
+    TypeOrmModule.forRootAsync({
+      useFactory: () => {
+        const isProduction = process.env.NODE_ENV === 'production';
+        
+        if (isProduction && process.env.POSTGRES_URL) {
+          // Vercel Postgres 설정
+          return {
+            type: 'postgres',
+            url: process.env.POSTGRES_URL,
+            autoLoadEntities: true,
+            synchronize: true, // 주의: 프로덕션에서는 false로 하고 마이그레이션 사용하는게 좋음 (베타니까 true 허용)
+            ssl: {
+              rejectUnauthorized: false,
+            },
+          };
+        }
+
+        // 로컬 SQLite 설정
+        return {
+          type: 'sqlite',
+          database: 'db.sqlite',
+          autoLoadEntities: true,
+          synchronize: true,
+        };
+      },
     }),
     StudentRecordsModule,
     PromptsModule,

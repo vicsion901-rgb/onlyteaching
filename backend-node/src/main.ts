@@ -25,9 +25,9 @@ async function bootstrap() {
   // Mount custom Express routes (legacy-style) under NestJS (Express adapter)
   // This keeps the requested file location: backend-node/routes/creativeActivities.js
   const expressInstance = app.getHttpAdapter().getInstance();
-  // Works both in src (dev) and dist (prod): __dirname/src or __dirname/dist -> ../routes
+  // Works both in src (dev) and dist (prod) if we handle path correctly
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const creativeActivitiesRouter = require(path.resolve(__dirname, '..', 'routes', 'creativeActivities.js'));
+  const creativeActivitiesRouter = require('./legacy-routes/creativeActivities.js');
   expressInstance.use('/creative-activities', creativeActivitiesRouter);
 
   const port = Number(process.env.PORT) || 3000;
