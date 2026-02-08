@@ -33,7 +33,7 @@ export class OCRService {
     try {
       const { markdown, images } = toMarkdown(buffer, {
         image: 'blob', // Get images as Blob/Buffer
-        use_html: false,
+        useHtml: false,
       });
 
       // 1. Text from HWP
@@ -60,7 +60,6 @@ export class OCRService {
       console.error("HWP Parse Error", e);
       return { mapping: {}, students: [], saved: [], count: 0, error: "Failed to parse HWP" };
     }
-  }
   }
 
   private async parseTextToStudents(text: string) {
