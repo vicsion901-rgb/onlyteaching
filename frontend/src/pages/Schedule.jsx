@@ -174,6 +174,10 @@ function Schedule() {
     '#e11d48', // rose
     '#6d28d9', // purple
     '#0f172a', // slate
+    '#0891b2', // cyan
+    '#c026d3', // fuchsia
+    '#d97706', // amber
+    '#4f46e5', // indigo
   ];
 
   // Fetch events from backend
@@ -748,7 +752,7 @@ function Schedule() {
                 {allSortedEvents.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-4">등록된 일정이 없습니다.</p>
                 ) : (
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                  <div className="flex flex-col gap-0.5 max-h-[300px] overflow-y-auto pr-1">
                     {allSortedEvents.map((event) => {
                       const color = event.memo && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(event.memo)
                         ? event.memo
@@ -762,51 +766,51 @@ function Schedule() {
                       return (
                         <div
                           key={event.id}
-                          className="group flex items-center justify-between text-sm bg-white rounded-md px-3 py-2.5 border border-gray-200 hover:border-primary-200 hover:shadow-sm transition-all"
+                          className="group flex items-center justify-between text-xs py-1.5 px-2 hover:bg-gray-50 rounded border-b border-gray-100 last:border-0 transition-all"
                         >
-                          <div className="flex items-center gap-3 overflow-hidden flex-1">
+                          <div className="flex items-center gap-2 overflow-hidden flex-1">
                             {editingEventId === event.id ? (
-                                <div className="flex items-center gap-1 mr-2">
+                                <div className="flex items-center gap-1">
                                   <input
                                     type="date"
                                     value={editDateValue}
                                     onChange={(e) => setEditDateValue(e.target.value)}
-                                    className="text-xs border rounded p-1 w-28"
+                                    className="text-[10px] border rounded px-1 py-0.5 w-24 bg-white"
                                   />
-                                  <button onClick={() => handleUpdateDate(event.id)} className="text-green-600 hover:text-green-800 text-xs">확인</button>
-                                  <button onClick={() => setEditingEventId(null)} className="text-gray-400 hover:text-gray-600 text-xs">취소</button>
+                                  <button onClick={() => handleUpdateDate(event.id)} className="text-green-600 hover:text-green-800 text-[10px] whitespace-nowrap px-1">확인</button>
+                                  <button onClick={() => setEditingEventId(null)} className="text-gray-400 hover:text-gray-600 text-[10px] whitespace-nowrap px-1">취소</button>
                                 </div>
                             ) : (
                                 <div 
-                                  className="flex-shrink-0 flex flex-col items-center justify-center w-10 border-r border-gray-100 pr-2 mr-1 cursor-pointer hover:bg-gray-50 rounded p-1 transition-colors"
+                                  className="flex items-center gap-1 min-w-[50px] cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
                                   onClick={() => {
                                     setEditingEventId(event.id);
                                     setEditDateValue(event.dateStr);
                                   }}
                                   title="클릭하여 날짜 변경"
                                 >
-                                  <span className={`text-[10px] font-bold ${weekDay === '일' ? 'text-red-500' : 'text-gray-500'}`}>
+                                  <span className={`font-medium ${weekDay === '일' ? 'text-red-500' : 'text-gray-600'}`}>
                                     {formattedDate}
                                   </span>
-                                  <span className={`text-[9px] ${weekDay === '일' ? 'text-red-400' : 'text-gray-400'}`}>
+                                  <span className={`text-[10px] ${weekDay === '일' ? 'text-red-400' : 'text-gray-400'}`}>
                                     ({weekDay})
                                   </span>
                                 </div>
                             )}
                             <div
-                              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                              className="w-2 h-2 rounded-full flex-shrink-0"
                               style={{ backgroundColor: color }}
                             />
-                            <span className="text-gray-700 font-medium truncate flex-1">
+                            <span className="text-gray-700 truncate flex-1">
                               {event.title}
                             </span>
                           </div>
                           <button
                             onClick={() => handleDeleteEvent(event.id, event.dateStr)}
-                            className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 flex-shrink-0"
+                            className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 flex-shrink-0"
                             title="삭제"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                           </button>
