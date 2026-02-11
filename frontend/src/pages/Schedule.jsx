@@ -609,7 +609,7 @@ function Schedule() {
                 <h3 className="text-lg font-bold text-gray-900">학사일정 도우미</h3>
               </div>
               <p className="text-sm text-gray-600 mb-4 ml-1">
-                공휴일 및 1,2학기 수업일수를 고려하여 학사일정을 제안해드립니다.
+                학사 일정의 대략적인 일정을 입력해주세요.
               </p>
               
               <div className="relative">
@@ -778,7 +778,7 @@ function Schedule() {
                                 </div>
                             ) : (
                                 <div 
-                                  className="flex-shrink-0 flex flex-col items-center justify-center w-10 border-r border-gray-100 pr-2 mr-1 cursor-pointer hover:bg-gray-50 rounded p-1"
+                                  className="flex-shrink-0 flex flex-col items-center justify-center w-10 border-r border-gray-100 pr-2 mr-1 cursor-pointer hover:bg-gray-50 rounded p-1 transition-colors"
                                   onClick={() => {
                                     setEditingEventId(event.id);
                                     setEditDateValue(event.dateStr);
