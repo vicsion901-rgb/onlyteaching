@@ -1,11 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
-import { 
-  Calendar, Users, Briefcase, FileText, GraduationCap, 
-  Sparkles, MessageCircle, CheckCircle, ClipboardList, 
-  ChevronRight 
-} from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 const GREETING_TEXT = 'On1yTeaching';
 
@@ -68,7 +64,6 @@ function Dashboard() {
       emoji: '📅',
       title: '학사일정',
       subtitle: `${currentYear}년 ${currentMonth}월`,
-      icon: Calendar,
       section: 'admin'
     },
     {
@@ -77,7 +72,6 @@ function Dashboard() {
       emoji: '👥',
       title: '학생명부',
       subtitle: events && Object.keys(events).length > 0 ? '명단 등록됨' : '명단 관리',
-      icon: Users,
       section: 'admin'
     },
     {
@@ -86,7 +80,6 @@ function Dashboard() {
       emoji: '💼',
       title: 'NEIS 업무',
       subtitle: 'NEIS 관리',
-      icon: Briefcase,
       section: 'admin'
     },
     {
@@ -95,7 +88,6 @@ function Dashboard() {
       emoji: '📝',
       title: '생활기록부',
       subtitle: '기록 관리',
-      icon: FileText,
       section: 'admin'
     },
     {
@@ -104,7 +96,6 @@ function Dashboard() {
       emoji: '📊',
       title: '교과평가',
       subtitle: '성적 관리',
-      icon: GraduationCap,
       section: 'admin'
     },
     {
@@ -113,7 +104,6 @@ function Dashboard() {
       emoji: '🎨',
       title: '창의적 체험활동',
       subtitle: '활동 기록',
-      icon: Sparkles,
       section: 'admin'
     },
     {
@@ -122,7 +112,6 @@ function Dashboard() {
       emoji: '💬',
       title: '상담기록 작성/정리',
       subtitle: '상담 일지',
-      icon: MessageCircle,
       section: 'student'
     },
     {
@@ -131,7 +120,6 @@ function Dashboard() {
       emoji: '💯',
       title: '시험지 채점',
       subtitle: '성적 처리',
-      icon: CheckCircle,
       section: 'student'
     },
     {
@@ -140,7 +128,6 @@ function Dashboard() {
       emoji: '📋',
       title: '가정통신문',
       subtitle: '안내문 작성',
-      icon: ClipboardList,
       section: 'parent'
     },
   ]), [currentMonth, currentYear, events]);
@@ -292,15 +279,14 @@ function Dashboard() {
           <div className="px-4 py-5 sm:p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {recentTabs.map((tab) => {
-                const Icon = tab.icon;
                 return (
                   <div
                     key={tab.id}
                     onClick={() => handleTabClick(tab.id, tab.route)}
                     className="group relative flex items-center space-x-4 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm hover:border-indigo-300 hover:shadow-md cursor-pointer transition-all duration-200"
                   >
-                    <div className="flex-shrink-0 p-2 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
-                      {Icon && <Icon className="h-6 w-6 text-indigo-600" aria-hidden="true" />}
+                    <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
+                      <span className="text-2xl" aria-hidden="true">{tab.emoji}</span>
                     </div>
                     <div className="min-w-0 flex-1">
                       <span className="absolute inset-0" aria-hidden="true" />
