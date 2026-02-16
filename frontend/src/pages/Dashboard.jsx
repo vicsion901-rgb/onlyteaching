@@ -31,7 +31,13 @@ function Dashboard() {
   const [events, setEvents] = useState({});
   const [currentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear] = useState(new Date().getFullYear());
-  const [tabClickCounts, setTabClickCounts] = useState({});
+  const [tabClickCounts, setTabClickCounts] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('tabClickCounts');
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  });
   const [greeting, setGreeting] = useState(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('greetingTypedOnce') === '1') {
       return GREETING_TEXT;
@@ -123,23 +129,36 @@ function Dashboard() {
     },
   ]), [currentMonth, currentYear, events]);
 
-  const sections = useMemo(() => [
-    {
-      id: 'admin',
-      title: '행정 업무 도우미',
-      items: allTabs.filter(t => t.section === 'admin')
-    },
-    {
-      id: 'student',
-      title: '학생 생활 업무 도우미',
-      items: allTabs.filter(t => t.section === 'student')
-    },
-    {
-      id: 'parent',
-      title: '학부모 관련 업무 도우미',
-      items: allTabs.filter(t => t.section === 'parent')
-    }
-  ], [allTabs]);
+  const sections = useMemo(() => {
+    const sortTabs = (tabs) => {
+      return [...tabs].sort((a, b) => {
+        const countA = tabClickCounts[a.id] || 0;
+        const countB = tabClickCounts[b.id] || 0;
+        if (countB !== countA) {
+          return countB - countA;
+        }
+        return 0;
+      });
+    };
+
+    return [
+      {
+        id: 'admin',
+        title: '행정 업무 도우미',
+        items: sortTabs(allTabs.filter(t => t.section === 'admin'))
+      },
+      {
+        id: 'student',
+        title: '학생 생활 업무 도우미',
+        items: sortTabs(allTabs.filter(t => t.section === 'student'))
+      },
+      {
+        id: 'parent',
+        title: '학부모 관련 업무 도우미',
+        items: sortTabs(allTabs.filter(t => t.section === 'parent'))
+      }
+    ];
+  }, [allTabs, tabClickCounts]);
 
   const [quickTabs, setQuickTabs] = useState([
     { id: 'schedule', ...TOPIC_MAP.schedule },
@@ -148,14 +167,6 @@ function Dashboard() {
   ]);
 
   const activeTabId = useMemo(() => detectTopicFromPrompt(prompt, allTabs), [prompt, allTabs]);
-
-  // Load click counts from localStorage
-  useEffect(() => {
-    const savedCounts = localStorage.getItem('tabClickCounts');
-    if (savedCounts) {
-      setTabClickCounts(JSON.parse(savedCounts));
-    }
-  }, []);
 
   // Fetch events from backend
   useEffect(() => {
