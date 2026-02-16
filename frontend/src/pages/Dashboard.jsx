@@ -31,10 +31,26 @@ function Dashboard() {
   const [events, setEvents] = useState({});
   const [currentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear] = useState(new Date().getFullYear());
-  const [tabClickCounts, setTabClickCounts] = useState(() => {
+  const [tabUsage, setTabUsage] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('tabClickCounts');
-      return saved ? JSON.parse(saved) : {};
+      const saved = localStorage.getItem('tabUsage') || localStorage.getItem('tabClickCounts');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          const migrated = {};
+          Object.keys(parsed).forEach(key => {
+            const val = parsed[key];
+            if (typeof val === 'number') {
+              migrated[key] = { count: val, lastUsed: 0 };
+            } else {
+              migrated[key] = val;
+            }
+          });
+          return migrated;
+        } catch (e) {
+          return {};
+        }
+      }
     }
     return {};
   });
@@ -129,36 +145,24 @@ function Dashboard() {
     },
   ]), [currentMonth, currentYear, events]);
 
-  const sections = useMemo(() => {
-    const sortTabs = (tabs) => {
-      return [...tabs].sort((a, b) => {
-        const countA = tabClickCounts[a.id] || 0;
-        const countB = tabClickCounts[b.id] || 0;
-        if (countB !== countA) {
-          return countB - countA;
-        }
-        return 0;
-      });
-    };
-
-    return [
-      {
-        id: 'admin',
-        title: '행정 업무 도우미',
-        items: sortTabs(allTabs.filter(t => t.section === 'admin'))
-      },
-      {
-        id: 'student',
-        title: '학생 생활 업무 도우미',
-        items: sortTabs(allTabs.filter(t => t.section === 'student'))
-      },
-      {
-        id: 'parent',
-        title: '학부모 관련 업무 도우미',
-        items: sortTabs(allTabs.filter(t => t.section === 'parent'))
+  const recentTabs = useMemo(() => {
+    return [...allTabs].sort((a, b) => {
+      const timeA = tabUsage[a.id]?.lastUsed || 0;
+      const timeB = tabUsage[b.id]?.lastUsed || 0;
+      
+      if (timeB !== timeA) {
+        return timeB - timeA;
       }
-    ];
-  }, [allTabs, tabClickCounts]);
+      
+      const countA = tabUsage[a.id]?.count || 0;
+      const countB = tabUsage[b.id]?.count || 0;
+      if (countB !== countA) {
+        return countB - countA;
+      }
+      
+      return 0;
+    }).slice(0, 6);
+  }, [allTabs, tabUsage]);
 
   const [quickTabs, setQuickTabs] = useState([
     { id: 'schedule', ...TOPIC_MAP.schedule },
@@ -210,10 +214,17 @@ function Dashboard() {
 
   // Handle tab clicks and update localStorage
   const handleTabClick = (tabId, route) => {
-    const newCounts = { ...tabClickCounts };
-    newCounts[tabId] = (newCounts[tabId] || 0) + 1;
-    setTabClickCounts(newCounts);
-    localStorage.setItem('tabClickCounts', JSON.stringify(newCounts));
+    const now = Date.now();
+    const newStats = { ...tabUsage };
+    const current = newStats[tabId] || { count: 0, lastUsed: 0 };
+    
+    newStats[tabId] = { 
+      count: current.count + 1, 
+      lastUsed: now 
+    };
+    
+    setTabUsage(newStats);
+    localStorage.setItem('tabUsage', JSON.stringify(newStats));
     navigate(route);
   };
 
@@ -227,7 +238,7 @@ function Dashboard() {
     setQuickTabs((prev) => {
       const withCounts = prev.map((t, idx) => ({
         ...t,
-        _count: tabClickCounts[t.id] || 0,
+        _count: tabUsage[t.id]?.count || 0,
         _idx: idx,
       }));
       const replaceTarget = withCounts.reduce((min, item) => {
@@ -239,7 +250,7 @@ function Dashboard() {
       next[replaceTarget._idx] = { id: activeTabId, ...meta };
       return next;
     });
-  }, [activeTabId, prompt, quickTabs, tabClickCounts, allTabs]);
+  }, [activeTabId, prompt, quickTabs, tabUsage, allTabs]);
 
   const handlePromptSubmit = async (e) => {
     e.preventDefault();
@@ -271,45 +282,42 @@ function Dashboard() {
         <span className="text-base text-gray-500 mt-1">오직 가르치기만 하십시오.</span>
       </div>
       
-      {/* Task Helper Sections */}
       <div className="space-y-8">
-        {sections.map((section) => (
-          <div key={section.id} className="bg-white overflow-hidden shadow rounded-lg border border-gray-100">
-            <div className="px-4 py-4 sm:px-6 border-b border-gray-100 bg-gray-50/50">
-              <h3 className="text-lg leading-6 font-bold text-gray-900 flex items-center gap-2">
-                {section.title}
-              </h3>
-            </div>
-            <div className="px-4 py-5 sm:p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {section.items.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <div
-                      key={tab.id}
-                      onClick={() => handleTabClick(tab.id, tab.route)}
-                      className="group relative flex items-center space-x-4 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm hover:border-indigo-300 hover:shadow-md cursor-pointer transition-all duration-200"
-                    >
-                      <div className="flex-shrink-0 p-2 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
-                        {Icon && <Icon className="h-6 w-6 text-indigo-600" aria-hidden="true" />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <span className="absolute inset-0" aria-hidden="true" />
-                        <p className="text-base font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
-                          {tab.title}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate mt-0.5">{tab.subtitle}</p>
-                      </div>
-                      <div className="flex-shrink-0 self-center">
-                        <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-indigo-400 transition-colors" aria-hidden="true" />
-                      </div>
+        <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-100">
+          <div className="px-4 py-4 sm:px-6 border-b border-gray-100 bg-gray-50/50">
+            <h3 className="text-lg leading-6 font-bold text-gray-900 flex items-center gap-2">
+              최근 이용하신 업무 목록
+            </h3>
+          </div>
+          <div className="px-4 py-5 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {recentTabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <div
+                    key={tab.id}
+                    onClick={() => handleTabClick(tab.id, tab.route)}
+                    className="group relative flex items-center space-x-4 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm hover:border-indigo-300 hover:shadow-md cursor-pointer transition-all duration-200"
+                  >
+                    <div className="flex-shrink-0 p-2 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
+                      {Icon && <Icon className="h-6 w-6 text-indigo-600" aria-hidden="true" />}
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="absolute inset-0" aria-hidden="true" />
+                      <p className="text-base font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
+                        {tab.title}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate mt-0.5">{tab.subtitle}</p>
+                    </div>
+                    <div className="flex-shrink-0 self-center">
+                      <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-indigo-400 transition-colors" aria-hidden="true" />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        ))}
+        </div>
       </div>
       
       {/* AI Prompt Section - Split layout */}
