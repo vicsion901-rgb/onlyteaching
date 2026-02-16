@@ -13,13 +13,15 @@ function Layout({ children }) {
   const [isParentGroupOpen, setIsParentGroupOpen] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Track sidebar clicks for quick access tabs
+  // Track sidebar clicks for quick access tabs (same format as Dashboard)
   const handleSidebarClick = (tabId) => {
     setIsSidebarOpen(false);
-    const savedCounts = localStorage.getItem('tabClickCounts');
-    const counts = savedCounts ? JSON.parse(savedCounts) : {};
-    counts[tabId] = (counts[tabId] || 0) + 1;
-    localStorage.setItem('tabClickCounts', JSON.stringify(counts));
+    const now = Date.now();
+    const saved = localStorage.getItem('tabUsage');
+    const usage = saved ? JSON.parse(saved) : {};
+    const current = usage[tabId] || { count: 0, lastUsed: 0 };
+    usage[tabId] = { count: current.count + 1, lastUsed: now };
+    localStorage.setItem('tabUsage', JSON.stringify(usage));
   };
 
   const handleLogout = () => {

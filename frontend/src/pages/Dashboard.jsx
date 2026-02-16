@@ -130,9 +130,22 @@ function Dashboard() {
       subtitle: '안내문 작성',
       section: 'parent'
     },
+    {
+      id: 'absence-report',
+      route: '/absence-report',
+      emoji: '📄',
+      title: '결석신고서',
+      subtitle: '결석 관리',
+      section: 'parent'
+    },
   ]), [currentMonth, currentYear, events]);
 
   const recentTabs = useMemo(() => {
+    const hasAnyUsage = Object.values(tabUsage).some(v => v?.lastUsed > 0);
+    if (!hasAnyUsage) {
+      // No usage data yet — show default order
+      return allTabs.slice(0, 6);
+    }
     return [...allTabs].sort((a, b) => {
       const timeA = tabUsage[a.id]?.lastUsed || 0;
       const timeB = tabUsage[b.id]?.lastUsed || 0;
@@ -151,11 +164,6 @@ function Dashboard() {
     }).slice(0, 6);
   }, [allTabs, tabUsage]);
 
-  const [quickTabs, setQuickTabs] = useState([
-    { id: 'schedule', ...TOPIC_MAP.schedule },
-    { id: 'life-records', ...TOPIC_MAP['life-records'] },
-    { id: 'neis', ...TOPIC_MAP.neis },
-  ]);
 
   const activeTabId = useMemo(() => detectTopicFromPrompt(prompt, allTabs), [prompt, allTabs]);
 
@@ -215,29 +223,6 @@ function Dashboard() {
     navigate(route);
   };
 
-  // Ensure prompt-detected topic exists in quick tabs (bottom buttons)
-  useEffect(() => {
-    if (!activeTabId) return;
-    const meta = getTopicMeta(activeTabId, prompt, allTabs);
-    if (!meta) return;
-    const exists = quickTabs.find((t) => t.id === activeTabId);
-    if (exists) return;
-    setQuickTabs((prev) => {
-      const withCounts = prev.map((t, idx) => ({
-        ...t,
-        _count: tabUsage[t.id]?.count || 0,
-        _idx: idx,
-      }));
-      const replaceTarget = withCounts.reduce((min, item) => {
-        if (item._count < min._count) return item;
-        if (item._count === min._count && item._idx > min._idx) return item;
-        return min;
-      }, withCounts[0]);
-      const next = [...prev];
-      next[replaceTarget._idx] = { id: activeTabId, ...meta };
-      return next;
-    });
-  }, [activeTabId, prompt, quickTabs, tabUsage, allTabs]);
 
   const handlePromptSubmit = async (e) => {
     e.preventDefault();
@@ -277,25 +262,37 @@ function Dashboard() {
             </h3>
           </div>
           <div className="px-4 py-5 sm:p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recentTabs.map((tab) => {
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              {recentTabs.map((tab, index) => {
+                const hasUsage = tabUsage[tab.id]?.lastUsed > 0;
                 return (
                   <div
                     key={tab.id}
                     onClick={() => handleTabClick(tab.id, tab.route)}
-                    className="group relative flex items-center space-x-4 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm hover:border-indigo-300 hover:shadow-md cursor-pointer transition-all duration-200"
+                    className={`group relative flex items-center space-x-3 sm:space-x-4 rounded-xl border bg-white px-3 sm:px-5 py-3 sm:py-4 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 ${
+                      index === 0 && hasUsage
+                        ? 'border-indigo-300 ring-2 ring-indigo-100'
+                        : 'border-gray-200 hover:border-indigo-300'
+                    }`}
                   >
-                    <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
-                      <span className="text-2xl" aria-hidden="true">{tab.emoji}</span>
+                    {hasUsage && (
+                      <span className={`absolute -top-2 -left-2 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center shadow-sm z-10 ${
+                        index === 0 ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-gray-600'
+                      }`}>
+                        {index + 1}
+                      </span>
+                    )}
+                    <div className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
+                      <span className="text-xl sm:text-2xl" aria-hidden="true">{tab.emoji}</span>
                     </div>
                     <div className="min-w-0 flex-1">
                       <span className="absolute inset-0" aria-hidden="true" />
-                      <p className="text-base font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
+                      <p className="text-sm sm:text-base font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors truncate">
                         {tab.title}
                       </p>
-                      <p className="text-xs text-gray-500 truncate mt-0.5">{tab.subtitle}</p>
+                      <p className="text-[11px] sm:text-xs text-gray-500 truncate mt-0.5">{tab.subtitle}</p>
                     </div>
-                    <div className="flex-shrink-0 self-center">
+                    <div className="flex-shrink-0 self-center hidden sm:block">
                       <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-indigo-400 transition-colors" aria-hidden="true" />
                     </div>
                   </div>
@@ -313,30 +310,7 @@ function Dashboard() {
           
           <div className="flex flex-col lg:flex-row gap-6 items-stretch">
             {/* Left: form */}
-            <div className="w-full lg:flex-1 flex flex-col h-full">
-              {/* Quick Suggestion Buttons */}
-              <div className="flex flex-wrap gap-3 mb-4">
-                {quickTabs.map((tab) => {
-                  const isActive = activeTabId === tab.id;
-                  const cls = isActive
-                    ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50';
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => {
-                        setPrompt(`${tab.title}에 대해 알려줘`);
-                        handleTabClick(tab.id, tab.route);
-                      }}
-                      className={`inline-flex items-center px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${cls}`}
-                    >
-                      <span className="mr-2 text-lg">{tab.emoji}</span>
-                      {tab.title}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="w-full lg:flex-1 flex flex-col h-auto lg:h-full">
 
               <form onSubmit={handlePromptSubmit}>
                 <label htmlFor="prompt" className="sr-only">Prompt</label>
@@ -369,7 +343,7 @@ function Dashboard() {
             </div>
 
             {/* Right: result */}
-            <div className="w-full lg:flex-1 bg-gray-50 rounded-md p-4 border border-gray-200 h-full flex flex-col">
+            <div className="w-full lg:flex-1 bg-gray-50 rounded-md p-4 border border-gray-200 h-auto lg:h-full flex flex-col min-h-[300px] lg:min-h-0">
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-medium text-gray-900">결과:</h3>

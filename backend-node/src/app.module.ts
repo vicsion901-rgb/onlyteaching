@@ -9,6 +9,7 @@ import { LifeRecordsModule } from './life-records/life-records.module';
 import { UsersModule } from './users/users.module';
 import { AchievementStandardsModule } from './achievement-standards/achievement-standards.module';
 import { ExcelModule } from './excel/excel.module';
+import { CreativeActivitiesModule } from './creative-activities/creative-activities.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { ExcelModule } from './excel/excel.module';
     LifeRecordsModule,
     AchievementStandardsModule,
     ExcelModule, // ✅ 엑셀 업로드/자동매핑 모듈 추가
+    CreativeActivitiesModule,
   ],
 })
 export class AppModule {}
