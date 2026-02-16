@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
+import { 
+  Calendar, Users, Briefcase, FileText, GraduationCap, 
+  Sparkles, MessageCircle, CheckCircle, ClipboardList, 
+  ChevronRight 
+} from 'lucide-react';
 
 const GREETING_TEXT = 'On1yTeaching';
 
@@ -11,8 +16,9 @@ const TOPIC_MAP = {
   newsletter: { emoji: '📋', title: '가정통신문', route: '/newsletter' },
   'subject-evaluation': { emoji: '📊', title: '교과평가', route: '/subject-evaluation' },
   'student-records': { emoji: '👥', title: '학생명부', route: '/student-records' },
-  'semester1-schedule': { emoji: '🌸', title: '업무 일정 (1학기)', route: '/semester1-schedule' }, // 벚꽃
-  'semester2-schedule': { emoji: '🍁', title: '업무 일정 (2학기)', route: '/semester2-schedule' }, // 붉은 단풍잎
+  'creative-activities': { emoji: '🎨', title: '창의적 체험활동', route: '/creative-activities' },
+  counseling: { emoji: '💬', title: '상담기록', route: '/counseling' },
+  'exam-grading': { emoji: '💯', title: '시험지 채점', route: '/exam-grading' },
 };
 
 function Dashboard() {
@@ -40,34 +46,8 @@ function Dashboard() {
       emoji: '📅',
       title: '학사일정',
       subtitle: `${currentYear}년 ${currentMonth}월`,
-    },
-    {
-      id: 'semester1-schedule',
-      route: '/semester1-schedule',
-      emoji: '🌸',
-      title: '업무 일정 (1학기)',
-      subtitle: '1학기 일정',
-    },
-    {
-      id: 'semester2-schedule',
-      route: '/semester2-schedule',
-      emoji: '🍁',
-      title: '업무 일정 (2학기)',
-      subtitle: '2학기 일정',
-    },
-    {
-      id: 'newsletter',
-      route: '/newsletter',
-      emoji: '📋',
-      title: '가정통신문',
-      subtitle: '안내문 작성',
-    },
-    {
-      id: 'subject-evaluation',
-      route: '/subject-evaluation',
-      emoji: '📊',
-      title: '교과평가',
-      subtitle: '성적 관리',
+      icon: Calendar,
+      section: 'admin'
     },
     {
       id: 'student-records',
@@ -75,6 +55,8 @@ function Dashboard() {
       emoji: '👥',
       title: '학생명부',
       subtitle: events && Object.keys(events).length > 0 ? '명단 등록됨' : '명단 관리',
+      icon: Users,
+      section: 'admin'
     },
     {
       id: 'neis',
@@ -82,6 +64,8 @@ function Dashboard() {
       emoji: '💼',
       title: 'NEIS 업무',
       subtitle: 'NEIS 관리',
+      icon: Briefcase,
+      section: 'admin'
     },
     {
       id: 'life-records',
@@ -89,8 +73,73 @@ function Dashboard() {
       emoji: '📝',
       title: '생활기록부',
       subtitle: '기록 관리',
-    }
+      icon: FileText,
+      section: 'admin'
+    },
+    {
+      id: 'subject-evaluation',
+      route: '/subject-evaluation',
+      emoji: '📊',
+      title: '교과평가',
+      subtitle: '성적 관리',
+      icon: GraduationCap,
+      section: 'admin'
+    },
+    {
+      id: 'creative-activities',
+      route: '/creative-activities',
+      emoji: '🎨',
+      title: '창의적 체험활동',
+      subtitle: '활동 기록',
+      icon: Sparkles,
+      section: 'admin'
+    },
+    {
+      id: 'counseling',
+      route: '/counseling',
+      emoji: '💬',
+      title: '상담기록 작성/정리',
+      subtitle: '상담 일지',
+      icon: MessageCircle,
+      section: 'student'
+    },
+    {
+      id: 'exam-grading',
+      route: '/exam-grading',
+      emoji: '💯',
+      title: '시험지 채점',
+      subtitle: '성적 처리',
+      icon: CheckCircle,
+      section: 'student'
+    },
+    {
+      id: 'newsletter',
+      route: '/newsletter',
+      emoji: '📋',
+      title: '가정통신문',
+      subtitle: '안내문 작성',
+      icon: ClipboardList,
+      section: 'parent'
+    },
   ]), [currentMonth, currentYear, events]);
+
+  const sections = useMemo(() => [
+    {
+      id: 'admin',
+      title: '행정 업무 도우미',
+      items: allTabs.filter(t => t.section === 'admin')
+    },
+    {
+      id: 'student',
+      title: '학생 생활 업무 도우미',
+      items: allTabs.filter(t => t.section === 'student')
+    },
+    {
+      id: 'parent',
+      title: '학부모 관련 업무 도우미',
+      items: allTabs.filter(t => t.section === 'parent')
+    }
+  ], [allTabs]);
 
   const [quickTabs, setQuickTabs] = useState([
     { id: 'schedule', ...TOPIC_MAP.schedule },
@@ -211,40 +260,45 @@ function Dashboard() {
         <span className="text-base text-gray-500 mt-1">오직 가르치기만 하십시오.</span>
       </div>
       
-      {/* Quick Access Tabs (top 4 by click count, no prompt highlighting) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {(() => {
-          const top4Tabs = [...allTabs]
-            .map((t) => ({ ...t, clickCount: tabClickCounts[t.id] || 0 }))
-            .sort((a, b) => b.clickCount - a.clickCount)
-            .slice(0, 4);
-
-          return top4Tabs.map(tab => (
-            <div
-              key={tab.id}
-              onClick={() => handleTabClick(tab.id, tab.route)}
-              className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow cursor-pointer chalk-red-cursor"
-            >
-              <div className="px-4 py-5 sm:p-6">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <span className="text-4xl">{tab.emoji}</span>
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        {tab.title}
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        {tab.subtitle}
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
+      {/* Task Helper Sections */}
+      <div className="space-y-8">
+        {sections.map((section) => (
+          <div key={section.id} className="bg-white overflow-hidden shadow rounded-lg border border-gray-100">
+            <div className="px-4 py-4 sm:px-6 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-lg leading-6 font-bold text-gray-900 flex items-center gap-2">
+                {section.title}
+              </h3>
+            </div>
+            <div className="px-4 py-5 sm:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {section.items.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <div
+                      key={tab.id}
+                      onClick={() => handleTabClick(tab.id, tab.route)}
+                      className="group relative flex items-center space-x-4 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm hover:border-indigo-300 hover:shadow-md cursor-pointer transition-all duration-200"
+                    >
+                      <div className="flex-shrink-0 p-2 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
+                        {Icon && <Icon className="h-6 w-6 text-indigo-600" aria-hidden="true" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="absolute inset-0" aria-hidden="true" />
+                        <p className="text-base font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
+                          {tab.title}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate mt-0.5">{tab.subtitle}</p>
+                      </div>
+                      <div className="flex-shrink-0 self-center">
+                        <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-indigo-400 transition-colors" aria-hidden="true" />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          ));
-        })()}
+          </div>
+        ))}
       </div>
       
       {/* AI Prompt Section - Split layout */}
@@ -383,13 +437,14 @@ function detectTopicFromPrompt(text, tabs) {
 
   const keywordMap = [
     { id: 'schedule', keywords: ['학사일정', '학사', '일정', '스케줄'] },
-    { id: 'semester1-schedule', keywords: ['업무일정', '업무 일정', '1학기', '1학', '1 학기'] },
-    { id: 'semester2-schedule', keywords: ['2학기', '2학', '2 학기'] },
+    { id: 'creative-activities', keywords: ['창의적체험활동', '창체', '창의적', '동아리', '봉사'] },
     { id: 'life-records', keywords: ['생활기록부', '생기부', '생활기록', '기록부'] },
     { id: 'subject-evaluation', keywords: ['교과평가', '성적', '평가', '성취'] },
     { id: 'newsletter', keywords: ['가정통신문', '안내문', '통신문'] },
     { id: 'student-records', keywords: ['학생명부', '명부', '학생기록'] },
     { id: 'neis', keywords: ['neis', '나이스'] },
+    { id: 'counseling', keywords: ['상담', '상담기록', '상담일지'] },
+    { id: 'exam-grading', keywords: ['채점', '시험지', '시험채점'] },
   ];
 
   for (const entry of keywordMap) {
