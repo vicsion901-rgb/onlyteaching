@@ -383,7 +383,7 @@ function Dashboard() {
             </div>
 
             {/* Right: result */}
-            <div className="bg-gray-50 rounded-md p-4 border border-gray-200 h-full">
+            <div className="bg-gray-50 rounded-md p-4 border border-gray-200 h-full flex flex-col">
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-medium text-gray-900">결과:</h3>
@@ -399,7 +399,7 @@ function Dashboard() {
                   </span>
                 )}
               </div>
-              <div className="min-h-[240px] bg-white border border-gray-200 rounded-md p-3">
+              <div className="min-h-[240px] bg-white border border-gray-200 rounded-md p-3 flex-1">
                 <ResultRenderer text={response} />
               </div>
             </div>
