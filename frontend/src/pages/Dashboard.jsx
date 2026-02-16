@@ -311,9 +311,9 @@ function Dashboard() {
         <div className="px-4 py-5 sm:p-6">
           <h2 className="text-lg font-medium leading-6 text-gray-900 mb-4">통합형 업무 도우미</h2>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="flex flex-col lg:flex-row gap-6 items-stretch">
             {/* Left: form */}
-            <div>
+            <div className="w-full lg:flex-1 flex flex-col h-full">
               {/* Quick Suggestion Buttons */}
               <div className="flex flex-wrap gap-3 mb-4">
                 {quickTabs.map((tab) => {
@@ -369,7 +369,7 @@ function Dashboard() {
             </div>
 
             {/* Right: result */}
-            <div className="bg-gray-50 rounded-md p-4 border border-gray-200 h-full flex flex-col">
+            <div className="w-full lg:flex-1 bg-gray-50 rounded-md p-4 border border-gray-200 h-full flex flex-col">
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-medium text-gray-900">결과:</h3>
