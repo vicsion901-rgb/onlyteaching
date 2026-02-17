@@ -70,6 +70,8 @@ function Schedule() {
 
   const [editingEventId, setEditingEventId] = useState(null);
   const [editDateValue, setEditDateValue] = useState('');
+  const [semester1Days, setSemester1Days] = useState('');
+  const [semester2Days, setSemester2Days] = useState('');
 
   const handleAiGenerate = async () => {
     if (!aiPrompt.trim()) return;
@@ -492,20 +494,43 @@ function Schedule() {
               </button>
             </div>
           </div>
-          <div className="flex gap-6 text-center">
+          <div className="flex gap-6 text-center items-end">
             <div>
-              <p className="text-xs text-gray-500">1학기 (3-7월)</p>
-              <p className="text-xl font-bold text-gray-800">{schoolDaysStats.semester1}일</p>
+              <p className="text-xs text-gray-500 mb-1">1학기 (3-7월)</p>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={semester1Days}
+                  onChange={(e) => setSemester1Days(e.target.value)}
+                  className="w-16 text-xl font-bold text-gray-800 text-center border border-gray-300 rounded-md py-0.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  min="0"
+                  max="200"
+                />
+                <span className="text-lg font-bold text-gray-800">일</span>
+              </div>
             </div>
             <div>
-              <p className="text-xs text-gray-500">2학기 (8-2월)</p>
-              <p className="text-xl font-bold text-gray-800">{schoolDaysStats.semester2}일</p>
+              <p className="text-xs text-gray-500 mb-1">2학기 (8-2월)</p>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={semester2Days}
+                  onChange={(e) => setSemester2Days(e.target.value)}
+                  className="w-16 text-xl font-bold text-gray-800 text-center border border-gray-300 rounded-md py-0.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  min="0"
+                  max="200"
+                />
+                <span className="text-lg font-bold text-gray-800">일</span>
+              </div>
             </div>
             <div className="pl-6 border-l border-gray-200">
               <p className="text-xs text-gray-500">총 수업일수</p>
-              <p className="text-2xl font-bold text-primary-600">
-                {schoolDaysStats.totalDays} <span className="text-sm text-gray-400 font-normal">/ 190</span>
+              <p className={`text-2xl font-bold ${(Number(semester1Days) || 0) + (Number(semester2Days) || 0) > 190 ? 'text-red-600' : 'text-primary-600'}`}>
+                {(Number(semester1Days) || 0) + (Number(semester2Days) || 0)} <span className="text-sm text-gray-400 font-normal">/ 190</span>
               </p>
+              {(Number(semester1Days) || 0) + (Number(semester2Days) || 0) > 190 && (
+                <p className="text-xs text-red-500 font-medium mt-0.5">⚠️ 190일 초과!</p>
+              )}
             </div>
           </div>
         </div>
