@@ -72,6 +72,7 @@ function Schedule() {
   const [editDateValue, setEditDateValue] = useState('');
   const [semester1Days, setSemester1Days] = useState('');
   const [semester2Days, setSemester2Days] = useState('');
+  const [showLawInfo, setShowLawInfo] = useState(false);
 
   const handleAiGenerate = async () => {
     if (!aiPrompt.trim()) return;
@@ -534,6 +535,37 @@ function Schedule() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Education Law Reference */}
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowLawInfo(!showLawInfo)}
+          className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          <span>📖 초·중등교육법 관련 규정</span>
+          <span className="text-lg">{showLawInfo ? '▲' : '▼'}</span>
+        </button>
+        {showLawInfo && (
+          <div className="px-4 pb-4 border-t border-gray-100 text-sm text-gray-700 space-y-4">
+            <div className="mt-3 p-3 bg-blue-50 rounded-md">
+              <h4 className="font-bold text-blue-900 mb-1">초·중등교육법 시행령 제45조 (수업일수)</h4>
+              <p className="text-blue-800 leading-relaxed">① 법 제24조제3항의 규정에 의한 학교의 수업일수는 매 학년 <strong>190일 이상</strong>으로 한다.</p>
+              <p className="text-blue-800 leading-relaxed mt-1">② 학교의 장은 천재지변, 연구학교의 운영 또는 제105조에 따른 자율학교의 운영 등 교육과정의 운영상 필요한 경우에는 제1항의 규정에 의한 수업일수의 <strong>10분의 1의 범위</strong>에서 줄일 수 있다.</p>
+            </div>
+            <div className="p-3 bg-green-50 rounded-md">
+              <h4 className="font-bold text-green-900 mb-1">초·중등교육법 시행령 제44조 (학기)</h4>
+              <p className="text-green-800 leading-relaxed">학교의 학기는 매 학년도를 두 학기로 나누되, 제1학기는 <strong>3월 1일부터 학교의 장이 정하는 날까지</strong>, 제2학기는 <strong>제1학기 종료일 다음 날부터 다음 해 2월 말일까지</strong>로 한다.</p>
+            </div>
+            <div className="p-3 bg-amber-50 rounded-md">
+              <h4 className="font-bold text-amber-900 mb-1">초·중등교육법 시행령 제47조 (휴업일 등)</h4>
+              <p className="text-amber-800 leading-relaxed">① 학교의 장은 교육과정의 운영상 필요한 경우에는 <strong>관할청의 승인</strong>을 얻어 휴업일을 지정할 수 있다.</p>
+              <p className="text-amber-800 leading-relaxed mt-1">② 관공서의 공휴일, 여름·겨울 방학, 개교기념일 등은 휴업일로 한다.</p>
+            </div>
+            <p className="text-xs text-gray-400 text-right">※ 법률 출처: 국가법령정보센터 (law.go.kr)</p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
