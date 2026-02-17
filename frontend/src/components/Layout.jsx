@@ -176,7 +176,7 @@ function Layout({ children }) {
       {/* ===== Desktop Hamburger (pin toggle) ===== */}
       <button
         type="button"
-        className="hidden md:flex fixed top-4 left-4 z-[60] p-2 rounded-md bg-white shadow-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none transition-colors"
+        className="hidden md:flex fixed top-4 left-4 z-[60] p-2 rounded-md bg-transparent text-gray-400 hover:text-gray-900 hover:bg-white/80 hover:shadow-md focus:outline-none transition-all duration-200"
         onClick={() => setIsPinned(!isPinned)}
         title={isPinned ? '사이드바 숨기기' : '사이드바 고정'}
       >
