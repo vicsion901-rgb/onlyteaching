@@ -45,6 +45,108 @@ function Layout({ children }) {
     'flex items-center px-4 py-2 text-[17px] font-medium rounded-md';
   const navChild = `${navBase} pl-9`;
 
+  const sidebarNav = (
+    <nav className="p-4 space-y-[2.25rem] flex-1 overflow-y-auto pb-6">
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setIsWorkGroupOpen(!isWorkGroupOpen)}
+          className={`${navBase} text-[18px] w-full justify-start gap-3 ${
+            isWorkGroupOpen ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          <span className="text-3xl leading-none">{isWorkGroupOpen ? '▾' : '▸'}</span>
+          <span className="flex items-center whitespace-nowrap">
+            <span className="border-b-4 border-yellow-300 pb-0.5 mr-1">행정</span>
+            <span>업무 도우미</span>
+          </span>
+        </button>
+        {isWorkGroupOpen && (
+          <div className="space-y-1">
+            <Link to="/schedule" onClick={() => handleSidebarClick('schedule')}
+              className={`${navChild} ${location.pathname === '/schedule' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className="mr-2">📅</span>학사일정
+            </Link>
+            <Link to="/student-records" onClick={() => handleSidebarClick('student-records')}
+              className={`${navChild} ${location.pathname === '/student-records' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className="mr-2">👥</span>학생명부
+            </Link>
+            <Link to="/neis" onClick={() => handleSidebarClick('neis')}
+              className={`${navChild} ${location.pathname === '/neis' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className="mr-2">💼</span>NEIS 업무
+            </Link>
+            <Link to="/life-records" onClick={() => handleSidebarClick('life-records')}
+              className={`${navChild} ${location.pathname === '/life-records' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className="mr-2">📝</span>생활기록부
+            </Link>
+            <Link to="/subject-evaluation" onClick={() => handleSidebarClick('subject-evaluation')}
+              className={`${navChild} ${location.pathname === '/subject-evaluation' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className="mr-2">📊</span>교과평가
+            </Link>
+            <Link to="/creative-activities" onClick={() => handleSidebarClick('creative-activities')}
+              className={`${navChild} ${location.pathname === '/creative-activities' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className="mr-2">🎨</span>창의적 체험활동
+            </Link>
+          </div>
+        )}
+      </div>
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setIsStudentGroupOpen(!isStudentGroupOpen)}
+          className={`${navBase} text-[18px] w-full justify-start gap-3 ${
+            isStudentGroupOpen ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          <span className="text-3xl leading-none">{isStudentGroupOpen ? '▾' : '▸'}</span>
+          <span className="flex items-center whitespace-nowrap">
+            <span className="border-b-4 border-blue-300 pb-0.5 mr-1">학생</span>
+            <span>생활 업무 도우미</span>
+          </span>
+        </button>
+        {isStudentGroupOpen && (
+          <div className="space-y-1">
+            <Link to="/counseling" onClick={() => handleSidebarClick('counseling')}
+              className={`${navChild} ${location.pathname === '/counseling' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className="mr-2">🗨️</span>상담기록 작성/정리
+            </Link>
+            <Link to="/exam-grading" onClick={() => handleSidebarClick('exam-grading')}
+              className={`${navChild} ${location.pathname === '/exam-grading' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className="mr-2">✏️</span>시험지 채점
+            </Link>
+          </div>
+        )}
+      </div>
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setIsParentGroupOpen(!isParentGroupOpen)}
+          className={`${navBase} text-[18px] w-full justify-start gap-3 ${
+            isParentGroupOpen ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          <span className="text-3xl leading-none">{isParentGroupOpen ? '▾' : '▸'}</span>
+          <span className="flex items-center whitespace-nowrap">
+            <span className="border-b-4 border-amber-700 pb-0.5 mr-1">학부모</span>
+            <span>관련 업무 도우미</span>
+          </span>
+        </button>
+        {isParentGroupOpen && (
+          <div className="space-y-1">
+            <Link to="/newsletter" onClick={() => handleSidebarClick('newsletter')}
+              className={`${navChild} ${location.pathname === '/newsletter' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className="mr-2">📋</span>가정통신문
+            </Link>
+            <Link to="/absence-report" onClick={() => handleSidebarClick('absence-report')}
+              className={`${navChild} ${location.pathname === '/absence-report' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className="mr-2">📄</span>결석신고서
+            </Link>
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+
   if (isLoginPage) {
     return <div className="min-h-screen bg-white">{children}</div>;
   }
@@ -71,7 +173,7 @@ function Layout({ children }) {
         />
       )}
 
-      {/* Desktop: hover trigger zone on left edge */}
+      {/* Desktop: hover trigger zone on left edge (only when sidebar is hidden) */}
       {!isSidebarHovered && (
         <div
           className="hidden md:block fixed left-0 top-0 w-6 h-full z-[55] cursor-pointer group"
@@ -81,21 +183,46 @@ function Layout({ children }) {
         </div>
       )}
 
-      {/* Sidebar */}
+      {/* Desktop Sidebar - in document flow, pushes content */}
       <aside
-        className={`w-64 bg-white border-r border-gray-200 fixed h-full z-50 flex flex-col transition-transform duration-300 ease-in-out ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${isSidebarHovered ? 'md:translate-x-0' : 'md:-translate-x-full'}`}
+        className={`hidden md:flex flex-col bg-white border-r border-gray-200 h-screen sticky top-0 transition-all duration-300 ease-in-out overflow-hidden ${
+          isSidebarHovered ? 'w-64 min-w-[256px]' : 'w-0 min-w-0'
+        }`}
         onMouseEnter={() => { sidebarUserInteracted.current = true; setIsSidebarHovered(true); }}
         onMouseLeave={() => setIsSidebarHovered(false)}
       >
+        <div className="w-64 flex flex-col h-full flex-shrink-0">
+          <div className="h-20 flex items-center px-4 border-b border-gray-200">
+            <Link to="/dashboard" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity w-full">
+              <img src={logo} alt="Logo" className="w-14 h-14 flex-shrink-0" />
+              <div className="ml-2 flex flex-col text-sm text-gray-600 font-medium flex-1">
+                <span>업무를 더 쉽게,</span>
+                <span className="text-right">교사를 더 자유롭게</span>
+              </div>
+              <span className="ml-2 text-xs font-semibold text-white bg-primary-500 px-2 py-1 rounded-full flex-shrink-0">홈</span>
+            </Link>
+          </div>
+          {sidebarNav}
+          <div className="w-full p-4 border-t border-gray-200">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
+            >
+              로그아웃 (Logout)
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile Sidebar - fixed overlay */}
+      <aside
+        className={`md:hidden w-64 bg-white border-r border-gray-200 fixed h-full z-50 flex flex-col transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <div className="h-20 flex items-center px-4 border-b border-gray-200">
-    <Link to="/dashboard" onClick={() => setIsSidebarOpen(false)} className="flex items-center cursor-pointer hover:opacity-80 transition-opacity w-full">
-            <img
-              src={logo}
-              alt="Logo"
-              className="w-14 h-14 flex-shrink-0"
-            />
+          <Link to="/dashboard" onClick={() => setIsSidebarOpen(false)} className="flex items-center cursor-pointer hover:opacity-80 transition-opacity w-full">
+            <img src={logo} alt="Logo" className="w-14 h-14 flex-shrink-0" />
             <div className="ml-2 flex flex-col text-sm text-gray-600 font-medium flex-1">
               <span>업무를 더 쉽게,</span>
               <span className="text-right">교사를 더 자유롭게</span>
@@ -103,188 +230,7 @@ function Layout({ children }) {
             <span className="ml-2 text-xs font-semibold text-white bg-primary-500 px-2 py-1 rounded-full flex-shrink-0">홈</span>
           </Link>
         </div>
-        <nav className="p-4 space-y-[2.25rem] flex-1 overflow-y-auto pb-6">
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => setIsWorkGroupOpen(!isWorkGroupOpen)}
-              className={`${navBase} text-[18px] w-full justify-start gap-3 ${
-                isWorkGroupOpen ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <span className="text-3xl leading-none">{isWorkGroupOpen ? '▾' : '▸'}</span>
-              <span className="flex items-center whitespace-nowrap">
-                <span className="border-b-4 border-yellow-300 pb-0.5 mr-1">행정</span>
-                <span>업무 도우미</span>
-              </span>
-            </button>
-            {isWorkGroupOpen && (
-              <div className="space-y-1">
-                <Link
-                  to="/schedule"
-                  onClick={() => handleSidebarClick('schedule')}
-                  className={`${navChild} ${
-                    location.pathname === '/schedule'
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="mr-2">📅</span>
-                  학사일정
-                </Link>
-                <Link
-                  to="/student-records"
-                  onClick={() => handleSidebarClick('student-records')}
-                  className={`${navChild} ${
-                    location.pathname === '/student-records'
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="mr-2">👥</span>
-                  학생명부
-                </Link>
-                <Link
-                  to="/neis"
-                  onClick={() => handleSidebarClick('neis')}
-                  className={`${navChild} ${
-                    location.pathname === '/neis'
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="mr-2">💼</span>
-                  NEIS 업무
-                </Link>
-
-                <Link
-                  to="/life-records"
-                  onClick={() => handleSidebarClick('life-records')}
-                  className={`${navChild} ${
-                    location.pathname === '/life-records'
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="mr-2">📝</span>
-                  생활기록부
-                </Link>
-                <Link
-                  to="/subject-evaluation"
-                  onClick={() => handleSidebarClick('subject-evaluation')}
-                  className={`${navChild} ${
-                    location.pathname === '/subject-evaluation'
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="mr-2">📊</span>
-                  교과평가
-                </Link>
-                <Link
-                  to="/creative-activities"
-                  onClick={() => handleSidebarClick('creative-activities')}
-                  className={`${navChild} ${
-                    location.pathname === '/creative-activities'
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="mr-2">🎨</span>
-                  창의적 체험활동
-                </Link>
-              </div>
-            )}
-          </div>
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => setIsStudentGroupOpen(!isStudentGroupOpen)}
-              className={`${navBase} text-[18px] w-full justify-start gap-3 ${
-                isStudentGroupOpen ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <span className="text-3xl leading-none">{isStudentGroupOpen ? '▾' : '▸'}</span>
-              <span className="flex items-center whitespace-nowrap">
-                <span className="border-b-4 border-blue-300 pb-0.5 mr-1">학생</span>
-                <span>생활 업무 도우미</span>
-              </span>
-            </button>
-            {isStudentGroupOpen && (
-              <div className="space-y-1">
-
-                <Link
-                  to="/counseling"
-                  onClick={() => handleSidebarClick('counseling')}
-                  className={`${navChild} ${
-                    location.pathname === '/counseling'
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="mr-2">🗨️</span>
-                  상담기록 작성/정리
-                </Link>
-                <Link
-                  to="/exam-grading"
-                  onClick={() => handleSidebarClick('exam-grading')}
-                  className={`${navChild} ${
-                    location.pathname === '/exam-grading'
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="mr-2">✏️</span>
-                  시험지 채점
-                </Link>
-
-              </div>
-            )}
-          </div>
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => setIsParentGroupOpen(!isParentGroupOpen)}
-              className={`${navBase} text-[18px] w-full justify-start gap-3 ${
-                isParentGroupOpen ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <span className="text-3xl leading-none">{isParentGroupOpen ? '▾' : '▸'}</span>
-              <span className="flex items-center whitespace-nowrap">
-                <span className="border-b-4 border-amber-700 pb-0.5 mr-1">학부모</span>
-                <span>관련 업무 도우미</span>
-              </span>
-            </button>
-            {isParentGroupOpen && (
-              <div className="space-y-1">
-                <Link
-                  to="/newsletter"
-                  onClick={() => handleSidebarClick('newsletter')}
-                  className={`${navChild} ${
-                    location.pathname === '/newsletter'
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="mr-2">📋</span>
-                  가정통신문
-                </Link>
-                <Link
-                  to="/absence-report"
-                  onClick={() => handleSidebarClick('absence-report')}
-                  className={`${navChild} ${
-                    location.pathname === '/absence-report'
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="mr-2">📄</span>
-                  결석신고서
-                </Link>
-              </div>
-            )}
-          </div>
-        </nav>
+        {sidebarNav}
         <div className="w-full p-4 border-t border-gray-200">
           <button
             onClick={handleLogout}
@@ -294,14 +240,6 @@ function Layout({ children }) {
           </button>
         </div>
       </aside>
-
-      {/* Overlay when sidebar is hovered on desktop */}
-      {isSidebarHovered && (
-        <div 
-          className="hidden md:block fixed inset-0 bg-black/20 z-40 transition-opacity cursor-pointer"
-          onClick={() => setIsSidebarHovered(false)}
-        />
-      )}
 
       <main className="flex-1 p-4 pt-20 md:p-8 md:pt-8 transition-all duration-300">
         <div className="max-w-7xl mx-auto">
