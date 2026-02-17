@@ -12,6 +12,7 @@ function Layout({ children }) {
   const [isStudentGroupOpen, setIsStudentGroupOpen] = useState(true);
   const [isParentGroupOpen, setIsParentGroupOpen] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
   // Track sidebar clicks for quick access tabs (same format as Dashboard)
   const handleSidebarClick = (tabId) => {
@@ -59,8 +60,20 @@ function Layout({ children }) {
         />
       )}
 
+      {/* Desktop: invisible hover trigger zone on left edge */}
+      <div
+        className="hidden md:block fixed left-0 top-0 w-4 h-full z-40"
+        onMouseEnter={() => setIsSidebarHovered(true)}
+      />
+
       {/* Sidebar */}
-      <aside className={`w-64 bg-white border-r border-gray-200 fixed h-full z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:z-10`}>
+      <aside
+        className={`w-64 bg-white border-r border-gray-200 fixed h-full z-50 flex flex-col transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${isSidebarHovered ? 'md:translate-x-0' : 'md:-translate-x-full'}`}
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
+      >
         <div className="h-20 flex items-center px-4 border-b border-gray-200">
     <Link to="/dashboard" onClick={() => setIsSidebarOpen(false)} className="flex items-center cursor-pointer hover:opacity-80 transition-opacity w-full">
             <img
@@ -267,7 +280,15 @@ function Layout({ children }) {
         </div>
       </aside>
 
-      <main className="flex-1 ml-0 md:ml-64 p-4 pt-20 md:p-8 md:pt-8 transition-all duration-300">
+      {/* Overlay when sidebar is hovered on desktop */}
+      {isSidebarHovered && (
+        <div 
+          className="hidden md:block fixed inset-0 bg-black/20 z-40 transition-opacity"
+          onMouseEnter={() => setIsSidebarHovered(false)}
+        />
+      )}
+
+      <main className="flex-1 p-4 pt-20 md:p-8 md:pt-8 transition-all duration-300">
         <div className="max-w-7xl mx-auto">
           {children}
         </div>
