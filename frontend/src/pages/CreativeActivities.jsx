@@ -254,7 +254,26 @@ function CreativeActivities() {
           </div>
           <button
             type="button"
-            onClick={() => fetchActivities(selectedStudentId)}
+            onClick={() => {
+              const hasInput = form.title || form.activity_date || form.hours || form.teacher_observation || Object.values(form.detail || {}).some(v => v);
+              if (hasInput) {
+                if (window.confirm('입력되어 있는 내용들을 삭제하시겠습니까?')) {
+                  setForm(prev => ({
+                    ...prev,
+                    title: '',
+                    activity_date: '',
+                    hours: '',
+                    teacher_observation: '',
+                    detail: {},
+                  }));
+                  fetchActivities(selectedStudentId);
+                } else {
+                  fetchActivities(selectedStudentId);
+                }
+              } else {
+                fetchActivities(selectedStudentId);
+              }
+            }}
             className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900 disabled:opacity-50"
             disabled={!selectedStudentId || isLoadingActivities}
           >

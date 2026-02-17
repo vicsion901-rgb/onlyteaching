@@ -308,61 +308,62 @@ function Dashboard() {
         <div className="px-4 py-5 sm:p-6">
           <h2 className="text-lg font-medium leading-6 text-gray-900 mb-4">통합형 업무 도우미</h2>
           
-          <div className="flex flex-col lg:flex-row gap-6 items-stretch">
-            {/* Left: form */}
-            <div className="w-full lg:flex-1 flex flex-col h-auto lg:h-full">
-
-              <form onSubmit={handlePromptSubmit} className="flex flex-col flex-1">
+          <form onSubmit={handlePromptSubmit}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left: textarea */}
+              <div className="flex flex-col">
                 <label htmlFor="prompt" className="sr-only">Prompt</label>
-                <div className="relative flex-1 flex flex-col">
-                  <textarea
-                    id="prompt"
-                    className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 pb-10 flex-1 resize-none"
-                    placeholder={'예시) 000학생 관련해서 발표능력 상, 정리정돈 중, 예의범절 하로 생기부 4줄 작성해줘.'}
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    onKeyDown={(e) => {
-                      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                        e.preventDefault();
-                        handlePromptSubmit(e);
-                      }
-                    }}
-                  />
-                </div>
-                <div className="flex justify-end mt-3">
-                  <button 
-                    type="submit" 
-                    disabled={isLoading}
-                    className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isLoading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
-                  >
-                    {isLoading ? '생성 중...' : '생성하기 (Ctrl + Enter)'}
-                  </button>
-                </div>
-              </form>
-            </div>
+                <textarea
+                  id="prompt"
+                  className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 pb-10 flex-1 resize-none min-h-[280px]"
+                  placeholder={'예시) 000학생 관련해서 발표능력 상, 정리정돈 중, 예의범절 하로 생기부 4줄 작성해줘.'}
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                      e.preventDefault();
+                      handlePromptSubmit(e);
+                    }
+                  }}
+                />
+              </div>
 
-            {/* Right: result */}
-            <div className="w-full lg:flex-1 bg-gray-50 rounded-md p-4 border border-gray-200 h-auto lg:h-full flex flex-col min-h-[300px] lg:min-h-0">
-              <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium text-gray-900">결과:</h3>
-                  {activeTabId === 'life-records' && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">
-                      생활기록부
+              {/* Right: result */}
+              <div className="bg-gray-50 rounded-md p-4 border border-gray-200 flex flex-col">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium text-gray-900">결과:</h3>
+                    {activeTabId === 'life-records' && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">
+                        생활기록부
+                      </span>
+                    )}
+                  </div>
+                  {usedModel && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                      OnlyTeaching DB
                     </span>
                   )}
                 </div>
-                {usedModel && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                    OnlyTeaching DB
-                  </span>
-                )}
-              </div>
-              <div className="min-h-[240px] bg-white border border-gray-200 rounded-md p-3 flex-1">
-                <ResultRenderer text={response} />
+                <div className="bg-white border border-gray-200 rounded-md p-3 flex-1">
+                  <ResultRenderer text={response} />
+                </div>
               </div>
             </div>
-          </div>
+
+            {/* Submit button - below grid, aligned to left column */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-3">
+              <div className="flex justify-end">
+                <button 
+                  type="submit" 
+                  disabled={isLoading}
+                  className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isLoading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
+                >
+                  {isLoading ? '생성 중...' : '생성하기 (Ctrl + Enter)'}
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
     </div>

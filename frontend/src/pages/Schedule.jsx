@@ -692,7 +692,7 @@ function Schedule() {
                     />
                     <button
                       onClick={handleAddEvent}
-                      className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm font-medium shadow-sm transition-colors"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium shadow-sm transition-colors"
                     >
                       등록
                     </button>
