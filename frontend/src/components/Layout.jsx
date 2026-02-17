@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo-dashboard.png';
 
@@ -12,7 +12,18 @@ function Layout({ children }) {
   const [isStudentGroupOpen, setIsStudentGroupOpen] = useState(true);
   const [isParentGroupOpen, setIsParentGroupOpen] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(true);
+  const sidebarUserInteracted = useRef(false);
+
+  // Auto-hide sidebar 5 seconds after mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!sidebarUserInteracted.current) {
+        setIsSidebarHovered(false);
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Track sidebar clicks for quick access tabs (same format as Dashboard)
   const handleSidebarClick = (tabId) => {
@@ -64,7 +75,7 @@ function Layout({ children }) {
       {!isSidebarHovered && (
         <div
           className="hidden md:block fixed left-0 top-0 w-6 h-full z-[55] cursor-pointer group"
-          onMouseEnter={() => setIsSidebarHovered(true)}
+          onMouseEnter={() => { sidebarUserInteracted.current = true; setIsSidebarHovered(true); }}
         >
           <div className="absolute left-0 top-0 w-1 h-full bg-primary-400 opacity-0 group-hover:opacity-60 transition-opacity" />
         </div>
@@ -75,7 +86,7 @@ function Layout({ children }) {
         className={`w-64 bg-white border-r border-gray-200 fixed h-full z-50 flex flex-col transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } ${isSidebarHovered ? 'md:translate-x-0' : 'md:-translate-x-full'}`}
-        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseEnter={() => { sidebarUserInteracted.current = true; setIsSidebarHovered(true); }}
         onMouseLeave={() => setIsSidebarHovered(false)}
       >
         <div className="h-20 flex items-center px-4 border-b border-gray-200">
