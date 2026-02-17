@@ -13,15 +13,14 @@ function Layout({ children }) {
   const [isParentGroupOpen, setIsParentGroupOpen] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(true);
-  const sidebarUserInteracted = useRef(false);
+  const initialAutoHide = useRef(true);
 
-  // Auto-hide sidebar 5 seconds after mount
+  // Auto-hide sidebar 3 seconds after mount
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!sidebarUserInteracted.current) {
-        setIsSidebarHovered(false);
-      }
-    }, 5000);
+      setIsSidebarHovered(false);
+      initialAutoHide.current = false;
+    }, 3000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -177,7 +176,7 @@ function Layout({ children }) {
       {!isSidebarHovered && (
         <div
           className="hidden md:block fixed left-0 top-0 w-6 h-full z-[55] cursor-pointer group"
-          onMouseEnter={() => { sidebarUserInteracted.current = true; setIsSidebarHovered(true); }}
+          onMouseEnter={() => setIsSidebarHovered(true)}
         >
           <div className="absolute left-0 top-0 w-1 h-full bg-primary-400 opacity-0 group-hover:opacity-60 transition-opacity" />
         </div>
@@ -188,7 +187,7 @@ function Layout({ children }) {
         className={`hidden md:flex flex-col bg-white border-r border-gray-200 h-screen sticky top-0 transition-all duration-300 ease-in-out overflow-hidden ${
           isSidebarHovered ? 'w-64 min-w-[256px]' : 'w-0 min-w-0'
         }`}
-        onMouseEnter={() => { sidebarUserInteracted.current = true; setIsSidebarHovered(true); }}
+        onMouseEnter={() => setIsSidebarHovered(true)}
         onMouseLeave={() => setIsSidebarHovered(false)}
       >
         <div className="w-64 flex flex-col h-full flex-shrink-0">
