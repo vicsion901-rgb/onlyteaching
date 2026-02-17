@@ -315,7 +315,7 @@ function Dashboard() {
                 <label htmlFor="prompt" className="sr-only">Prompt</label>
                 <textarea
                   id="prompt"
-                  className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 pb-10 flex-1 resize-none min-h-[280px]"
+                  className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 pb-10 flex-1 resize-none min-h-[240px]"
                   placeholder={'예시) 000학생 관련해서 발표능력 상, 정리정돈 중, 예의범절 하로 생기부 4줄 작성해줘.'}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
