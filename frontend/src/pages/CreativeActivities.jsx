@@ -14,6 +14,7 @@ function CreativeActivities() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const selectAllRef = useRef(null);
+  const [showRefreshConfirm, setShowRefreshConfirm] = useState(false);
 
   // Button styles: force visible text regardless of parent/global text styles.
   // Tailwind "!" modifier ensures the color/leading are not overridden by surrounding styles.
@@ -257,19 +258,7 @@ function CreativeActivities() {
             onClick={() => {
               const hasInput = form.title || form.activity_date || form.hours || form.teacher_observation || Object.values(form.detail || {}).some(v => v);
               if (hasInput) {
-                if (window.confirm('입력되어 있는 내용들을 삭제하시겠습니까?')) {
-                  setForm(prev => ({
-                    ...prev,
-                    title: '',
-                    activity_date: '',
-                    hours: '',
-                    teacher_observation: '',
-                    detail: {},
-                  }));
-                  fetchActivities(selectedStudentId);
-                } else {
-                  fetchActivities(selectedStudentId);
-                }
+                setShowRefreshConfirm(true);
               } else {
                 fetchActivities(selectedStudentId);
               }
@@ -604,6 +593,43 @@ function CreativeActivities() {
           </div>
         )}
       </div>
+
+      {/* Refresh Confirmation Modal */}
+      {showRefreshConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">확인</h3>
+            <p className="text-sm text-gray-600 mb-6">입력되어 있는 내용들을 삭제하시겠습니까?</p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowRefreshConfirm(false)}
+                className="px-4 py-2 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              >
+                아니오
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setForm(prev => ({
+                    ...prev,
+                    title: '',
+                    activity_date: '',
+                    hours: '',
+                    teacher_observation: '',
+                    detail: {},
+                  }));
+                  setShowRefreshConfirm(false);
+                  fetchActivities(selectedStudentId);
+                }}
+                className="px-4 py-2 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700"
+              >
+                네
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
