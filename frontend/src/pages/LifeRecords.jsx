@@ -341,6 +341,12 @@ function LifeRecords() {
                   rows={4}
                   className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-2"
                   placeholder="추가적으로 반영하고 싶은 내용을 입력하세요."
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                      e.preventDefault();
+                      handleGenerate(e);
+                    }
+                  }}
                 />
               </div>
 
@@ -350,7 +356,7 @@ function LifeRecords() {
                   disabled={isLoading}
                   className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${isLoading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
                 >
-                  {isLoading ? '생성 중...' : '생활기록부 생성하기'}
+                  {isLoading ? '생성 중...' : '생활기록부 생성하기 (Ctrl + Enter)'}
                 </button>
               </div>
             </div>
