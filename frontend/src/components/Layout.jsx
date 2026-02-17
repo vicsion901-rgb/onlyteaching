@@ -60,11 +60,15 @@ function Layout({ children }) {
         />
       )}
 
-      {/* Desktop: invisible hover trigger zone on left edge */}
-      <div
-        className="hidden md:block fixed left-0 top-0 w-4 h-full z-40"
-        onMouseEnter={() => setIsSidebarHovered(true)}
-      />
+      {/* Desktop: hover trigger zone on left edge */}
+      {!isSidebarHovered && (
+        <div
+          className="hidden md:block fixed left-0 top-0 w-6 h-full z-[55] cursor-pointer group"
+          onMouseEnter={() => setIsSidebarHovered(true)}
+        >
+          <div className="absolute left-0 top-0 w-1 h-full bg-primary-400 opacity-0 group-hover:opacity-60 transition-opacity" />
+        </div>
+      )}
 
       {/* Sidebar */}
       <aside
@@ -283,8 +287,8 @@ function Layout({ children }) {
       {/* Overlay when sidebar is hovered on desktop */}
       {isSidebarHovered && (
         <div 
-          className="hidden md:block fixed inset-0 bg-black/20 z-40 transition-opacity"
-          onMouseEnter={() => setIsSidebarHovered(false)}
+          className="hidden md:block fixed inset-0 bg-black/20 z-40 transition-opacity cursor-pointer"
+          onClick={() => setIsSidebarHovered(false)}
         />
       )}
 
