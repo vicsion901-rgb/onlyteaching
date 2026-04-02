@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { StudentRecordsModule } from './student-records/student-records.module';
@@ -10,6 +11,10 @@ import { UsersModule } from './users/users.module';
 import { AchievementStandardsModule } from './achievement-standards/achievement-standards.module';
 import { ExcelModule } from './excel/excel.module';
 import { CreativeActivitiesModule } from './creative-activities/creative-activities.module';
+import { AutobiographyCompilationModule } from './autobiography-compilation/autobiography-compilation.module';
+import { MealsModule } from './meals/meals.module';
+import { ProofreadModule } from './proofread/proofread.module';
+import { ProofreadResponseInterceptor } from './proofread/proofread-response.interceptor';
 
 @Module({
   imports: [
@@ -48,6 +53,15 @@ import { CreativeActivitiesModule } from './creative-activities/creative-activit
     AchievementStandardsModule,
     ExcelModule, // ✅ 엑셀 업로드/자동매핑 모듈 추가
     CreativeActivitiesModule,
+    AutobiographyCompilationModule,
+    MealsModule,
+    ProofreadModule,
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ProofreadResponseInterceptor,
+    },
   ],
 })
 export class AppModule {}

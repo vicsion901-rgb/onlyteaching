@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+import { objectParticle } from '../utils/korean-particle.util';
+
 type KeywordItem = { keyword_id: number; keyword: string };
 type CommentItem = {
   comment_id: number;
@@ -89,7 +91,7 @@ export class LifeRecordsService {
     const keywords = selected_keywords.length > 0 ? selected_keywords : ['성실함'];
     const sentences = keywords.map(
       (kw, idx) =>
-        `${idx === 0 ? namePart : ''}${kw}을(를) 기반으로 수업과 활동에 적극적으로 참여하며 꾸준히 성장하고 있습니다.`,
+        `${idx === 0 ? namePart : ''}${kw}${objectParticle(kw)} 기반으로 수업과 활동에 적극적으로 참여하며 꾸준히 성장하고 있습니다.`,
     );
     const contextPart = additional_context ? ` 추가 메모: ${additional_context}` : '';
 
@@ -99,7 +101,6 @@ export class LifeRecordsService {
     };
   }
 }
-
 
 
 

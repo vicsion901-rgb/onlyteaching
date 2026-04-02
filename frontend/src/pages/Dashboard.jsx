@@ -13,6 +13,7 @@ const TOPIC_MAP = {
   'subject-evaluation': { emoji: '📊', title: '교과평가', route: '/subject-evaluation' },
   'student-records': { emoji: '👥', title: '학생명부', route: '/student-records' },
   'creative-activities': { emoji: '🎨', title: '창의적 체험활동', route: '/creative-activities' },
+  'autobiography-compilation': { emoji: '📚', title: '자서전 편찬', route: '/autobiography-compilation' },
   counseling: { emoji: '💬', title: '상담기록', route: '/counseling' },
   'exam-grading': { emoji: '💯', title: '시험지 채점', route: '/exam-grading' },
 };
@@ -43,7 +44,7 @@ function Dashboard() {
             }
           });
           return migrated;
-        } catch (e) {
+        } catch {
           return {};
         }
       }
@@ -104,6 +105,14 @@ function Dashboard() {
       emoji: '🎨',
       title: '창의적 체험활동',
       subtitle: '활동 기록',
+      section: 'admin'
+    },
+    {
+      id: 'autobiography-compilation',
+      route: '/autobiography-compilation',
+      emoji: '📚',
+      title: '자서전 편찬',
+      subtitle: '학생/선생님 버전 생성',
       section: 'admin'
     },
     {
@@ -418,6 +427,7 @@ function detectTopicFromPrompt(text, tabs) {
     { id: 'schedule', keywords: ['학사일정', '학사', '일정', '스케줄'] },
     { id: 'creative-activities', keywords: ['창의적체험활동', '창체', '창의적', '동아리', '봉사'] },
     { id: 'life-records', keywords: ['생활기록부', '생기부', '생활기록', '기록부'] },
+    { id: 'autobiography-compilation', keywords: ['자서전편찬', '자서전', '편찬', '회고록'] },
     { id: 'subject-evaluation', keywords: ['교과평가', '성적', '평가', '성취'] },
     { id: 'newsletter', keywords: ['가정통신문', '안내문', '통신문'] },
     { id: 'student-records', keywords: ['학생명부', '명부', '학생기록'] },
@@ -444,17 +454,4 @@ function detectTopicFromPrompt(text, tabs) {
   }
 
   return null;
-}
-
-function getTopicMeta(id, promptText, tabs) {
-  if (TOPIC_MAP[id]) return TOPIC_MAP[id];
-  if (tabs) {
-    const found = tabs.find((t) => t.id === id);
-    if (found) return found;
-  }
-  return {
-    emoji: '✨',
-    title: promptText ? promptText.slice(0, 8) + (promptText.length > 8 ? '…' : '') : '사용자 지정',
-    route: '/',
-  };
 }

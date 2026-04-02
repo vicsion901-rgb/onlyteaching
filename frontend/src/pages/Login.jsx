@@ -24,6 +24,7 @@ function Login() {
       });
       // Backend returns { message, userId } if ACTIVE
       localStorage.setItem('userId', res.data.userId);
+      localStorage.setItem('schoolCode', schoolCode);
       localStorage.setItem('loginMessage', res.data.message);
       navigate('/dashboard');
     } catch (error) {

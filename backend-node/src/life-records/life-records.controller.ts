@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Proofreadable } from '../proofread/proofread.decorator';
 import { LifeRecordsService } from './life-records.service';
 
 @Controller('life-records')
@@ -21,6 +22,11 @@ export class LifeRecordsController {
   }
 
   @Post('generate')
+  @Proofreadable({
+    contentType: 'life-record',
+    responseFields: ['generated_text'],
+    protectedBodyFields: ['student_name', 'selected_keywords'],
+  })
   generate(@Body() body: any) {
     return this.lifeRecordsService.generateLifeRecord({
       selected_keywords: body?.selected_keywords,
@@ -30,7 +36,6 @@ export class LifeRecordsController {
     });
   }
 }
-
 
 
 

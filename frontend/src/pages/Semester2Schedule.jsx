@@ -39,7 +39,7 @@ function Semester2Schedule() {
           onClick={() => navigate('/dashboard')}
           className="text-primary-600 hover:text-primary-900 font-medium"
         >
-          &larr; 업무도우미로 돌아가기
+          &larr; 홈으로
         </button>
       </div>
 

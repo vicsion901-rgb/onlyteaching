@@ -15,6 +15,8 @@ import AbsenceReport from './pages/AbsenceReport';
 import ExamGrading from './pages/ExamGrading';
 import CreativeActivities from './pages/CreativeActivities';
 import AcademicCalendar from './pages/AcademicCalendar';
+import AutobiographyCompilation from './pages/AutobiographyCompilation';
+import TodayMeal from './pages/TodayMeal';
 import Layout from './components/Layout';
 
 function App() {
@@ -37,6 +39,8 @@ function App() {
           <Route path="/exam-grading" element={<ExamGrading />} />
           <Route path="/creative-activities" element={<CreativeActivities />} />
           <Route path="/academic-calendar" element={<AcademicCalendar />} />
+          <Route path="/autobiography-compilation" element={<AutobiographyCompilation />} />
+          <Route path="/today-meal" element={<TodayMeal />} />
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </Layout>

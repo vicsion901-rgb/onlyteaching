@@ -434,7 +434,7 @@ function StudentRecords() {
             onClick={() => navigate('/dashboard')}
             className="text-primary-600 hover:text-primary-900 font-medium"
           >
-            &larr; 홈으로 돌아가기
+            &larr; 홈으로
           </button>
             <button
               onClick={handleSave}

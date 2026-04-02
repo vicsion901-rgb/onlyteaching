@@ -7,10 +7,13 @@ function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isLoginPage = location.pathname === '/login';
+  const isAutobiographyPage = location.pathname === '/autobiography-compilation';
 
-  const [isWorkGroupOpen, setIsWorkGroupOpen] = useState(true);
-  const [isStudentGroupOpen, setIsStudentGroupOpen] = useState(true);
-  const [isParentGroupOpen, setIsParentGroupOpen] = useState(true);
+  const [isWorkTimeOpen, setIsWorkTimeOpen] = useState(true);
+  const [isBreakTimeOpen, setIsBreakTimeOpen] = useState(true);
+  const [isAdminOpen, setIsAdminOpen] = useState(true);
+  const [isStudentOpen, setIsStudentOpen] = useState(true);
+  const [isParentOpen, setIsParentOpen] = useState(true);
 
   // Mobile overlay sidebar
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -31,6 +34,9 @@ function Layout({ children }) {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('userId');
+    localStorage.removeItem('schoolCode');
+    localStorage.removeItem('loginMessage');
     localStorage.removeItem('token');
     navigate('/login');
   };
@@ -38,116 +44,142 @@ function Layout({ children }) {
   const navBase =
     'flex items-center px-4 py-2 text-[17px] font-medium rounded-md';
   const navChild = `${navBase} pl-9`;
+  const navSectionButton = 'flex items-center w-full px-4 pt-2 text-sm font-semibold text-gray-500 text-left';
 
   // Shared sidebar content
   const sidebarHeader = (onLogoClick) => (
-    <div className="h-20 flex items-center px-4 border-b border-gray-200">
-      <Link to="/dashboard" onClick={onLogoClick} className="flex items-center cursor-pointer hover:opacity-80 transition-opacity w-full">
-        <img src={logo} alt="Logo" className="w-14 h-14 flex-shrink-0" />
-        <div className="ml-2 flex flex-col text-sm text-gray-600 font-medium flex-1">
-          <span>업무를 더 쉽게,</span>
-          <span className="text-right">교사를 더 자유롭게</span>
+    <div className="h-20 flex items-center pl-14 pr-3 border-b border-gray-200">
+      <Link to="/dashboard" onClick={onLogoClick} className="flex w-full items-center gap-2 cursor-pointer transition-opacity hover:opacity-80">
+        <img src={logo} alt="Logo" className="w-12 h-12 flex-shrink-0" />
+        <div className="flex min-w-0 flex-1 flex-col text-sm font-medium leading-tight text-gray-600">
+          <span className="whitespace-nowrap">업무를 더 쉽게,</span>
+          <span className="whitespace-nowrap text-right">교사를 더 자유롭게</span>
         </div>
-        <span className="ml-2 text-xs font-semibold text-white bg-primary-500 px-2 py-1 rounded-full flex-shrink-0">홈</span>
+        <span className="flex-shrink-0 rounded-full bg-primary-500 px-2 py-1 text-xs font-semibold text-white">홈</span>
       </Link>
     </div>
   );
 
   const sidebarNav = (
-    <nav className="p-4 space-y-[2.25rem] flex-1 overflow-y-auto pb-6">
+    <nav className="px-4 pt-5 pb-6 space-y-6 flex-1 overflow-y-auto">
       <div className="space-y-2">
         <button
           type="button"
-          onClick={() => setIsWorkGroupOpen(!isWorkGroupOpen)}
-          className={`${navBase} text-[18px] w-full justify-start gap-3 ${
-            isWorkGroupOpen ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
+          onClick={() => setIsWorkTimeOpen(!isWorkTimeOpen)}
+          className={`${navBase} group text-[18px] w-full justify-start gap-3 ${
+            isWorkTimeOpen ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
           }`}
         >
-          <span className="text-3xl leading-none">{isWorkGroupOpen ? '▾' : '▸'}</span>
-          <span className="flex items-center whitespace-nowrap">
-            <span className="border-b-4 border-yellow-300 pb-0.5 mr-1">행정</span>
-            <span>업무 도우미</span>
+          <span className="text-3xl leading-none">{isWorkTimeOpen ? '▾' : '▸'}</span>
+          <span
+            className={`whitespace-nowrap text-[18px] font-semibold tracking-[0.01em] ${
+              isWorkTimeOpen ? 'text-primary-800' : 'text-gray-800 group-hover:text-gray-900'
+            }`}
+          >
+            업무 시간
           </span>
         </button>
-        {isWorkGroupOpen && (
-          <div className="space-y-1">
-            <Link to="/schedule" onClick={() => handleSidebarClick('schedule')}
-              className={`${navChild} ${location.pathname === '/schedule' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-              <span className="mr-2">📅</span>학사일정
-            </Link>
-            <Link to="/student-records" onClick={() => handleSidebarClick('student-records')}
-              className={`${navChild} ${location.pathname === '/student-records' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-              <span className="mr-2">👥</span>학생명부
-            </Link>
-            <Link to="/neis" onClick={() => handleSidebarClick('neis')}
-              className={`${navChild} ${location.pathname === '/neis' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-              <span className="mr-2">💼</span>NEIS 업무
-            </Link>
-            <Link to="/life-records" onClick={() => handleSidebarClick('life-records')}
-              className={`${navChild} ${location.pathname === '/life-records' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-              <span className="mr-2">📝</span>생활기록부
-            </Link>
-            <Link to="/subject-evaluation" onClick={() => handleSidebarClick('subject-evaluation')}
-              className={`${navChild} ${location.pathname === '/subject-evaluation' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-              <span className="mr-2">📊</span>교과평가
-            </Link>
-            <Link to="/creative-activities" onClick={() => handleSidebarClick('creative-activities')}
-              className={`${navChild} ${location.pathname === '/creative-activities' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-              <span className="mr-2">🎨</span>창의적 체험활동
-            </Link>
+        {isWorkTimeOpen && (
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <button type="button" onClick={() => setIsAdminOpen(!isAdminOpen)} className={navSectionButton}>
+                <span className="mr-2 text-base leading-none">{isAdminOpen ? '▾' : '▸'}</span>
+                <span>행정</span>
+              </button>
+              {isAdminOpen && (
+                <>
+                  <Link to="/schedule" onClick={() => handleSidebarClick('schedule')}
+                    className={`${navChild} ${location.pathname === '/schedule' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    <span className="mr-2">📅</span>학사일정
+                  </Link>
+                  <Link to="/student-records" onClick={() => handleSidebarClick('student-records')}
+                    className={`${navChild} ${location.pathname === '/student-records' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    <span className="mr-2">👥</span>학생명부
+                  </Link>
+                  <Link to="/neis" onClick={() => handleSidebarClick('neis')}
+                    className={`${navChild} ${location.pathname === '/neis' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    <span className="mr-2">💼</span>NEIS 업무
+                  </Link>
+                  <Link to="/life-records" onClick={() => handleSidebarClick('life-records')}
+                    className={`${navChild} ${location.pathname === '/life-records' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    <span className="mr-2">📝</span>생활기록부
+                  </Link>
+                  <Link to="/subject-evaluation" onClick={() => handleSidebarClick('subject-evaluation')}
+                    className={`${navChild} ${location.pathname === '/subject-evaluation' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    <span className="mr-2">📊</span>교과평가
+                  </Link>
+                  <Link to="/creative-activities" onClick={() => handleSidebarClick('creative-activities')}
+                    className={`${navChild} ${location.pathname === '/creative-activities' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    <span className="mr-2">🎨</span>창의적 체험활동
+                  </Link>
+                </>
+              )}
+            </div>
+            <div className="space-y-1">
+              <button type="button" onClick={() => setIsStudentOpen(!isStudentOpen)} className={navSectionButton}>
+                <span className="mr-2 text-base leading-none">{isStudentOpen ? '▾' : '▸'}</span>
+                <span>학생</span>
+              </button>
+              {isStudentOpen && (
+                <>
+                  <Link to="/counseling" onClick={() => handleSidebarClick('counseling')}
+                    className={`${navChild} ${location.pathname === '/counseling' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    <span className="mr-2">🗨️</span>상담기록 작성/정리
+                  </Link>
+                  <Link to="/exam-grading" onClick={() => handleSidebarClick('exam-grading')}
+                    className={`${navChild} ${location.pathname === '/exam-grading' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    <span className="mr-2">✏️</span>시험지 채점
+                  </Link>
+                </>
+              )}
+            </div>
+            <div className="space-y-1">
+              <button type="button" onClick={() => setIsParentOpen(!isParentOpen)} className={navSectionButton}>
+                <span className="mr-2 text-base leading-none">{isParentOpen ? '▾' : '▸'}</span>
+                <span>학부모</span>
+              </button>
+              {isParentOpen && (
+                <>
+                  <Link to="/newsletter" onClick={() => handleSidebarClick('newsletter')}
+                    className={`${navChild} ${location.pathname === '/newsletter' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    <span className="mr-2">📋</span>가정통신문
+                  </Link>
+                  <Link to="/absence-report" onClick={() => handleSidebarClick('absence-report')}
+                    className={`${navChild} ${location.pathname === '/absence-report' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    <span className="mr-2">📄</span>결석신고서
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>
-      <div className="space-y-2">
+      <div className="mt-2 space-y-2 md:mt-4 lg:mt-6">
         <button
           type="button"
-          onClick={() => setIsStudentGroupOpen(!isStudentGroupOpen)}
-          className={`${navBase} text-[18px] w-full justify-start gap-3 ${
-            isStudentGroupOpen ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
+          onClick={() => setIsBreakTimeOpen(!isBreakTimeOpen)}
+          className={`${navBase} group text-[18px] w-full justify-start gap-3 ${
+            isBreakTimeOpen ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
           }`}
         >
-          <span className="text-3xl leading-none">{isStudentGroupOpen ? '▾' : '▸'}</span>
-          <span className="flex items-center whitespace-nowrap">
-            <span className="border-b-4 border-blue-300 pb-0.5 mr-1">학생</span>
-            <span>생활 업무 도우미</span>
+          <span className="text-3xl leading-none">{isBreakTimeOpen ? '▾' : '▸'}</span>
+          <span
+            className={`whitespace-nowrap text-[18px] font-semibold tracking-[0.01em] ${
+              isBreakTimeOpen ? 'text-primary-800' : 'text-gray-800 group-hover:text-gray-900'
+            }`}
+          >
+            쉬는 시간
           </span>
         </button>
-        {isStudentGroupOpen && (
+        {isBreakTimeOpen && (
           <div className="space-y-1">
-            <Link to="/counseling" onClick={() => handleSidebarClick('counseling')}
-              className={`${navChild} ${location.pathname === '/counseling' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-              <span className="mr-2">🗨️</span>상담기록 작성/정리
+            <Link to="/autobiography-compilation" onClick={() => handleSidebarClick('autobiography-compilation')}
+              className={`${navChild} ${isAutobiographyPage ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className="mr-2">📚</span>자서전 편찬
             </Link>
-            <Link to="/exam-grading" onClick={() => handleSidebarClick('exam-grading')}
-              className={`${navChild} ${location.pathname === '/exam-grading' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-              <span className="mr-2">✏️</span>시험지 채점
-            </Link>
-          </div>
-        )}
-      </div>
-      <div className="space-y-2">
-        <button
-          type="button"
-          onClick={() => setIsParentGroupOpen(!isParentGroupOpen)}
-          className={`${navBase} text-[18px] w-full justify-start gap-3 ${
-            isParentGroupOpen ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
-          }`}
-        >
-          <span className="text-3xl leading-none">{isParentGroupOpen ? '▾' : '▸'}</span>
-          <span className="flex items-center whitespace-nowrap">
-            <span className="border-b-4 border-amber-700 pb-0.5 mr-1">학부모</span>
-            <span>관련 업무 도우미</span>
-          </span>
-        </button>
-        {isParentGroupOpen && (
-          <div className="space-y-1">
-            <Link to="/newsletter" onClick={() => handleSidebarClick('newsletter')}
-              className={`${navChild} ${location.pathname === '/newsletter' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-              <span className="mr-2">📋</span>가정통신문
-            </Link>
-            <Link to="/absence-report" onClick={() => handleSidebarClick('absence-report')}
-              className={`${navChild} ${location.pathname === '/absence-report' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-              <span className="mr-2">📄</span>결석신고서
+            <Link to="/today-meal" onClick={() => handleSidebarClick('today-meal')}
+              className={`${navChild} ${location.pathname === '/today-meal' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className="mr-2">🍱</span>오늘의 급식
             </Link>
           </div>
         )}
@@ -268,5 +300,3 @@ function Layout({ children }) {
 }
 
 export default Layout;
-
-
