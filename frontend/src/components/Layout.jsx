@@ -14,7 +14,6 @@ function Layout({ children }) {
   const [isBreakTimeOpen, setIsBreakTimeOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(true);
   const [isStudentOpen, setIsStudentOpen] = useState(true);
-  const [isParentOpen, setIsParentOpen] = useState(true);
 
   // Mobile overlay sidebar
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -153,29 +152,7 @@ function Layout({ children }) {
                 <>
                   <Link to="/counseling" onClick={() => handleSidebarClick('counseling')}
                     className={`${navChild} ${location.pathname === '/counseling' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                    <span className="mr-2">🗨️</span>상담기록 작성/정리
-                  </Link>
-                  <Link to="/exam-grading" onClick={() => handleSidebarClick('exam-grading')}
-                    className={`${navChild} ${location.pathname === '/exam-grading' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                    <span className="mr-2">✏️</span>시험지 채점
-                  </Link>
-                </>
-              )}
-            </div>
-            <div className="space-y-1">
-              <button type="button" onClick={() => setIsParentOpen(!isParentOpen)} className={navSectionButton}>
-                <span className="mr-2 text-base leading-none">{isParentOpen ? '▾' : '▸'}</span>
-                <span>학부모</span>
-              </button>
-              {isParentOpen && (
-                <>
-                  <Link to="/newsletter" onClick={() => handleSidebarClick('newsletter')}
-                    className={`${navChild} ${location.pathname === '/newsletter' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                    <span className="mr-2">📋</span>가정통신문
-                  </Link>
-                  <Link to="/absence-report" onClick={() => handleSidebarClick('absence-report')}
-                    className={`${navChild} ${location.pathname === '/absence-report' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                    <span className="mr-2">📄</span>결석신고서
+                    <span className="mr-2">🗨️</span>관찰일지
                   </Link>
                 </>
               )}
