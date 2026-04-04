@@ -8,6 +8,7 @@ function Layout({ children }) {
   const navigate = useNavigate();
   const isLoginPage = location.pathname === '/login';
   const isAutobiographyPage = location.pathname === '/autobiography-compilation';
+  const isCareClassroomPage = location.pathname === '/care-classroom';
 
   const [isMotivationOpen, setIsMotivationOpen] = useState(false);
   const [isWorkTimeOpen, setIsWorkTimeOpen] = useState(false);
@@ -81,12 +82,13 @@ function Layout({ children }) {
         </button>
         {isMotivationOpen && (
           <div className="space-y-1">
-            <button
-              type="button"
-              className={`${navChild} text-gray-900 hover:bg-gray-50`}
+            <Link
+              to="/care-classroom"
+              onClick={() => handleSidebarClick('care-classroom')}
+              className={`${navChild} ${isCareClassroomPage ? 'bg-primary-50 text-primary-700' : 'text-gray-900 hover:bg-gray-50'}`}
             >
               <span className="mr-2">🧠</span>돌봄 교실
-            </button>
+            </Link>
           </div>
         )}
       </div>

@@ -17,6 +17,7 @@ import CreativeActivities from './pages/CreativeActivities';
 import AcademicCalendar from './pages/AcademicCalendar';
 import AutobiographyCompilation from './pages/AutobiographyCompilation';
 import TodayMeal from './pages/TodayMeal';
+import CareClassroom from './pages/CareClassroom';
 import Layout from './components/Layout';
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
           <Route path="/academic-calendar" element={<AcademicCalendar />} />
           <Route path="/autobiography-compilation" element={<AutobiographyCompilation />} />
           <Route path="/today-meal" element={<TodayMeal />} />
+          <Route path="/care-classroom" element={<CareClassroom />} />
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </Layout>
