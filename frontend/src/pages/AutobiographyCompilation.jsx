@@ -4,6 +4,7 @@ import client from '../api/client';
 
 const VALID_TABS = ['student', 'teacher'];
 const LINKAGE_OPTIONS = [
+  { key: 'careClassroom', label: '돌봄교실' },
   { key: 'schedule', label: '학사일정' },
   { key: 'studentRecords', label: '학생명부' },
   { key: 'lifeRecords', label: '생활기록부' },
@@ -33,6 +34,7 @@ function AutobiographyCompilation() {
   const [errorMsg, setErrorMsg] = useState('');
   const [isSourcePickerOpen, setIsSourcePickerOpen] = useState(false);
   const [selectedSources, setSelectedSources] = useState({
+    careClassroom: false,
     schedule: false,
     studentRecords: false,
     lifeRecords: false,
@@ -104,6 +106,7 @@ function AutobiographyCompilation() {
   const toggleAllSources = () => {
     const nextValue = !isAllSourcesSelected;
     setSelectedSources({
+      careClassroom: nextValue,
       schedule: nextValue,
       studentRecords: nextValue,
       lifeRecords: nextValue,

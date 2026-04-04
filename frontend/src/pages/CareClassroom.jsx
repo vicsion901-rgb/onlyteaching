@@ -56,7 +56,11 @@ const LINKAGE_OPTIONS = [
 ];
 
 function formatDateKey(date) {
-  return new Date(date).toISOString().slice(0, 10);
+  const target = new Date(date);
+  const year = target.getFullYear();
+  const month = String(target.getMonth() + 1).padStart(2, '0');
+  const day = String(target.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function getMonthLabel(date) {
@@ -159,6 +163,7 @@ function CareClassroom() {
     setRecords(nextRecords);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nextRecords));
     alert('돌봄교실 기록이 저장되었습니다.');
+    setIsEditorOpen(false);
   };
 
   const handleDelete = () => {
@@ -284,24 +289,31 @@ function CareClassroom() {
               const isSelected = selectedDate === dateKey;
               const isToday = dateKey === todayKey;
               const moodOption = MOOD_OPTIONS.find((item) => item.value === record?.mood);
-              const moodText = record?.mood === 'custom' ? record?.customMood : moodOption?.label;
+              const moodText = record?.customMood || moodOption?.label;
 
               return (
                 <button
                   key={dateKey}
                   type="button"
-                    onClick={() => {
-                      setSelectedDate(dateKey);
-                      setIsEditorOpen(true);
-                    }}
-                    className={`flex h-24 flex-col rounded-xl border p-3 text-left transition ${
+                  onClick={() => {
+                    setSelectedDate(dateKey);
+                    setIsEditorOpen(true);
+                  }}
+                  className={`relative flex h-24 flex-col rounded-xl border p-3 text-left transition ${
                     isSelected
-                      ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50/40 shadow-sm'
+                      ? isToday
+                        ? 'border-emerald-500 ring-2 ring-emerald-100 bg-emerald-50 shadow-sm'
+                        : 'border-blue-500 ring-2 ring-blue-100 bg-blue-50/40 shadow-sm'
                       : isToday
-                        ? 'border-blue-300 bg-blue-50/20 hover:border-blue-400'
+                        ? 'border-emerald-400 bg-emerald-50/70 hover:border-emerald-500'
                         : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
+                  {isToday && (
+                    <span className="absolute right-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
+                      today
+                    </span>
+                  )}
                   <span className="text-sm font-semibold text-gray-900">{day.getDate()}</span>
                   {record ? (
                     <div className="mt-2 space-y-1">
@@ -322,7 +334,7 @@ function CareClassroom() {
 
       {isEditorOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4 py-6" onClick={() => setIsEditorOpen(false)}>
-          <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-gray-200 bg-white p-6 shadow-2xl sm:p-8" onClick={(e) => e.stopPropagation()}>
+          <div className="max-h-[88vh] w-full max-w-4xl overflow-y-auto rounded-[2rem] border border-gray-200 bg-white p-5 shadow-2xl sm:p-6" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-bold text-gray-900">{selectedDate} 기록</h2>
@@ -331,9 +343,10 @@ function CareClassroom() {
               <button
                 type="button"
                 onClick={() => setIsEditorOpen(false)}
-                className="rounded-full border border-gray-200 px-3 py-2 text-sm font-medium text-gray-500 transition hover:bg-gray-50"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-xl font-medium text-gray-500 transition hover:bg-gray-50"
+                aria-label="닫기"
               >
-                닫기
+                ×
               </button>
             </div>
 
@@ -343,7 +356,7 @@ function CareClassroom() {
                   <label className="block pl-10 text-[22px] font-semibold text-gray-700">내 감정 확인하기</label>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
-                  <div className="min-h-[48px] rounded-2xl border border-gray-300 bg-white px-4 py-2 transition focus-within:border-primary-300 focus-within:bg-primary-50">
+                  <div ref={moodPickerRef} className="relative min-h-[48px] rounded-2xl border border-gray-300 bg-white px-4 py-2 transition focus-within:border-primary-300 focus-within:bg-primary-50">
                     <div className="flex min-h-[48px] items-center gap-3">
                       <button
                         type="button"
@@ -359,39 +372,63 @@ function CareClassroom() {
                         value={customMood}
                         onChange={(e) => {
                           setCustomMood(e.target.value);
-                          if (e.target.value.trim()) {
-                            setMood('custom');
-                          }
                         }}
-                        placeholder="내 감정 직접 입력"
+                        placeholder="예) 출근 후 업무메세지가 많이 와있다. 학생들은 아침활동을 안하고 떠들고 있네?"
                         className="block w-full border-0 p-0 text-base text-gray-700 placeholder:text-gray-400 focus:ring-0"
                       />
                     </div>
+                    {isMoodPickerOpen && (
+                      <div className="absolute left-0 top-14 z-20 w-[22rem] max-w-[calc(100vw-4rem)] rounded-2xl border border-gray-200 bg-white p-3 shadow-xl">
+                        <div className="mb-2 text-sm font-semibold text-gray-700">감정 이모지 빠른 선택</div>
+                        <div className="grid grid-cols-6 gap-2">
+                          {MOOD_OPTIONS.filter((option) => option.value !== 'custom').map((option) => (
+                            <button
+                              key={`quick-${option.value}`}
+                              type="button"
+                              onClick={() => {
+                                setMood(option.value);
+                                setIsMoodPickerOpen(false);
+                              }}
+                              className={`flex h-10 w-10 items-center justify-center rounded-xl border text-lg transition ${
+                                mood === option.value
+                                  ? 'border-primary-300 bg-primary-50'
+                                  : 'border-gray-200 bg-white hover:bg-gray-50'
+                              }`}
+                              title={option.label}
+                            >
+                              {option.emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <p className="mt-3 text-sm text-gray-400">직접 입력하면 저장 시 해당 감정이 우선 기록됩니다.</p>
               </div>
 
-              <div>
-                <label className="mb-3 block text-xl font-semibold text-gray-700">투두리스트</label>
-                <textarea
-                  rows={6}
-                  value={todos}
-                  onChange={(e) => setTodos(e.target.value)}
-                  placeholder="예: 숙제 확인\n간식 시간 체크\n하원 전 전달사항 정리"
-                  className="block w-full rounded-2xl border border-gray-300 p-5 text-base focus:border-primary-500 focus:ring-primary-500"
-                />
-              </div>
+              <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 xl:grid-cols-2">
+                <div className="xl:max-w-[92%]">
+                  <label className="mb-3 block text-xl font-semibold text-gray-700">투두리스트</label>
+                  <textarea
+                    rows={5}
+                    value={todos}
+                    onChange={(e) => setTodos(e.target.value)}
+                    placeholder="예: 숙제 확인\n간식 시간 체크\n하원 전 전달사항 정리"
+                    className="block w-full rounded-2xl border border-gray-300 p-5 text-base focus:border-primary-500 focus:ring-primary-500"
+                  />
+                </div>
 
-              <div>
-                <label className="mb-3 block text-xl font-semibold text-gray-700">중요 행사</label>
-                <textarea
-                  rows={5}
-                  value={importantEvents}
-                  onChange={(e) => setImportantEvents(e.target.value)}
-                  placeholder="예: 생일파티, 현장체험, 보호자 상담 예정"
-                  className="block w-full rounded-2xl border border-gray-300 p-5 text-base focus:border-primary-500 focus:ring-primary-500"
-                />
+                <div className="xl:max-w-[92%] xl:justify-self-end">
+                  <label className="mb-3 block text-xl font-semibold text-gray-700">중요 행사</label>
+                  <textarea
+                    rows={5}
+                    value={importantEvents}
+                    onChange={(e) => setImportantEvents(e.target.value)}
+                    placeholder="예: 생일파티, 현장체험, 보호자 상담 예정"
+                    className="block w-full rounded-2xl border border-gray-300 p-5 text-base focus:border-primary-500 focus:ring-primary-500"
+                  />
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-4 pt-2">

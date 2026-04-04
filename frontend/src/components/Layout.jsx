@@ -12,6 +12,7 @@ function Layout({ children }) {
   const [isMotivationOpen, setIsMotivationOpen] = useState(false);
   const [isWorkTimeOpen, setIsWorkTimeOpen] = useState(false);
   const [isBreakTimeOpen, setIsBreakTimeOpen] = useState(false);
+  const [isToolOpen, setIsToolOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(true);
   const [isStudentOpen, setIsStudentOpen] = useState(true);
 
@@ -118,15 +119,31 @@ function Layout({ children }) {
         {isWorkTimeOpen && (
           <div className="space-y-3">
             <div className="space-y-1">
+              <button type="button" onClick={() => setIsToolOpen(!isToolOpen)} className={navSectionButton}>
+                <span className="mr-2 text-base leading-none">{isToolOpen ? '▾' : '▸'}</span>
+                <span>tool</span>
+              </button>
+              {isToolOpen && (
+                <>
+                  <div className={`${navChild} text-gray-900`}>
+                    <span className="mr-2">🎤</span>발표자 정하기
+                  </div>
+                  <div className={`${navChild} text-gray-900`}>
+                    <span className="mr-2">🪑</span>자리 정하기
+                  </div>
+                  <div className={`${navChild} text-gray-900`}>
+                    <span className="mr-2">🎭</span>1인 1역 정하기
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="space-y-1">
               <button type="button" onClick={() => setIsAdminOpen(!isAdminOpen)} className={navSectionButton}>
                 <span className="mr-2 text-base leading-none">{isAdminOpen ? '▾' : '▸'}</span>
                 <span>행정</span>
               </button>
               {isAdminOpen && (
                 <>
-                  <div className={`${navChild} text-gray-900`}>
-                    <span className="mr-2">🛠️</span>수업도구
-                  </div>
                   {adminTabs.map((tab) => (
                     <Link key={tab.id} to={tab.route} onClick={() => handleSidebarClick(tab.id)}
                       className={`${navChild} ${location.pathname === tab.route ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
