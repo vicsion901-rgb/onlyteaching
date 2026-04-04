@@ -55,6 +55,71 @@ const LINKAGE_OPTIONS = [
   { key: 'todayMeal', label: '오늘의 급식' },
 ];
 
+const MIN_TODO_ROWS = 3;
+
+function createTodoItem(index = 0) {
+  return {
+    id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+    text: '',
+    isDeadline: false,
+    done: false,
+  };
+}
+
+function ensureTodoRows(items) {
+  const nextItems = [...items];
+  while (nextItems.length < MIN_TODO_ROWS) {
+    nextItems.push(createTodoItem(nextItems.length));
+  }
+  return nextItems;
+}
+
+function normalizeTodoItems(source) {
+  if (Array.isArray(source)) {
+    return ensureTodoRows(
+      source.map((item, index) => ({
+        id: item?.id || createTodoItem(index).id,
+        text: typeof item?.text === 'string' ? item.text : '',
+        isDeadline: Boolean(item?.isDeadline),
+        done: Boolean(item?.done),
+      })),
+    );
+  }
+
+  if (typeof source === 'string' && source.trim()) {
+    const splitItems = source
+      .split(/\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((text, index) => ({
+        id: createTodoItem(index).id,
+        text,
+        isDeadline: false,
+        done: false,
+      }));
+
+    return ensureTodoRows(splitItems);
+  }
+
+  return ensureTodoRows([]);
+}
+
+function getTodoStats(todoItems) {
+  const meaningfulItems = normalizeTodoItems(todoItems).filter((item) => item.text.trim());
+  const completed = meaningfulItems.filter((item) => item.done).length;
+  const total = meaningfulItems.length;
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  return { total, completed, percent, meaningfulItems };
+}
+
+function previewText(value, maxLength = 16) {
+  const normalized = typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
+  if (!normalized) return '';
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength)}...`;
+}
+
 function formatDateKey(date) {
   const target = new Date(date);
   const year = target.getFullYear();
@@ -76,7 +141,7 @@ function CareClassroom() {
   const [records, setRecords] = useState({});
   const [mood, setMood] = useState('calm');
   const [customMood, setCustomMood] = useState('');
-  const [todos, setTodos] = useState('');
+  const [todoItems, setTodoItems] = useState(() => ensureTodoRows([]));
   const [importantEvents, setImportantEvents] = useState('');
   const [isMoodPickerOpen, setIsMoodPickerOpen] = useState(false);
   const [isSourcePickerOpen, setIsSourcePickerOpen] = useState(false);
@@ -105,7 +170,7 @@ function CareClassroom() {
     const current = records[selectedDate];
     setMood(current?.mood || 'calm');
     setCustomMood(current?.customMood || '');
-    setTodos(current?.todos || '');
+    setTodoItems(normalizeTodoItems(current?.todos));
     setImportantEvents(current?.importantEvents || '');
   }, [records, selectedDate]);
 
@@ -154,7 +219,7 @@ function CareClassroom() {
         [selectedDate]: {
         mood,
         customMood,
-        todos,
+        todos: todoItems,
         importantEvents,
         updatedAt: new Date().toISOString(),
       },
@@ -173,9 +238,21 @@ function CareClassroom() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nextRecords));
     setMood('calm');
     setCustomMood('');
-    setTodos('');
+    setTodoItems(ensureTodoRows([]));
     setImportantEvents('');
     setIsEditorOpen(false);
+  };
+
+  const updateTodoItem = (id, field, value) => {
+    setTodoItems((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
+  };
+
+  const addTodoItem = () => {
+    setTodoItems((prev) => [...prev, createTodoItem(prev.length)]);
+  };
+
+  const removeTodoItem = (id) => {
+    setTodoItems((prev) => ensureTodoRows(prev.filter((item) => item.id !== id)));
   };
 
   const toggleSource = (key) => {
@@ -290,6 +367,9 @@ function CareClassroom() {
               const isToday = dateKey === todayKey;
               const moodOption = MOOD_OPTIONS.find((item) => item.value === record?.mood);
               const moodText = record?.customMood || moodOption?.label;
+              const todoStats = getTodoStats(record?.todos);
+              const firstFreeInput = previewText(record?.importantEvents, 14);
+              const previewMoodText = previewText(moodText, 10);
 
               return (
                 <button
@@ -314,16 +394,24 @@ function CareClassroom() {
                       today
                     </span>
                   )}
+                  {todoStats.total > 0 && (
+                    <div className="absolute left-2 top-8 flex h-4 w-[calc(100%-1rem)] items-center justify-center text-center text-[10px] font-semibold text-gray-900">
+                      to-do 이행률 {todoStats.percent}%
+                    </div>
+                  )}
                   <span className="text-sm font-semibold text-gray-900">{day.getDate()}</span>
                   {record ? (
-                    <div className="mt-2 space-y-1">
-                      <span className="text-base">{moodOption?.emoji || '📝'}</span>
-                      <div className="line-clamp-2 text-[11px] leading-4 text-gray-500">
-                        {moodText || record.importantEvents || record.todos || '기록 있음'}
+                    <div className="mt-6 space-y-1">
+                      <div className="flex items-center gap-1 overflow-hidden text-[11px] leading-3.5 text-gray-600">
+                        <span className="shrink-0 text-base leading-none">{moodOption?.emoji || '📝'}</span>
+                        <span className="truncate">{previewMoodText || '기록 있음'}</span>
+                      </div>
+                      <div className="line-clamp-1 text-[11px] leading-3.5 text-gray-400">
+                        {firstFreeInput || '자유 입력 없음'}
                       </div>
                     </div>
                   ) : (
-                    <span className="mt-2 text-[11px] text-gray-300">기록 없음</span>
+                    <span className="mt-6 text-[11px] text-gray-300">기록 없음</span>
                   )}
                 </button>
               );
@@ -416,14 +504,70 @@ function CareClassroom() {
 
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 <div>
-                  <label className="mb-3 block text-xl font-semibold text-gray-700">투두리스트</label>
-                  <textarea
-                    rows={5}
-                    value={todos}
-                    onChange={(e) => setTodos(e.target.value)}
-                    placeholder="예: 전직원 회의, 14:30 전화상담 등"
-                    className="block w-full rounded-2xl border border-gray-300 p-5 text-base focus:border-primary-500 focus:ring-primary-500"
-                  />
+                  <div className="mb-3 flex items-center gap-3">
+                    <label className="text-xl font-semibold text-gray-700">투두리스트</label>
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full border border-amber-300 bg-amber-100 px-1 font-bold text-amber-700">마</span>
+                      <span>마감기한</span>
+                      <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full border border-emerald-300 bg-emerald-100 px-1 font-bold text-emerald-700">완</span>
+                      <span>완료</span>
+                    </div>
+                  </div>
+                  <div className="space-y-3 rounded-2xl border border-gray-300 p-4">
+                    {todoItems.map((item, index) => (
+                      <div key={item.id} className="flex items-center gap-2">
+                        <span className="w-6 text-sm font-semibold text-gray-500">{index + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateTodoItem(item.id, 'isDeadline', !item.isDeadline)}
+                          className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition ${
+                            item.isDeadline
+                              ? 'bg-amber-100 text-amber-700 border border-amber-300'
+                              : 'bg-gray-100 text-gray-400 border border-gray-200'
+                          }`}
+                          title="마감기한 표시"
+                        >
+                          마
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateTodoItem(item.id, 'done', !item.done)}
+                          className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition ${
+                            item.done
+                              ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                              : 'bg-gray-100 text-gray-400 border border-gray-200'
+                          }`}
+                          title="완료 표시"
+                        >
+                          완
+                        </button>
+                        <input
+                          type="text"
+                          value={item.text}
+                          onChange={(e) => updateTodoItem(item.id, 'text', e.target.value)}
+                          placeholder={index === 0 ? '예: 전직원 회의' : index === 1 ? '예: 14:30 전화상담' : '할 일을 입력하세요'}
+                          className="block w-full rounded-xl border border-gray-200 px-3 py-2 text-base text-gray-700 placeholder:text-gray-400 focus:border-primary-500 focus:ring-primary-500"
+                        />
+                        {index >= MIN_TODO_ROWS && (
+                          <button
+                            type="button"
+                            onClick={() => removeTodoItem(item.id)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-sm text-gray-400 transition hover:bg-gray-50"
+                            title="할 일 삭제"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={addTodoItem}
+                      className="inline-flex items-center rounded-lg border border-dashed border-primary-300 px-3 py-2 text-sm font-semibold text-primary-600 transition hover:bg-primary-50"
+                    >
+                      + 추가
+                    </button>
+                  </div>
                 </div>
 
                 <div>
