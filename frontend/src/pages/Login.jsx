@@ -69,15 +69,6 @@ function Login() {
   return (
     <div className="relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white">
       <div className="w-full max-w-md space-y-8 relative z-0">
-        {/* Mobile Logo (Centered) - Shows on screens smaller than LG */}
-        <div className="flex justify-center lg:hidden mb-8">
-          <img
-            src={logo}
-            alt="온리티칭 로고"
-            className="w-24 h-auto mix-blend-multiply"
-          />
-        </div>
-        
         <div className="text-center space-y-1">
           <div className="text-3xl font-extrabold text-purple-700 tracking-tight">ONLY TEACHING</div>
           <div className="text-lg text-gray-800 font-semibold leading-snug">오직 가르치기만 하십시오</div>
