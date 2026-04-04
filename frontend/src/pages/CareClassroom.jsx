@@ -51,8 +51,6 @@ const PRIMARY_MOOD_OPTIONS = MOOD_OPTIONS.slice(0, 5);
 const LINKAGE_OPTIONS = [
   { key: 'schedule', label: '학사일정' },
   { key: 'studentRecords', label: '학생명부' },
-  { key: 'lifeRecords', label: '생활기록부' },
-  { key: 'subjectEvaluation', label: '교과평가' },
   { key: 'observationJournal', label: '관찰일지' },
   { key: 'todayMeal', label: '오늘의 급식' },
 ];
@@ -68,8 +66,9 @@ function getMonthLabel(date) {
 function CareClassroom() {
   const navigate = useNavigate();
   const today = new Date();
+  const todayKey = formatDateKey(today);
   const [currentMonth, setCurrentMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
-  const [selectedDate, setSelectedDate] = useState(formatDateKey(today));
+  const [selectedDate, setSelectedDate] = useState(todayKey);
   const [records, setRecords] = useState({});
   const [mood, setMood] = useState('calm');
   const [customMood, setCustomMood] = useState('');
@@ -77,11 +76,10 @@ function CareClassroom() {
   const [importantEvents, setImportantEvents] = useState('');
   const [isMoodPickerOpen, setIsMoodPickerOpen] = useState(false);
   const [isSourcePickerOpen, setIsSourcePickerOpen] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedSources, setSelectedSources] = useState({
     schedule: false,
     studentRecords: false,
-    lifeRecords: false,
-    subjectEvaluation: false,
     observationJournal: false,
     todayMeal: false,
   });
@@ -172,6 +170,7 @@ function CareClassroom() {
     setCustomMood('');
     setTodos('');
     setImportantEvents('');
+    setIsEditorOpen(false);
   };
 
   const toggleSource = (key) => {
@@ -186,8 +185,6 @@ function CareClassroom() {
     setSelectedSources({
       schedule: nextValue,
       studentRecords: nextValue,
-      lifeRecords: nextValue,
-      subjectEvaluation: nextValue,
       observationJournal: nextValue,
       todayMeal: nextValue,
     });
@@ -250,7 +247,7 @@ function CareClassroom() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <div>
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <button
@@ -285,6 +282,7 @@ function CareClassroom() {
               const dateKey = formatDateKey(day);
               const record = records[dateKey];
               const isSelected = selectedDate === dateKey;
+              const isToday = dateKey === todayKey;
               const moodOption = MOOD_OPTIONS.find((item) => item.value === record?.mood);
               const moodText = record?.mood === 'custom' ? record?.customMood : moodOption?.label;
 
@@ -292,11 +290,16 @@ function CareClassroom() {
                 <button
                   key={dateKey}
                   type="button"
-                  onClick={() => setSelectedDate(dateKey)}
-                  className={`flex h-24 flex-col rounded-xl border p-3 text-left transition ${
+                    onClick={() => {
+                      setSelectedDate(dateKey);
+                      setIsEditorOpen(true);
+                    }}
+                    className={`flex h-24 flex-col rounded-xl border p-3 text-left transition ${
                     isSelected
-                      ? 'border-primary-300 bg-primary-50 shadow-sm'
-                      : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50/40 shadow-sm'
+                      : isToday
+                        ? 'border-blue-300 bg-blue-50/20 hover:border-blue-400'
+                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   <span className="text-sm font-semibold text-gray-900">{day.getDate()}</span>
@@ -315,105 +318,103 @@ function CareClassroom() {
             })}
           </div>
         </section>
+      </div>
 
-        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">{selectedDate} 기록</h2>
-            <div className="mt-1 text-sm text-gray-500">기분 상태, 투두리스트, 중요행사를 날짜별로 남겨주세요.</div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <div className="mb-2">
-                <label className="block pl-10 text-[22px] font-semibold text-gray-700">기분 상태</label>
+      {isEditorOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4 py-6" onClick={() => setIsEditorOpen(false)}>
+          <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-gray-200 bg-white p-6 shadow-2xl sm:p-8" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900">{selectedDate} 기록</h2>
+                <div className="mt-2 text-sm text-gray-500">판서합시다.</div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {PRIMARY_MOOD_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setMood(option.value)}
-                    className={`min-h-[40px] rounded-xl border px-3 py-2 text-left text-sm transition ${
-                      mood === option.value
-                        ? 'border-primary-300 bg-primary-50 text-primary-700'
-                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="mr-2">{option.emoji}</span>
-                    {option.label}
-                  </button>
-                ))}
-                <div className="min-h-[40px] rounded-xl border border-gray-300 bg-white px-3 py-2 transition focus-within:border-primary-300 focus-within:bg-primary-50">
-                  <div className="flex min-h-[40px] items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsMoodPickerOpen((prev) => !prev)}
-                      className="inline-flex h-[40px] shrink-0 items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 text-sm text-gray-700 transition hover:bg-gray-100"
-                      title="이모지 선택"
-                    >
-                      <span className="text-lg">{selectedMoodOption.emoji}</span>
-                      <span className="text-xs text-gray-400">▾</span>
-                    </button>
-                    <input
-                      type="text"
-                      value={customMood}
-                      onChange={(e) => {
-                        setCustomMood(e.target.value);
-                        if (e.target.value.trim()) {
-                          setMood('custom');
-                        }
-                      }}
-                      placeholder="내 감정 직접 입력"
-                      className="block w-full border-0 p-0 text-sm text-gray-700 placeholder:text-gray-400 focus:ring-0"
-                    />
+              <button
+                type="button"
+                onClick={() => setIsEditorOpen(false)}
+                className="rounded-full border border-gray-200 px-3 py-2 text-sm font-medium text-gray-500 transition hover:bg-gray-50"
+              >
+                닫기
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <div className="mb-2">
+                  <label className="block pl-10 text-[22px] font-semibold text-gray-700">내 감정 확인하기</label>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="min-h-[48px] rounded-2xl border border-gray-300 bg-white px-4 py-2 transition focus-within:border-primary-300 focus-within:bg-primary-50">
+                    <div className="flex min-h-[48px] items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsMoodPickerOpen((prev) => !prev)}
+                        className="inline-flex h-[40px] shrink-0 items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-700 transition hover:bg-gray-100"
+                        title="이모지 선택"
+                      >
+                        <span className="text-2xl">{selectedMoodOption.emoji}</span>
+                        <span className="text-xs text-gray-400">▾</span>
+                      </button>
+                      <input
+                        type="text"
+                        value={customMood}
+                        onChange={(e) => {
+                          setCustomMood(e.target.value);
+                          if (e.target.value.trim()) {
+                            setMood('custom');
+                          }
+                        }}
+                        placeholder="내 감정 직접 입력"
+                        className="block w-full border-0 p-0 text-base text-gray-700 placeholder:text-gray-400 focus:ring-0"
+                      />
+                    </div>
                   </div>
                 </div>
+                <p className="mt-3 text-sm text-gray-400">직접 입력하면 저장 시 해당 감정이 우선 기록됩니다.</p>
               </div>
-              <p className="mt-2 text-xs text-gray-400">직접 입력하면 저장 시 해당 감정이 우선 기록됩니다.</p>
-            </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">투두리스트</label>
-              <textarea
-                rows={5}
-                value={todos}
-                onChange={(e) => setTodos(e.target.value)}
-                placeholder="예: 숙제 확인\n간식 시간 체크\n하원 전 전달사항 정리"
-                className="block w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-primary-500 focus:ring-primary-500"
-              />
-            </div>
+              <div>
+                <label className="mb-3 block text-xl font-semibold text-gray-700">투두리스트</label>
+                <textarea
+                  rows={6}
+                  value={todos}
+                  onChange={(e) => setTodos(e.target.value)}
+                  placeholder="예: 숙제 확인\n간식 시간 체크\n하원 전 전달사항 정리"
+                  className="block w-full rounded-2xl border border-gray-300 p-5 text-base focus:border-primary-500 focus:ring-primary-500"
+                />
+              </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">중요 행사</label>
-              <textarea
-                rows={4}
-                value={importantEvents}
-                onChange={(e) => setImportantEvents(e.target.value)}
-                placeholder="예: 생일파티, 현장체험, 보호자 상담 예정"
-                className="block w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-primary-500 focus:ring-primary-500"
-              />
-            </div>
+              <div>
+                <label className="mb-3 block text-xl font-semibold text-gray-700">중요 행사</label>
+                <textarea
+                  rows={5}
+                  value={importantEvents}
+                  onChange={(e) => setImportantEvents(e.target.value)}
+                  placeholder="예: 생일파티, 현장체험, 보호자 상담 예정"
+                  className="block w-full rounded-2xl border border-gray-300 p-5 text-base focus:border-primary-500 focus:ring-primary-500"
+                />
+              </div>
 
-            <div className="flex flex-wrap gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handleSave}
-                className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-              >
-                {selectedRecord ? '기록 수정' : '기록 저장'}
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={!selectedRecord}
-                className="rounded-lg border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                기록 삭제
-              </button>
+              <div className="flex flex-wrap gap-4 pt-2">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="rounded-2xl bg-blue-600 px-8 py-4 text-lg font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                >
+                  {selectedRecord ? '기록 수정' : '기록 저장'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={!selectedRecord}
+                  className="rounded-2xl border border-gray-200 px-8 py-4 text-lg font-semibold text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  기록 삭제
+                </button>
+              </div>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

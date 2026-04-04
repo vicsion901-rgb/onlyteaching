@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo-dashboard.png';
+import { getTabsBySection } from '../config/tabRegistry';
 
 
 function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isLoginPage = location.pathname === '/login';
-  const isAutobiographyPage = location.pathname === '/autobiography-compilation';
-  const isCareClassroomPage = location.pathname === '/care-classroom';
 
   const [isMotivationOpen, setIsMotivationOpen] = useState(false);
   const [isWorkTimeOpen, setIsWorkTimeOpen] = useState(false);
@@ -46,6 +45,10 @@ function Layout({ children }) {
     'flex items-center px-4 py-2 text-[17px] font-medium rounded-md';
   const navChild = `${navBase} pl-9`;
   const navSectionButton = 'flex items-center w-full px-4 pt-2 text-sm font-semibold text-gray-500 text-left';
+  const motivationTabs = getTabsBySection('motivation');
+  const adminTabs = getTabsBySection('admin');
+  const studentTabs = getTabsBySection('student');
+  const breakTabs = getTabsBySection('break');
 
   // Shared sidebar content
   const sidebarHeader = (onLogoClick) => (
@@ -82,13 +85,16 @@ function Layout({ children }) {
         </button>
         {isMotivationOpen && (
           <div className="space-y-1">
-            <Link
-              to="/care-classroom"
-              onClick={() => handleSidebarClick('care-classroom')}
-              className={`${navChild} ${isCareClassroomPage ? 'bg-primary-50 text-primary-700' : 'text-gray-900 hover:bg-gray-50'}`}
-            >
-              <span className="mr-2">🧠</span>돌봄 교실
-            </Link>
+            {motivationTabs.map((tab) => (
+              <Link
+                key={tab.id}
+                to={tab.route}
+                onClick={() => handleSidebarClick(tab.id)}
+                className={`${navChild} ${location.pathname === tab.route ? 'bg-primary-50 text-primary-700' : 'text-gray-900 hover:bg-gray-50'}`}
+              >
+                <span className="mr-2">{tab.emoji}</span>{tab.title}
+              </Link>
+            ))}
           </div>
         )}
       </div>
@@ -118,30 +124,15 @@ function Layout({ children }) {
               </button>
               {isAdminOpen && (
                 <>
-                  <Link to="/schedule" onClick={() => handleSidebarClick('schedule')}
-                    className={`${navChild} ${location.pathname === '/schedule' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                    <span className="mr-2">📅</span>학사일정
-                  </Link>
-                  <Link to="/student-records" onClick={() => handleSidebarClick('student-records')}
-                    className={`${navChild} ${location.pathname === '/student-records' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                    <span className="mr-2">👥</span>학생명부
-                  </Link>
-                  <Link to="/neis" onClick={() => handleSidebarClick('neis')}
-                    className={`${navChild} ${location.pathname === '/neis' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                    <span className="mr-2">💼</span>NEIS 업무
-                  </Link>
-                  <Link to="/life-records" onClick={() => handleSidebarClick('life-records')}
-                    className={`${navChild} ${location.pathname === '/life-records' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                    <span className="mr-2">📝</span>생활기록부
-                  </Link>
-                  <Link to="/subject-evaluation" onClick={() => handleSidebarClick('subject-evaluation')}
-                    className={`${navChild} ${location.pathname === '/subject-evaluation' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                    <span className="mr-2">📊</span>교과평가
-                  </Link>
-                  <Link to="/creative-activities" onClick={() => handleSidebarClick('creative-activities')}
-                    className={`${navChild} ${location.pathname === '/creative-activities' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                    <span className="mr-2">🎨</span>창의적 체험활동
-                  </Link>
+                  <div className={`${navChild} text-gray-900`}>
+                    <span className="mr-2">🛠️</span>수업도구
+                  </div>
+                  {adminTabs.map((tab) => (
+                    <Link key={tab.id} to={tab.route} onClick={() => handleSidebarClick(tab.id)}
+                      className={`${navChild} ${location.pathname === tab.route ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                      <span className="mr-2">{tab.emoji}</span>{tab.title}
+                    </Link>
+                  ))}
                 </>
               )}
             </div>
@@ -152,10 +143,12 @@ function Layout({ children }) {
               </button>
               {isStudentOpen && (
                 <>
-                  <Link to="/counseling" onClick={() => handleSidebarClick('counseling')}
-                    className={`${navChild} ${location.pathname === '/counseling' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                    <span className="mr-2">🗨️</span>관찰일지
-                  </Link>
+                  {studentTabs.map((tab) => (
+                    <Link key={tab.id} to={tab.route} onClick={() => handleSidebarClick(tab.id)}
+                      className={`${navChild} ${location.pathname === tab.route ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                      <span className="mr-2">{tab.emoji}</span>{tab.title}
+                    </Link>
+                  ))}
                 </>
               )}
             </div>
@@ -181,14 +174,12 @@ function Layout({ children }) {
         </button>
         {isBreakTimeOpen && (
           <div className="space-y-1">
-            <Link to="/autobiography-compilation" onClick={() => handleSidebarClick('autobiography-compilation')}
-              className={`${navChild} ${isAutobiographyPage ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-              <span className="mr-2">📚</span>자서전 편찬
-            </Link>
-            <Link to="/today-meal" onClick={() => handleSidebarClick('today-meal')}
-              className={`${navChild} ${location.pathname === '/today-meal' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-              <span className="mr-2">🍱</span>오늘의 급식
-            </Link>
+            {breakTabs.map((tab) => (
+              <Link key={tab.id} to={tab.route} onClick={() => handleSidebarClick(tab.id)}
+                className={`${navChild} ${location.pathname === tab.route ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                <span className="mr-2">{tab.emoji}</span>{tab.title}
+              </Link>
+            ))}
           </div>
         )}
       </div>

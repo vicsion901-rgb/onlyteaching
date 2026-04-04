@@ -3,6 +3,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import client from '../api/client';
 
 const VALID_TABS = ['student', 'teacher'];
+const LINKAGE_OPTIONS = [
+  { key: 'schedule', label: '학사일정' },
+  { key: 'studentRecords', label: '학생명부' },
+  { key: 'lifeRecords', label: '생활기록부' },
+  { key: 'subjectEvaluation', label: '교과평가' },
+  { key: 'observationJournal', label: '관찰일지' },
+  { key: 'todayMeal', label: '오늘의 급식' },
+];
 
 const INITIAL_TEACHER_FORM = {
   teacherName: '',
@@ -23,6 +31,15 @@ function AutobiographyCompilation() {
   const [response, setResponse] = useState('');
   const [usedModel, setUsedModel] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSourcePickerOpen, setIsSourcePickerOpen] = useState(false);
+  const [selectedSources, setSelectedSources] = useState({
+    schedule: false,
+    studentRecords: false,
+    lifeRecords: false,
+    subjectEvaluation: false,
+    observationJournal: false,
+    todayMeal: false,
+  });
 
   const activeTab = VALID_TABS.includes(searchParams.get('tab'))
     ? searchParams.get('tab')
@@ -68,12 +85,32 @@ function AutobiographyCompilation() {
     () => students.find((student) => student.id === selectedStudentId) || null,
     [students, selectedStudentId],
   );
+  const isAllSourcesSelected = Object.values(selectedSources).every(Boolean);
 
   const setTab = (tab) => {
     setSearchParams({ tab });
     setErrorMsg('');
     setResponse('');
     setUsedModel('');
+  };
+
+  const toggleSource = (key) => {
+    setSelectedSources((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const toggleAllSources = () => {
+    const nextValue = !isAllSourcesSelected;
+    setSelectedSources({
+      schedule: nextValue,
+      studentRecords: nextValue,
+      lifeRecords: nextValue,
+      subjectEvaluation: nextValue,
+      observationJournal: nextValue,
+      todayMeal: nextValue,
+    });
   };
 
   const handleTeacherFieldChange = (key, value) => {
@@ -131,7 +168,49 @@ function AutobiographyCompilation() {
       <div className="flex justify-between items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">📚 자서전 편찬</h1>
-          <p className="mt-1 text-sm text-gray-500">학생용과 선생님용 자서전 초안을 한 곳에서 생성합니다</p>
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-gray-500">
+            <p>학생용과 선생님용 자서전 초안을 한 곳에서 생성합니다</p>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsSourcePickerOpen((prev) => !prev)}
+                className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800 shadow-sm transition hover:bg-amber-100"
+              >
+                자료 연동하기
+                <span className="text-xs text-gray-400">▾</span>
+              </button>
+              {isSourcePickerOpen && (
+                <div className="absolute left-0 top-12 z-20 w-[24rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl">
+                  <div className="mb-3 text-sm font-semibold text-gray-700">자료 반영 항목 선택</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {LINKAGE_OPTIONS.map((option) => (
+                      <label
+                        key={option.key}
+                        className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedSources[option.key]}
+                          onChange={() => toggleSource(option.key)}
+                          className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                    <label className="col-span-2 flex cursor-pointer items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-100">
+                      <input
+                        type="checkbox"
+                        checked={isAllSourcesSelected}
+                        onChange={toggleAllSources}
+                        className="h-4 w-4 rounded border-primary-300 text-primary-600 focus:ring-primary-500"
+                      />
+                      <span>전부 연동</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
         <button
           onClick={() => navigate('/dashboard')}

@@ -2,21 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import { ChevronRight } from 'lucide-react';
+import { getTabItems } from '../config/tabRegistry';
 
 const GREETING_TEXT = 'On1yTeaching';
-
-const TOPIC_MAP = {
-  schedule: { emoji: '📅', title: '학사일정', route: '/schedule' },
-  'life-records': { emoji: '📝', title: '생활기록부', route: '/life-records' },
-  neis: { emoji: '💼', title: 'NEIS 업무', route: '/neis' },
-  newsletter: { emoji: '📋', title: '가정통신문', route: '/newsletter' },
-  'subject-evaluation': { emoji: '📊', title: '교과평가', route: '/subject-evaluation' },
-  'student-records': { emoji: '👥', title: '학생명부', route: '/student-records' },
-  'creative-activities': { emoji: '🎨', title: '창의적 체험활동', route: '/creative-activities' },
-  'autobiography-compilation': { emoji: '📚', title: '자서전 편찬', route: '/autobiography-compilation' },
-  counseling: { emoji: '💬', title: '상담기록', route: '/counseling' },
-  'exam-grading': { emoji: '💯', title: '시험지 채점', route: '/exam-grading' },
-};
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -58,96 +46,11 @@ function Dashboard() {
     return '';
   });
 
-  const allTabs = useMemo(() => ([
-    {
-      id: 'schedule',
-      route: '/schedule',
-      emoji: '📅',
-      title: '학사일정',
-      subtitle: `${currentYear}년 ${currentMonth}월`,
-      section: 'admin'
-    },
-    {
-      id: 'student-records',
-      route: '/student-records',
-      emoji: '👥',
-      title: '학생명부',
-      subtitle: events && Object.keys(events).length > 0 ? '명단 등록됨' : '명단 관리',
-      section: 'admin'
-    },
-    {
-      id: 'neis',
-      route: '/neis',
-      emoji: '💼',
-      title: 'NEIS 업무',
-      subtitle: 'NEIS 관리',
-      section: 'admin'
-    },
-    {
-      id: 'life-records',
-      route: '/life-records',
-      emoji: '📝',
-      title: '생활기록부',
-      subtitle: '기록 관리',
-      section: 'admin'
-    },
-    {
-      id: 'subject-evaluation',
-      route: '/subject-evaluation',
-      emoji: '📊',
-      title: '교과평가',
-      subtitle: '성적 관리',
-      section: 'admin'
-    },
-    {
-      id: 'creative-activities',
-      route: '/creative-activities',
-      emoji: '🎨',
-      title: '창의적 체험활동',
-      subtitle: '활동 기록',
-      section: 'admin'
-    },
-    {
-      id: 'autobiography-compilation',
-      route: '/autobiography-compilation',
-      emoji: '📚',
-      title: '자서전 편찬',
-      subtitle: '학생/선생님 버전 생성',
-      section: 'admin'
-    },
-    {
-      id: 'counseling',
-      route: '/counseling',
-      emoji: '💬',
-      title: '상담기록 작성/정리',
-      subtitle: '상담 일지',
-      section: 'student'
-    },
-    {
-      id: 'exam-grading',
-      route: '/exam-grading',
-      emoji: '💯',
-      title: '시험지 채점',
-      subtitle: '성적 처리',
-      section: 'student'
-    },
-    {
-      id: 'newsletter',
-      route: '/newsletter',
-      emoji: '📋',
-      title: '가정통신문',
-      subtitle: '안내문 작성',
-      section: 'parent'
-    },
-    {
-      id: 'absence-report',
-      route: '/absence-report',
-      emoji: '📄',
-      title: '결석신고서',
-      subtitle: '결석 관리',
-      section: 'parent'
-    },
-  ]), [currentMonth, currentYear, events]);
+  const allTabs = useMemo(() => getTabItems({
+    currentMonth,
+    currentYear,
+    hasStudentData: events && Object.keys(events).length > 0,
+  }), [currentMonth, currentYear, events]);
 
   const recentTabs = useMemo(() => {
     const hasAnyUsage = Object.values(tabUsage).some(v => v?.lastUsed > 0);
