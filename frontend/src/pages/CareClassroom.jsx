@@ -340,14 +340,21 @@ function CareClassroom() {
                 <h2 className="text-3xl font-bold text-gray-900">{selectedDate} 기록</h2>
                 <div className="mt-2 text-sm text-gray-500">판서합시다.</div>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsEditorOpen(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-xl font-medium text-gray-500 transition hover:bg-gray-50"
-                aria-label="닫기"
-              >
-                ×
-              </button>
+              <div className="flex items-center gap-3">
+                {selectedDate === todayKey && (
+                  <span className="inline-flex items-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold uppercase tracking-[0.08em] text-white">
+                    Today
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsEditorOpen(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-xl font-medium text-gray-500 transition hover:bg-gray-50"
+                  aria-label="닫기"
+                >
+                  ×
+                </button>
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -407,25 +414,25 @@ function CareClassroom() {
                 <p className="mt-3 text-sm text-gray-400">직접 입력하면 저장 시 해당 감정이 우선 기록됩니다.</p>
               </div>
 
-              <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 xl:grid-cols-2">
-                <div className="xl:max-w-[92%]">
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <div>
                   <label className="mb-3 block text-xl font-semibold text-gray-700">투두리스트</label>
                   <textarea
                     rows={5}
                     value={todos}
                     onChange={(e) => setTodos(e.target.value)}
-                    placeholder="예: 숙제 확인\n간식 시간 체크\n하원 전 전달사항 정리"
+                    placeholder="예: 전직원 회의, 14:30 전화상담 등"
                     className="block w-full rounded-2xl border border-gray-300 p-5 text-base focus:border-primary-500 focus:ring-primary-500"
                   />
                 </div>
 
-                <div className="xl:max-w-[92%] xl:justify-self-end">
-                  <label className="mb-3 block text-xl font-semibold text-gray-700">중요 행사</label>
+                <div>
+                  <label className="mb-3 block text-xl font-semibold text-gray-700">자유 입력</label>
                   <textarea
                     rows={5}
                     value={importantEvents}
                     onChange={(e) => setImportantEvents(e.target.value)}
-                    placeholder="예: 생일파티, 현장체험, 보호자 상담 예정"
+                    placeholder="자유 입력"
                     className="block w-full rounded-2xl border border-gray-300 p-5 text-base focus:border-primary-500 focus:ring-primary-500"
                   />
                 </div>

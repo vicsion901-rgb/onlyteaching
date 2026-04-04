@@ -68,15 +68,6 @@ function Login() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white">
-      {/* Desktop Logo (Top Left) - Shows on Large screens only (LG+) */}
-      {/* Reduced base size (w-16) to minimize overlap risk on quirky mobile browsers that ignore 'hidden' */}
-      <div className="absolute top-4 left-4 lg:top-8 lg:left-8 hidden lg:flex items-center gap-3 z-10">
-        <img
-          src={logo}
-          alt="온리티칭 로고"
-          className="w-16 lg:w-32 h-auto mix-blend-multiply"
-        />
-      </div>
       <div className="w-full max-w-md space-y-8 relative z-0">
         {/* Mobile Logo (Centered) - Shows on screens smaller than LG */}
         <div className="flex justify-center lg:hidden mb-8">

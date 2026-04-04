@@ -172,7 +172,7 @@ function AutobiographyCompilation() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">📚 자서전 편찬</h1>
           <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-gray-500">
-            <p>학생용과 선생님용 자서전 초안을 한 곳에서 생성합니다</p>
+            <p>입력된 자료를 참고하여 자서전을 편찬합니다.</p>
             <div className="relative">
               <button
                 type="button"
