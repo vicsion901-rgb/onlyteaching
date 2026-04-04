@@ -19,7 +19,7 @@ function Layout({ children }) {
   // Mobile overlay sidebar
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   // Desktop: pinned (in-flow, pushes content) vs hover (floating overlay)
-  const [isPinned, setIsPinned] = useState(false);
+  const [isPinned, setIsPinned] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
 
   const handleSidebarClick = (tabId) => {
