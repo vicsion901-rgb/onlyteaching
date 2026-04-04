@@ -682,17 +682,6 @@ function StudentRecords() {
                     >
                       액셀 파일 업로드
                     </button>
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => hwpInputRef.current && hwpInputRef.current.click()}
-                      className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium border ${
-                        isSubmitting ? 'bg-gray-200 text-gray-500 border-gray-200' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
-                      }`}
-                      title="한글 파일 업로드(.hwp)"
-                    >
-                      한글 파일 업로드
-                    </button>
                   </div>
               </div>
               <div className="flex justify-end mt-3">
