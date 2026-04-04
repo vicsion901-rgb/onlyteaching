@@ -9,8 +9,9 @@ function Layout({ children }) {
   const isLoginPage = location.pathname === '/login';
   const isAutobiographyPage = location.pathname === '/autobiography-compilation';
 
-  const [isWorkTimeOpen, setIsWorkTimeOpen] = useState(true);
-  const [isBreakTimeOpen, setIsBreakTimeOpen] = useState(true);
+  const [isMotivationOpen, setIsMotivationOpen] = useState(false);
+  const [isWorkTimeOpen, setIsWorkTimeOpen] = useState(false);
+  const [isBreakTimeOpen, setIsBreakTimeOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(true);
   const [isStudentOpen, setIsStudentOpen] = useState(true);
   const [isParentOpen, setIsParentOpen] = useState(true);
@@ -62,6 +63,34 @@ function Layout({ children }) {
 
   const sidebarNav = (
     <nav className="px-4 pt-5 pb-6 space-y-6 flex-1 overflow-y-auto">
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setIsMotivationOpen(!isMotivationOpen)}
+          className={`${navBase} group text-[18px] w-full justify-start gap-3 ${
+            isMotivationOpen ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          <span className="text-3xl leading-none">{isMotivationOpen ? '▾' : '▸'}</span>
+          <span
+            className={`whitespace-nowrap text-[18px] font-semibold tracking-[0.01em] ${
+              isMotivationOpen ? 'text-primary-800' : 'text-gray-800 group-hover:text-gray-900'
+            }`}
+          >
+            동기 유발
+          </span>
+        </button>
+        {isMotivationOpen && (
+          <div className="space-y-1">
+            <button
+              type="button"
+              className={`${navChild} text-gray-900 hover:bg-gray-50`}
+            >
+              <span className="mr-2">🧠</span>돌봄 교실
+            </button>
+          </div>
+        )}
+      </div>
       <div className="space-y-2">
         <button
           type="button"
