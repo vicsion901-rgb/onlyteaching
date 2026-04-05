@@ -160,6 +160,9 @@ function Layout({ children }) {
               </button>
               {isStudentOpen && (
                 <>
+                  <div className={`${navChild} text-gray-900`}>
+                    <span className="mr-2">📻</span>라디오 사연 보내기
+                  </div>
                   {studentTabs.map((tab) => (
                     <Link key={tab.id} to={tab.route} onClick={() => handleSidebarClick(tab.id)}
                       className={`${navChild} ${location.pathname === tab.route ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
