@@ -12,6 +12,27 @@ const EXTRA_FIELDS = [
 ];
 
 const ADDABLE_FIELD_KEYS = EXTRA_FIELDS.filter((f) => f.key !== 'none').map((f) => f.key);
+const SELECTED_FIELDS_STORAGE_KEY = 'studentRecords:selectedFields';
+
+const applyResponsiveResidentField = (fields, list) => {
+  const hasResidentNumber = list.some((s) => s.residentNumber && s.residentNumber.trim());
+  const hasBirthDate = list.some((s) => s.birthDate && s.birthDate.trim());
+
+  if (hasResidentNumber || !hasBirthDate) {
+    return fields;
+  }
+
+  const next = [...fields];
+  const residentIdx = next.indexOf('residentNumber');
+
+  if (residentIdx !== -1) {
+    next[residentIdx] = 'birthDate';
+  } else if (!next.includes('birthDate')) {
+    next.unshift('birthDate');
+  }
+
+  return next;
+};
 
 const getFieldWidthClass = () => 'w-[180px] min-w-[180px]';
 
@@ -35,7 +56,20 @@ function StudentRecords() {
   const [response, setResponse] = useState('');
   const [selectedModel] = useState('claude-3-5-sonnet-20241022');
   const [usedModel, setUsedModel] = useState('');
-  const [selectedFields, setSelectedFields] = useState(['residentNumber', 'address', 'sponsor']);
+  const [selectedFields, setSelectedFields] = useState(() => {
+    try {
+      const saved = localStorage.getItem(SELECTED_FIELDS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to restore selected student fields', error);
+    }
+    return ['residentNumber', 'address', 'sponsor'];
+  });
   const excelInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const hwpInputRef = useRef(null);
@@ -102,6 +136,7 @@ function StudentRecords() {
         const res = await client.get('/student-records/list');
         const list = res.data && res.data.length > 0 ? res.data : [];
         setStudents(withPlaceholders(list));
+        setSelectedFields((prev) => applyResponsiveResidentField(prev, list));
         hasFetchedRef.current = true;
       } catch (error) {
         console.error("Failed to fetch students", error);
@@ -151,6 +186,7 @@ function StudentRecords() {
       // Ignore out-of-order responses so stale saves don't overwrite newer edits.
       if (seq !== saveSeqRef.current) return;
       setStudents(withPlaceholders(savedList));
+      setSelectedFields((prev) => applyResponsiveResidentField(prev, savedList));
       setSaveMessage(mode === 'auto' ? '자동 저장되었습니다.' : '저장되었습니다.');
     } catch (error) {
       console.error("Failed to save students", error);
@@ -271,22 +307,7 @@ function StudentRecords() {
       setStudents(withPlaceholders(savedList));
       setSaveMessage(`엑셀 반영 완료: ${res.data?.count ?? savedList.length}명`);
 
-      // Auto-switch 'residentNumber' -> 'birthDate' if residentNumber is empty but birthDate is filled
-      const hasResidentNumber = savedList.some((s) => s.residentNumber && s.residentNumber.trim());
-      const hasBirthDate = savedList.some((s) => s.birthDate && s.birthDate.trim());
-
-      if (!hasResidentNumber && hasBirthDate) {
-        setSelectedFields((prev) => {
-          const next = [...prev];
-          const idx = next.indexOf('residentNumber');
-          if (idx !== -1) {
-            next[idx] = 'birthDate';
-          } else if (!next.includes('birthDate')) {
-            next.unshift('birthDate');
-          }
-          return next;
-        });
-      }
+      setSelectedFields((prev) => applyResponsiveResidentField(prev, savedList));
 
       // 관리자용 컬럼 매핑 UI를 위해 mapping 정보를 반환값으로 제공(현재는 결과 영역에 표시)
       if (res.data?.mapping) {
@@ -397,6 +418,14 @@ function StudentRecords() {
     }
   }, [selectedFields, students]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(SELECTED_FIELDS_STORAGE_KEY, JSON.stringify(selectedFields));
+    } catch (error) {
+      console.error('Failed to persist selected student fields', error);
+    }
+  }, [selectedFields]);
+
   const scrollByAmount = (delta) => {
     if (scrollRef.current) {
       scrollRef.current.scrollBy({ left: delta, behavior: 'smooth' });
@@ -425,7 +454,7 @@ function StudentRecords() {
       <div className="flex items-start gap-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">학생명부</h1>
-          <p className="mt-1 text-sm text-gray-500">학생 번호와 이름을 관리합니다</p>
+          <p className="mt-1 text-sm text-gray-500">학생 관련 정보를 관리합니다.</p>
         </div>
         <div className="flex items-start gap-3 ml-auto">
           <span className="text-sm text-gray-600 min-w-[130px] text-right pt-2">{saveMessage}</span>
@@ -447,13 +476,35 @@ function StudentRecords() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row">
-        <div className="bg-white shadow rounded-lg overflow-hidden h-full flex flex-col lg:w-1/2">
+      <div className="flex flex-col gap-6">
+        <div className="bg-white shadow rounded-lg overflow-hidden h-full flex flex-col w-full">
           <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 sticky top-0 z-10">
             <div className="flex flex-nowrap items-center w-full min-w-0">
               <span className="text-sm text-gray-700 font-medium truncate">
                 학생 이름 입력 후 저장을 눌러주세요.
               </span>
+              <input
+                ref={excelInputRef}
+                type="file"
+                className="hidden"
+                accept=".xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                onChange={(e) => {
+                  const f = e.target.files && e.target.files[0];
+                  if (f) handleExcelUpload(f);
+                  e.target.value = '';
+                }}
+              />
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => excelInputRef.current && excelInputRef.current.click()}
+                className={`shrink-0 ml-3 inline-flex items-center justify-center px-3 py-1.5 rounded-md text-sm leading-[1.2] font-semibold border ${
+                  isSubmitting ? 'bg-gray-200 text-gray-500 border-gray-200' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                }`}
+                title="액셀 파일 업로드(.xls/.xlsx/.csv)"
+              >
+                액셀 파일 업로드
+              </button>
               <button
                 type="button"
                 onClick={deleteAllStudents}
@@ -627,92 +678,6 @@ function StudentRecords() {
           </button>
         </div>
       </div>
-
-      {/* AI Prompt Section */}
-        <div className="bg-white overflow-hidden shadow rounded-lg h-full flex flex-col lg:w-1/2">
-          <div className="px-4 py-5 sm:p-6 flex-1 flex flex-col">
-            <h2 className="text-lg font-medium leading-6 text-gray-900 mb-4">학생명부 관련해서 무엇이든 물어보세요.</h2>
-            
-            <form onSubmit={handlePromptSubmit} className="flex-1 flex flex-col">
-              <div className="mb-2 flex flex-col" style={{ minHeight: '480px' }}>
-              <label htmlFor="prompt" className="sr-only">Prompt</label>
-              <div className="relative">
-                <textarea
-                  id="prompt"
-                    className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 pb-10 min-h-[400px] max-h-[560px] whitespace-nowrap"
-                  rows={12}
-                    placeholder="학생명부(엑셀/CSV) 파일을 업로드해 주세요."
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                />
-                    <div className="absolute bottom-2 left-2 flex flex-wrap items-center gap-2">
-                    {/* 액셀 파일 업로드(.xls/.xlsx/.csv) */}
-                    <input
-                      ref={excelInputRef}
-                      type="file"
-                      className="hidden"
-                      accept=".xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
-                      onChange={(e) => {
-                        const f = e.target.files && e.target.files[0];
-                        if (f) handleExcelUpload(f);
-                        e.target.value = '';
-                      }}
-                    />
-                    {/* 한글 파일 업로드 */}
-                    <input
-                      ref={hwpInputRef}
-                      type="file"
-                      className="hidden"
-                      // accept 속성 제거: OS에서 .hwp 파일 연결 프로그램이 없는 경우 파일 선택이 불가능한 문제 해결
-                      onChange={(e) => {
-                        const f = e.target.files && e.target.files[0];
-                        if (f) handleHwpUpload(f);
-                        e.target.value = '';
-                      }}
-                    />
-
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => excelInputRef.current && excelInputRef.current.click()}
-                      className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium border ${
-                        isSubmitting ? 'bg-gray-200 text-gray-500 border-gray-200' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
-                      }`}
-                      title="액셀 파일 업로드(.xls/.xlsx/.csv)"
-                    >
-                      액셀 파일 업로드
-                    </button>
-                  </div>
-              </div>
-              <div className="flex justify-end mt-3">
-                <button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isSubmitting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
-                >
-                  {isSubmitting ? '생성 중...' : '생성하기'}
-                </button>
-              </div>
-            </div>
-          </form>
-          {response && (
-            <div className="mt-6 bg-gray-50 rounded-md p-4 border border-gray-200">
-                <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-sm font-medium text-gray-900">결과:</h3>
-                {usedModel && (
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    usedModel.startsWith('claude') ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                  }`}>
-                    {usedModel.startsWith('claude') ? '🤖 Claude' : 
-                     usedModel === 'gpt-4o-mini' ? '⚡ GPT-4o Mini' : '🧠 GPT-4o'}
-                  </span>
-                )}
-              </div>
-              <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono bg-white p-3 rounded border border-gray-200">{response}</pre>
-            </div>
-          )}
-          </div>
-        </div>
       </div>
     </div>
   );

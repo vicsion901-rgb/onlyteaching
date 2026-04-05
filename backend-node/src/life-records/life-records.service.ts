@@ -93,7 +93,7 @@ export class LifeRecordsService {
       (kw, idx) =>
         `${idx === 0 ? namePart : ''}${kw}${objectParticle(kw)} 기반으로 수업과 활동에 적극적으로 참여하며 꾸준히 성장하고 있습니다.`,
     );
-    const contextPart = additional_context ? ` 추가 메모: ${additional_context}` : '';
+    const contextPart = additional_context ? ` ${additional_context}` : '';
 
     return {
       generated_text: sentences.join(' ') + contextPart,
@@ -101,7 +101,6 @@ export class LifeRecordsService {
     };
   }
 }
-
 
 
 

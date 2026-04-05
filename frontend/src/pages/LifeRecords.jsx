@@ -103,27 +103,34 @@ function LifeRecords() {
 
   const handleGenerate = async (e) => {
     e.preventDefault();
-    if (selectedKeywords.length === 0 && !prompt) {
+    const keywordTexts = selectedKeywords.map((k) => k.keyword);
+    const typedKeyword = searchQuery.trim();
+    const additionalContext = prompt.trim();
+    const studentNameText = studentName.trim();
+
+    if (keywordTexts.length === 0 && typedKeyword) {
+      keywordTexts.push(typedKeyword);
+    }
+
+    if (keywordTexts.length === 0 && !additionalContext) {
       alert("키워드를 선택하거나 내용을 입력해주세요.");
       return;
     }
 
     setIsLoading(true);
     try {
-      if (selectedKeywords.length > 0) {
-        // Generate using keywords
+      if (keywordTexts.length > 0 || studentNameText) {
         const res = await client.post('/life-records/generate', {
-          selected_keywords: selectedKeywords.map(k => k.keyword),
-          student_name: studentName,
-          additional_context: prompt,
+          selected_keywords: keywordTexts,
+          student_name: studentNameText,
+          additional_context: additionalContext,
           ai_model: selectedModel
         });
         setResponse(res.data.generated_text);
         setUsedModel(res.data.ai_model);
       } else {
-        // Fallback to original prompt API
         const res = await client.post('/prompts/', { 
-          content: prompt,
+          content: additionalContext,
           ai_model: selectedModel 
         });
         setResponse(res.data.generated_document);

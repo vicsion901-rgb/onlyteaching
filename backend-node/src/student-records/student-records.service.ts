@@ -67,7 +67,7 @@ export class StudentRecordsService {
       .filter(
         (p) =>
           p.number &&
-          (p.name || p.residentNumber || p.address || p.sponsor || p.remark),
+          (p.name || p.residentNumber || p.birthDate || p.address || p.sponsor || p.remark),
       )
       .map((p) => ({
         number: Number(p.number),
