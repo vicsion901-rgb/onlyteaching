@@ -13,8 +13,8 @@ function Layout({ children }) {
   const [isWorkTimeOpen, setIsWorkTimeOpen] = useState(false);
   const [isBreakTimeOpen, setIsBreakTimeOpen] = useState(false);
   const [isToolOpen, setIsToolOpen] = useState(false);
-  const [isAdminOpen, setIsAdminOpen] = useState(true);
-  const [isStudentOpen, setIsStudentOpen] = useState(true);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isStudentOpen, setIsStudentOpen] = useState(false);
 
   // Mobile overlay sidebar
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -121,19 +121,22 @@ function Layout({ children }) {
             <div className="space-y-1">
               <button type="button" onClick={() => setIsToolOpen(!isToolOpen)} className={navSectionButton}>
                 <span className="mr-2 text-base leading-none">{isToolOpen ? '▾' : '▸'}</span>
-                <span>tool</span>
+                <span>수업 보조 도구</span>
               </button>
               {isToolOpen && (
                 <>
-                  <div className={`${navChild} text-gray-900`}>
+                  <Link to="/presenter-picker" onClick={() => handleSidebarClick('presenter-picker')}
+                    className={`${navChild} ${location.pathname === '/presenter-picker' ? 'bg-primary-50 text-primary-700' : 'text-gray-900 hover:bg-gray-50'}`}>
                     <span className="mr-2">🎤</span>발표자 정하기
-                  </div>
-                  <div className={`${navChild} text-gray-900`}>
+                  </Link>
+                  <Link to="/seat-arrangement" onClick={() => handleSidebarClick('seat-arrangement')}
+                    className={`${navChild} ${location.pathname === '/seat-arrangement' ? 'bg-primary-50 text-primary-700' : 'text-gray-900 hover:bg-gray-50'}`}>
                     <span className="mr-2">🪑</span>자리 정하기
-                  </div>
-                  <div className={`${navChild} text-gray-900`}>
+                  </Link>
+                  <Link to="/role-assignment" onClick={() => handleSidebarClick('role-assignment')}
+                    className={`${navChild} ${location.pathname === '/role-assignment' ? 'bg-primary-50 text-primary-700' : 'text-gray-900 hover:bg-gray-50'}`}>
                     <span className="mr-2">🎭</span>1인 1역 정하기
-                  </div>
+                  </Link>
                 </>
               )}
             </div>

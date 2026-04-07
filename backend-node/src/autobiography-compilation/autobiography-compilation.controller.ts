@@ -1,7 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { Proofreadable } from '../proofread/proofread.decorator';
 import { AutobiographyCompilationService } from './autobiography-compilation.service';
-import type { GenerateAutobiographyRequest } from './autobiography-compilation.service';
 
 @Controller('autobiography-compilation')
 export class AutobiographyCompilationController {
@@ -17,14 +16,9 @@ export class AutobiographyCompilationController {
       'student_name',
       'teacher_name',
       'school_name',
-      'achievements',
-      'memories',
-      'future_dream',
-      'teaching_philosophy',
-      'memorable_classes',
     ],
   })
-  generate(@Body() body: GenerateAutobiographyRequest) {
-    return this.autobiographyCompilationService.generate(body);
+  generate(@Body() body: Record<string, unknown>) {
+    return this.autobiographyCompilationService.generate(body as any);
   }
 }

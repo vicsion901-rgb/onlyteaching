@@ -18,6 +18,9 @@ import AcademicCalendar from './pages/AcademicCalendar';
 import AutobiographyCompilation from './pages/AutobiographyCompilation';
 import TodayMeal from './pages/TodayMeal';
 import CareClassroom from './pages/CareClassroom';
+import PresenterPicker from './pages/PresenterPicker';
+import SeatArrangement from './pages/SeatArrangement';
+import RoleAssignment from './pages/RoleAssignment';
 import Layout from './components/Layout';
 
 function App() {
@@ -43,6 +46,9 @@ function App() {
           <Route path="/autobiography-compilation" element={<AutobiographyCompilation />} />
           <Route path="/today-meal" element={<TodayMeal />} />
           <Route path="/care-classroom" element={<CareClassroom />} />
+          <Route path="/presenter-picker" element={<PresenterPicker />} />
+          <Route path="/seat-arrangement" element={<SeatArrangement />} />
+          <Route path="/role-assignment" element={<RoleAssignment />} />
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </Layout>
