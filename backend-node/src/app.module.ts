@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
 import { StudentRecordsModule } from './student-records/student-records.module';
 import { PromptsModule } from './prompts/prompts.module';
@@ -64,4 +65,21 @@ import { ProofreadResponseInterceptor } from './proofread/proofread-response.int
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements OnApplicationBootstrap {
+  private readonly logger = new Logger(AppModule.name);
+
+  constructor(
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
+  ) {}
+
+  // 부팅 시 DB 커넥션 풀 prewarm — 첫 로그인 요청 지연 제거
+  async onApplicationBootstrap() {
+    try {
+      await this.dataSource.query('SELECT 1');
+      this.logger.log('DB prewarm done');
+    } catch (err) {
+      this.logger.warn(`DB prewarm failed: ${(err as Error).message}`);
+    }
+  }
+}

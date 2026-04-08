@@ -23,7 +23,7 @@ function resolveBaseURL() {
 
 const client = axios.create({
   baseURL: resolveBaseURL(),
-  timeout: 8000,
+  timeout: 15000,
 });
 
 client.interceptors.request.use((config) => {
@@ -33,5 +33,36 @@ client.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// 학교/관공서 방화벽이 첫 요청을 끊는 케이스 자동 재시도
+client.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const config = error.config;
+    if (!config) return Promise.reject(error);
+    config.__retryCount = config.__retryCount || 0;
+
+    const isNetworkErr =
+      error.code === 'ECONNABORTED' ||
+      error.message === 'Network Error' ||
+      !error.response;
+
+    if (isNetworkErr && config.__retryCount < 2) {
+      config.__retryCount += 1;
+      await new Promise((r) => setTimeout(r, 600 * config.__retryCount));
+      return client(config);
+    }
+    return Promise.reject(error);
+  },
+);
+
+// 백엔드 prewarm — 페이지 로드 시 즉시 ping
+export function prewarmBackend() {
+  client.get('/health').catch(() => {});
+}
+
+if (typeof window !== 'undefined') {
+  prewarmBackend();
+}
 
 export default client;
