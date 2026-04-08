@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import client from '../api/client';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo-login.png';
+
+const SESSION_KEY = 'onlyteaching:session';
+const SESSION_TTL_DAYS = 7;
 
 function Login() {
   const [schoolCode, setSchoolCode] = useState('');
@@ -13,6 +16,26 @@ function Login() {
   const [registerResult, setRegisterResult] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
   const navigate = useNavigate();
+
+  // 자동 로그인: 세션이 유효하면 즉시 대시보드로
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return;
+      const session = JSON.parse(raw);
+      const now = Date.now();
+      if (session.expiresAt && session.expiresAt > now && session.userId) {
+        localStorage.setItem('userId', session.userId);
+        localStorage.setItem('schoolCode', session.schoolCode);
+        localStorage.setItem('loginMessage', session.message || '자동 로그인');
+        navigate('/dashboard', { replace: true });
+      } else {
+        localStorage.removeItem(SESSION_KEY);
+      }
+    } catch {
+      localStorage.removeItem(SESSION_KEY);
+    }
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -26,6 +49,19 @@ function Login() {
       localStorage.setItem('userId', res.data.userId);
       localStorage.setItem('schoolCode', schoolCode);
       localStorage.setItem('loginMessage', res.data.message);
+
+      // 7일 자동 로그인 세션 저장
+      const expiresAt = Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
+      localStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({
+          userId: res.data.userId,
+          schoolCode,
+          message: res.data.message,
+          expiresAt,
+        }),
+      );
+
       navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);

@@ -2,11 +2,19 @@
   "version": 2,
   "builds": [
     {
+      "src": "api/login.ts",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/index.ts",
       "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/users/login",
+      "dest": "/api/login.ts"
+    },
     {
       "src": "/api/swagger-ui-init.js",
       "dest": "/api/swagger-ui-init.js"
