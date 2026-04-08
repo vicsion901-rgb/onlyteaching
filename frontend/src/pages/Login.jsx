@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo-login.png';
 
 const SESSION_KEY = 'onlyteaching:session';
-const SESSION_TTL_DAYS = 7;
+const SESSION_TTL_DAYS = 30;
 
 function Login() {
   const [schoolCode, setSchoolCode] = useState('');
@@ -150,7 +150,7 @@ function Login() {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="w-4 h-4 accent-blue-600"
               />
-              <span>자동 로그인 (7일간 유지)</span>
+              <span>자동 로그인</span>
             </label>
             <button
               type="submit"
