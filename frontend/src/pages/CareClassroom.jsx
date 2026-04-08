@@ -395,9 +395,22 @@ function CareClassroom() {
                     </span>
                   )}
                   {todoStats.total > 0 && (
-                    <div className="hidden sm:flex absolute left-2 top-8 h-4 w-[calc(100%-1rem)] items-center justify-center text-center text-[10px] font-semibold text-gray-900">
-                      to-do 이행률 {todoStats.percent}%
-                    </div>
+                    <>
+                      <div className="hidden sm:flex absolute left-2 top-8 h-4 w-[calc(100%-1rem)] items-center justify-center text-center text-[10px] font-semibold text-gray-900">
+                        to-do 이행률 {todoStats.percent}%
+                      </div>
+                      <span
+                        className={`sm:hidden absolute right-0.5 top-0.5 rounded-full px-1 py-0 text-[8px] font-bold leading-tight ${
+                          todoStats.percent === 100
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : todoStats.percent >= 50
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-rose-100 text-rose-600'
+                        }`}
+                      >
+                        {todoStats.percent}%
+                      </span>
+                    </>
                   )}
                   <span className={`text-xs sm:text-sm font-semibold ${isToday ? 'text-emerald-700' : 'text-gray-900'}`}>{day.getDate()}</span>
                   {record ? (
