@@ -355,10 +355,10 @@ function CareClassroom() {
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {monthDays.map((day, index) => {
               if (!day) {
-                return <div key={`empty-${index}`} className="h-24 rounded-xl bg-transparent" />;
+                return <div key={`empty-${index}`} className="h-16 sm:h-24 rounded-xl bg-transparent" />;
               }
 
               const dateKey = formatDateKey(day);
@@ -379,7 +379,7 @@ function CareClassroom() {
                     setSelectedDate(dateKey);
                     setIsEditorOpen(true);
                   }}
-                  className={`relative flex h-24 flex-col rounded-xl border p-3 text-left transition ${
+                  className={`relative flex h-16 sm:h-24 flex-col rounded-lg sm:rounded-xl border p-1 sm:p-3 text-left transition overflow-hidden ${
                     isSelected
                       ? isToday
                         ? 'border-emerald-500 ring-2 ring-emerald-100 bg-emerald-50 shadow-sm'
@@ -390,28 +390,28 @@ function CareClassroom() {
                   }`}
                 >
                   {isToday && (
-                    <span className="absolute right-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
+                    <span className="hidden sm:inline-flex absolute right-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
                       today
                     </span>
                   )}
                   {todoStats.total > 0 && (
-                    <div className="absolute left-2 top-8 flex h-4 w-[calc(100%-1rem)] items-center justify-center text-center text-[10px] font-semibold text-gray-900">
+                    <div className="hidden sm:flex absolute left-2 top-8 h-4 w-[calc(100%-1rem)] items-center justify-center text-center text-[10px] font-semibold text-gray-900">
                       to-do 이행률 {todoStats.percent}%
                     </div>
                   )}
-                  <span className="text-sm font-semibold text-gray-900">{day.getDate()}</span>
+                  <span className={`text-xs sm:text-sm font-semibold ${isToday ? 'text-emerald-700' : 'text-gray-900'}`}>{day.getDate()}</span>
                   {record ? (
-                    <div className="mt-6 space-y-1">
-                      <div className="flex items-center gap-1 overflow-hidden text-[11px] leading-3.5 text-gray-600">
-                        <span className="shrink-0 text-base leading-none">{moodOption?.emoji || '📝'}</span>
-                        <span className="truncate">{previewMoodText || '기록 있음'}</span>
+                    <div className="mt-1 sm:mt-6 space-y-0.5 sm:space-y-1">
+                      <div className="flex items-center gap-0.5 sm:gap-1 overflow-hidden text-[9px] sm:text-[11px] leading-tight text-gray-600">
+                        <span className="shrink-0 text-xs sm:text-base leading-none">{moodOption?.emoji || '📝'}</span>
+                        <span className="truncate hidden sm:inline">{previewMoodText || '기록 있음'}</span>
                       </div>
-                      <div className="line-clamp-1 text-[11px] leading-3.5 text-gray-400">
+                      <div className="hidden sm:block line-clamp-1 text-[11px] leading-3.5 text-gray-400">
                         {firstFreeInput || '자유 입력 없음'}
                       </div>
                     </div>
                   ) : (
-                    <span className="mt-6 text-[11px] text-gray-300">기록 없음</span>
+                    <span className="hidden sm:inline mt-6 text-[11px] text-gray-300">기록 없음</span>
                   )}
                 </button>
               );

@@ -1,5 +1,28 @@
 @import "tailwindcss";
 
+/* 모바일 글로벌 안전장치 — 가로 스크롤 방지 + 텍스트 줄바꿈 보장 */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+@media (max-width: 640px) {
+  /* 작은 화면에서 긴 단어/숫자 줄바꿈 강제 */
+  body {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  /* 본문 컨테이너는 무조건 viewport 내부 */
+  main, main > div {
+    max-width: 100vw;
+  }
+  /* 표/그리드는 가로 스크롤 허용 */
+  .mobile-scroll-x {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 /* Global cursor: more visible colored chalk-like pointer */
 body, button, input, textarea, select, a {
   cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 24 L17 11 L21 15 L8 28 L4 28 Z' fill='%23ffd166' stroke='%23d48806' stroke-width='1.8' stroke-linejoin='round'/></svg>") 2 26, auto;
