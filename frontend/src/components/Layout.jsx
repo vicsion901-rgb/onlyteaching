@@ -39,6 +39,7 @@ function Layout({ children }) {
     localStorage.removeItem('schoolCode');
     localStorage.removeItem('loginMessage');
     localStorage.removeItem('token');
+    localStorage.removeItem('onlyteaching:session');
     navigate('/login');
   };
 

@@ -15,6 +15,7 @@ function Login() {
   const [isRegisterLoading, setIsRegisterLoading] = useState(false);
   const [registerResult, setRegisterResult] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const navigate = useNavigate();
 
   // 자동 로그인: 세션이 유효하면 즉시 대시보드로
@@ -50,17 +51,21 @@ function Login() {
       localStorage.setItem('schoolCode', schoolCode);
       localStorage.setItem('loginMessage', res.data.message);
 
-      // 7일 자동 로그인 세션 저장
-      const expiresAt = Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
-      localStorage.setItem(
-        SESSION_KEY,
-        JSON.stringify({
-          userId: res.data.userId,
-          schoolCode,
-          message: res.data.message,
-          expiresAt,
-        }),
-      );
+      // 자동 로그인 체크 시에만 7일 세션 저장
+      if (rememberMe) {
+        const expiresAt = Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
+        localStorage.setItem(
+          SESSION_KEY,
+          JSON.stringify({
+            userId: res.data.userId,
+            schoolCode,
+            message: res.data.message,
+            expiresAt,
+          }),
+        );
+      } else {
+        localStorage.removeItem(SESSION_KEY);
+      }
 
       navigate('/dashboard');
     } catch (error) {
@@ -138,6 +143,15 @@ function Login() {
                 onChange={(e) => setTeacherCode(e.target.value)}
               />
             </div>
+            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 accent-blue-600"
+              />
+              <span>자동 로그인 (7일간 유지)</span>
+            </label>
             <button
               type="submit"
               disabled={isLoginLoading}
