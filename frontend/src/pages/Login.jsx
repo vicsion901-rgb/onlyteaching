@@ -4,7 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo-login.png';
 
 const SESSION_KEY = 'onlyteaching:session';
+const SAVED_IDS_KEY = 'onlyteaching:savedIds';
+const DO_NOT_REMEMBER_KEY = 'onlyteaching:doNotRemember';
 const SESSION_TTL_DAYS = 30;
+const MAX_SAVED_IDS = 5;
 
 function Login() {
   const [schoolCode, setSchoolCode] = useState('');
@@ -16,7 +19,65 @@ function Login() {
   const [registerResult, setRegisterResult] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [savedIds, setSavedIds] = useState([]);
+  const [doNotRemember, setDoNotRemember] = useState(() => {
+    try {
+      return localStorage.getItem(DO_NOT_REMEMBER_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [showIdDropdown, setShowIdDropdown] = useState(false);
   const navigate = useNavigate();
+
+  // 저장된 ID 목록 로드
+  useEffect(() => {
+    if (doNotRemember) {
+      setSavedIds([]);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(SAVED_IDS_KEY);
+      if (raw) setSavedIds(JSON.parse(raw));
+    } catch {
+      setSavedIds([]);
+    }
+  }, [doNotRemember]);
+
+  const persistSavedIds = (ids) => {
+    setSavedIds(ids);
+    try {
+      localStorage.setItem(SAVED_IDS_KEY, JSON.stringify(ids));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const handleRemoveSavedId = (id) => {
+    persistSavedIds(savedIds.filter((x) => x !== id));
+  };
+
+  const handlePickSavedId = (id) => {
+    setSchoolCode(id);
+    setShowIdDropdown(false);
+  };
+
+  const handleToggleDoNotRemember = (checked) => {
+    setDoNotRemember(checked);
+    try {
+      if (checked) {
+        localStorage.setItem(DO_NOT_REMEMBER_KEY, '1');
+        localStorage.removeItem(SAVED_IDS_KEY);
+        localStorage.removeItem(SESSION_KEY);
+        setSavedIds([]);
+        setRememberMe(false);
+      } else {
+        localStorage.removeItem(DO_NOT_REMEMBER_KEY);
+      }
+    } catch {
+      /* ignore */
+    }
+  };
 
   // 자동 로그인: 세션이 유효하면 즉시 대시보드로
   useEffect(() => {
@@ -50,6 +111,15 @@ function Login() {
       localStorage.setItem('userId', res.data.userId);
       localStorage.setItem('schoolCode', schoolCode);
       localStorage.setItem('loginMessage', res.data.message);
+
+      // 저장된 ID 목록 갱신 (이 기기 기억 안 함이 아닐 때만)
+      if (!doNotRemember) {
+        const next = [schoolCode, ...savedIds.filter((x) => x !== schoolCode)].slice(
+          0,
+          MAX_SAVED_IDS,
+        );
+        persistSavedIds(next);
+      }
 
       // 자동 로그인 체크 시에만 7일 세션 저장
       if (rememberMe) {
@@ -121,16 +191,50 @@ function Login() {
               <p className="text-sm text-gray-500">승인된 교사만 로그인 가능합니다.</p>
             </div>
           <form className="space-y-4" onSubmit={handleLogin}>
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">아이디</label>
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1">아이디</label>
               <input
                 type="text"
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="아이디를 입력하세요"
+                placeholder="아이디를 입력하세요"
                 value={schoolCode}
                 onChange={(e) => setSchoolCode(e.target.value)}
+                onFocus={() => setShowIdDropdown(true)}
+                onBlur={() => setTimeout(() => setShowIdDropdown(false), 150)}
+                autoComplete="off"
               />
+              {showIdDropdown && savedIds.length > 0 && !doNotRemember && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-60 overflow-auto">
+                  <div className="px-3 py-1.5 text-xs text-gray-400 border-b border-gray-100">
+                    저장된 아이디
+                  </div>
+                  {savedIds.map((id) => (
+                    <div
+                      key={id}
+                      className="flex items-center justify-between px-3 py-2 hover:bg-blue-50 cursor-pointer group"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handlePickSavedId(id);
+                      }}
+                    >
+                      <span className="text-sm text-gray-800">{id}</span>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleRemoveSavedId(id);
+                        }}
+                        className="text-gray-300 hover:text-red-500 text-lg leading-none px-1 opacity-0 group-hover:opacity-100"
+                        title="이 아이디 삭제"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
@@ -143,15 +247,27 @@ function Login() {
                 onChange={(e) => setTeacherCode(e.target.value)}
               />
             </div>
-            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 accent-blue-600"
-              />
-              <span>자동 로그인</span>
-            </label>
+            <div className="space-y-2">
+              <label className={`flex items-center gap-2 text-sm cursor-pointer select-none ${doNotRemember ? 'text-gray-300' : 'text-gray-600'}`}>
+                <input
+                  type="checkbox"
+                  checked={rememberMe && !doNotRemember}
+                  disabled={doNotRemember}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 accent-blue-600"
+                />
+                <span>자동 로그인</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={doNotRemember}
+                  onChange={(e) => handleToggleDoNotRemember(e.target.checked)}
+                  className="w-4 h-4 accent-red-600"
+                />
+                <span>이 기기 기억 안 함 <span className="text-xs text-gray-400">(공용 PC 권장)</span></span>
+              </label>
+            </div>
             <button
               type="submit"
               disabled={isLoginLoading}
