@@ -18,7 +18,9 @@ function resolveBaseURL() {
     return fallbackBase;
   }
 
-  return `${origin}/api`;
+  // Vercel 설정상 모든 경로가 api/index.ts(NestJS)로 rewrite 되므로
+  // /api 프리픽스 없이 원 경로 그대로 호출
+  return origin;
 }
 
 const client = axios.create({
