@@ -7,3 +7,8 @@
 .DS_Store
 .env
 .env.*
+
+# 로컬 문서 렌더링용 HTML (PDF 생성 중간 산출물)
+docs/_*.html
+# 교사 인증 샘플 PDF (개인정보)
+docs/samples/

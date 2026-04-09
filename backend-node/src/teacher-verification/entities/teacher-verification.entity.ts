@@ -17,50 +17,43 @@ import { BaseEntity } from '../../common/entities/base.entity';
 @Index(['verifyStatus', 'createdDate'])
 export class TeacherVerification extends BaseEntity {
   /** users.id 참조 (FK 표준) */
-  @Column({ type: 'varchar', length: 64 })
+  @Column()
   userId!: string;
 
   /** 인증 결과: PENDING / VERIFIED / REJECTED */
-  @Column({ type: 'varchar', length: 20, default: 'PENDING' })
+  @Column({ default: 'PENDING' })
   verifyStatus!: string;
 
   /** 인증 방식: SALARY_PDF / DOCUMENT */
-  @Column({ type: 'varchar', length: 20 })
+  @Column()
   method!: string;
 
   // ─── 검증 성공 시 저장되는 스냅샷 (비정규화) ───
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   verifiedName!: string | null;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   verifiedSchool!: string | null;
 
-  /** 예: "국공립교원", "사립교원" */
-  @Column({ type: 'varchar', length: 30, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   verifiedCategory!: string | null;
 
-  /** 예: "교사(초등)" */
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   verifiedPosition!: string | null;
 
-  /** 급여 지급 연월 (YYYY-MM) — 최근성 검증 기록 */
-  @Column({ type: 'varchar', length: 7, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   payPeriod!: string | null;
 
-  /** PDF 푸터에 찍힌 발급 일시 (위변조 검증 근거) */
-  @Column({ type: 'varchar', length: 30, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   issuedAt!: string | null;
 
-  /** 인증 완료 시각 */
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   verifiedAt!: Date | null;
 
-  /** 인증 만료 시각 (정책상 1년 권장) */
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   expiresAt!: Date | null;
 
-  /** 거부 사유 (실패 시) */
-  @Column({ type: 'varchar', length: 200, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   rejectReason!: string | null;
 }

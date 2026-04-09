@@ -2,6 +2,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // @ts-ignore - pg types optional
 import { Pool } from 'pg';
+// @ts-ignore - bcrypt types optional
+import * as bcrypt from 'bcrypt';
 
 // 전역 커넥션 풀 — 서버리스 인스턴스 재사용 시 그대로 유지
 let pool: Pool | null = null;
@@ -48,8 +50,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const result = await getPool().query(
-      'SELECT id, status FROM users WHERE "schoolCode" = $1 AND "teacherCode" = $2 LIMIT 1',
-      [schoolCode, teacherCode],
+      'SELECT id, status, "passwordHash", "teacherCode" FROM users WHERE "schoolCode" = $1 LIMIT 1',
+      [schoolCode],
     );
 
     if (result.rows.length === 0) {
@@ -57,6 +59,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const user = result.rows[0];
+
+    let passwordOk = false;
+    if (user.passwordHash) {
+      passwordOk = await bcrypt.compare(teacherCode, user.passwordHash);
+    } else if (user.teacherCode === teacherCode) {
+      passwordOk = true; // 레거시 평문 허용 (마이그레이션 전)
+    }
+
+    if (!passwordOk) {
+      return res.status(401).json({ message: '비밀번호 불일치' });
+    }
 
     if (user.status !== 'ACTIVE') {
       return res.status(403).json({ message: '승인되지 않은 계정' });

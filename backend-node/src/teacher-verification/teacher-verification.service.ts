@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 
 import { TeacherVerification } from './entities/teacher-verification.entity';
 import { parseSalaryPdf } from './salary-pdf.parser';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class TeacherVerificationService {
@@ -17,6 +18,8 @@ export class TeacherVerificationService {
   constructor(
     @InjectRepository(TeacherVerification)
     private readonly repo: Repository<TeacherVerification>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) {}
 
   /**
@@ -95,6 +98,18 @@ export class TeacherVerificationService {
       expiresAt,
     });
     const saved = await this.repo.save(record);
+
+    // users.status → ACTIVE 자동 승격 + schoolName 평문 저장
+    try {
+      const user = await this.userRepo.findOne({ where: { id: userId } });
+      if (user) {
+        user.status = 'ACTIVE';
+        if (!user.schoolName) user.schoolName = parsed.school;
+        await this.userRepo.save(user);
+      }
+    } catch (err) {
+      this.logger.warn(`user activate failed: ${(err as Error).message}`);
+    }
 
     this.logger.log(
       `verify ok user=${userId} name=${parsed.name} school=${parsed.school}`,

@@ -1,13 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo-dashboard.png';
 import { getTabsBySection } from '../config/tabRegistry';
+import client from '../api/client';
 
 
 function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isLoginPage = location.pathname === '/login';
+  const isVerifyPage = location.pathname === '/teacher-verification';
+
+  // 교사 인증 게이트 — 인증 안 됐으면 /teacher-verification 외 다른 탭 접근 차단
+  const [verifyStatus, setVerifyStatus] = useState(null); // null=loading, 'VERIFIED', 'BLOCKED'
+  useEffect(() => {
+    if (isLoginPage) return;
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      navigate('/login', { replace: true });
+      return;
+    }
+    client
+      .get('/teacher-verification/status', { params: { userId } })
+      .then((res) => {
+        const s = res.data?.verifyStatus;
+        const expired =
+          res.data?.expiresAt &&
+          new Date(res.data.expiresAt).getTime() < Date.now();
+        if (s === 'VERIFIED' && !expired) {
+          setVerifyStatus('VERIFIED');
+        } else {
+          setVerifyStatus('BLOCKED');
+          if (!isVerifyPage) navigate('/teacher-verification', { replace: true });
+        }
+      })
+      .catch(() => {
+        setVerifyStatus('BLOCKED');
+        if (!isVerifyPage) navigate('/teacher-verification', { replace: true });
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   const [isMotivationOpen, setIsMotivationOpen] = useState(false);
   const [isWorkTimeOpen, setIsWorkTimeOpen] = useState(false);
@@ -22,9 +54,15 @@ function Layout({ children }) {
   const [isPinned, setIsPinned] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
 
-  const handleSidebarClick = (tabId) => {
+  const handleSidebarClick = (tabId, e) => {
+    // 교사 인증 전에는 다른 탭 접근 차단
+    if (verifyStatus !== 'VERIFIED' && tabId !== 'teacher-verification') {
+      if (e) e.preventDefault();
+      alert('교사 인증이 필요합니다. 먼저 교사 인증을 완료해주세요.');
+      navigate('/teacher-verification');
+      return;
+    }
     setIsMobileOpen(false);
-    // If in hover mode (not pinned), close on nav click
     if (!isPinned) setIsHovered(false);
     const now = Date.now();
     const saved = localStorage.getItem('tabUsage');
@@ -33,6 +71,7 @@ function Layout({ children }) {
     usage[tabId] = { count: current.count + 1, lastUsed: now };
     localStorage.setItem('tabUsage', JSON.stringify(usage));
   };
+
 
   const handleLogout = () => {
     localStorage.removeItem('userId');
@@ -212,17 +251,23 @@ function Layout({ children }) {
 
   const sidebarFooter = (
     <div className="w-full p-4 border-t border-gray-200 space-y-2">
-      <Link
-        to="/teacher-verification"
-        onClick={() => handleSidebarClick('teacher-verification')}
-        className={`w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-          location.pathname === '/teacher-verification'
-            ? 'bg-blue-100 text-blue-700'
-            : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-        }`}
-      >
-        🎓 교사 인증
-      </Link>
+      {verifyStatus === 'VERIFIED' ? (
+        <div className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+          ✅ 교사 인증 완료
+        </div>
+      ) : (
+        <Link
+          to="/teacher-verification"
+          onClick={() => handleSidebarClick('teacher-verification')}
+          className={`w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            location.pathname === '/teacher-verification'
+              ? 'bg-blue-100 text-blue-700'
+              : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+          }`}
+        >
+          🎓 교사 인증
+        </Link>
+      )}
       <button
         onClick={handleLogout}
         className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors"

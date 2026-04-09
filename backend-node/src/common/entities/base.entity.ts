@@ -10,15 +10,15 @@ import {
  * ERD 설계서 표준 1: 공통 컬럼 4개 (id / createdDate / modifiedDate / status)
  */
 export abstract class BaseEntity {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
-  id!: string;
+  @PrimaryGeneratedColumn('increment')
+  id!: number;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn()
   createdDate!: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn()
   modifiedDate!: Date;
 
-  @Column({ type: 'varchar', length: 20, default: 'NORMAL' })
+  @Column({ default: 'NORMAL' })
   status!: string;
 }

@@ -11,8 +11,20 @@ const MAX_SAVED_IDS = 5;
 function Login() {
   const [schoolCode, setSchoolCode] = useState('');
   const [teacherCode, setTeacherCode] = useState('');
-  const [regSchoolCode, setRegSchoolCode] = useState('');
-  const [regTeacherCode, setRegTeacherCode] = useState('');
+  const [regLoginId, setRegLoginId] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regPasswordConfirm, setRegPasswordConfirm] = useState('');
+  const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const [regAgree, setRegAgree] = useState(false);
+
+  const formatPhone = (raw) => {
+    const digits = String(raw || '').replace(/\D/g, '').slice(0, 11);
+    if (digits.length < 4) return digits;
+    if (digits.length < 8) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  };
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [isRegisterLoading, setIsRegisterLoading] = useState(false);
   const [registerResult, setRegisterResult] = useState(null);
@@ -74,12 +86,24 @@ function Login() {
     e.preventDefault();
     setIsLoginLoading(true);
     try {
-      // text/plain 으로 보내면 CORS preflight(OPTIONS) 안 뜸 → 학교 방화벽 우회
-      const res = await client.post(
-        '/users/login',
-        JSON.stringify({ schoolCode, teacherCode }),
-        { headers: { 'Content-Type': 'text/plain' }, transformRequest: [(d) => d] },
-      );
+      // 운영(배포 환경)에서는 text/plain 으로 보내서 CORS preflight(OPTIONS) 우회
+      //  → 학교·관공서 방화벽의 preflight 차단 회피
+      // 로컬 개발(localhost)에서는 일반 JSON 사용
+      const isLocalhost =
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1');
+
+      const res = isLocalhost
+        ? await client.post('/users/login', { schoolCode, teacherCode })
+        : await client.post(
+            '/users/login',
+            JSON.stringify({ schoolCode, teacherCode }),
+            {
+              headers: { 'Content-Type': 'text/plain' },
+              transformRequest: [(d) => d],
+            },
+          );
       // Backend returns { message, userId } if ACTIVE
       localStorage.setItem('userId', res.data.userId);
       localStorage.setItem('schoolCode', schoolCode);
@@ -126,14 +150,43 @@ function Login() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setRegisterResult(null);
+
+    if (!regAgree) {
+      alert('개인정보 수집·이용에 동의해주세요.');
+      return;
+    }
+    if (regPassword.length < 8) {
+      alert('비밀번호는 8자 이상이어야 합니다.');
+      return;
+    }
+    if (regPassword !== regPasswordConfirm) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    if (!/^[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}$/.test(regEmail)) {
+      alert('올바른 이메일 형식이 아닙니다.');
+      return;
+    }
+
     setIsRegisterLoading(true);
     try {
       const res = await client.post('/users/register', {
-        schoolCode: regSchoolCode,
-        teacherCode: regTeacherCode,
+        schoolCode: regLoginId, // legacy: 아이디 자리
+        teacherCode: regPassword, // legacy: 비밀번호 자리
+        name: regName,
+        email: regEmail,
+        phone: regPhone,
       });
       setRegisterResult(res.data);
-      alert(`등록 완료: status=${res.data.status}`);
+      alert('가입이 완료되었습니다. 교사 인증을 진행해주세요.');
+      setShowRegister(false);
+      setRegLoginId('');
+      setRegPassword('');
+      setRegPasswordConfirm('');
+      setRegName('');
+      setRegEmail('');
+      setRegPhone('');
+      setRegAgree(false);
     } catch (error) {
       console.error('Register error:', error);
       const msg =
@@ -247,12 +300,12 @@ function Login() {
 
       {showRegister && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl border border-gray-200 p-6 space-y-4 relative">
+          <div className="bg-white w-full max-w-xl rounded-xl shadow-2xl border border-gray-200 p-6 space-y-4 relative max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xl font-bold text-gray-900">교사 등록(승인 요청)</div>
+                <div className="text-xl font-bold text-gray-900">회원가입</div>
                 <p className="text-sm text-gray-500">
-                  OCR/이미지 업로드 기반 검증을 제거했습니다. 등록 후 관리자 승인까지 기다려주세요.
+                  가입 후 <b>교사 인증(NEIS 급여명세서)</b>을 완료해야 서비스 이용이 가능합니다.
                 </p>
               </div>
               <button
@@ -265,28 +318,100 @@ function Login() {
             </div>
             <form className="space-y-4" onSubmit={handleRegister}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">학교 코드</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">아이디</label>
                 <input
                   type="text"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="학교 코드를 입력하세요"
-                  value={regSchoolCode}
-                  onChange={(e) => setRegSchoolCode(e.target.value)}
+                  autoComplete="username"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="로그인에 사용할 아이디 (이메일 권장)"
+                  value={regLoginId}
+                  onChange={(e) => setRegLoginId(e.target.value)}
                 />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
+                  <input
+                    type="password"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="8자 이상"
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호 확인</label>
+                  <input
+                    type="password"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="다시 입력"
+                    value={regPasswordConfirm}
+                    onChange={(e) => setRegPasswordConfirm(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">이름</label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="실명"
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">전화번호</label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={13}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="010-0000-0000"
+                    value={regPhone}
+                    onChange={(e) => setRegPhone(formatPhone(e.target.value))}
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">교사 코드</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
                 <input
-                  type="text"
+                  type="email"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="교사 코드를 입력하세요"
-                  value={regTeacherCode}
-                  onChange={(e) => setRegTeacherCode(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="name@example.com"
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
                 />
               </div>
-              <div className="flex items-center justify-end gap-2 pt-2">
+
+              <div className="bg-gray-50 border border-gray-200 rounded-md p-3 text-xs text-gray-600 space-y-1.5">
+                <div className="font-semibold text-gray-800">개인정보 수집·이용 동의 (필수)</div>
+                <div>· 수집 항목: 아이디, 비밀번호(암호화), 이름·이메일·전화(암호화 저장)</div>
+                <div>· 이용 목적: 회원 식별, 교사 자격 확인, 서비스 이용</div>
+                <div>· 보유 기간: 회원 탈퇴 시 즉시 파기</div>
+                <div>· 비밀번호와 개인정보는 안전하게 암호화되어 저장되며, 관리자도 확인할 수 없습니다.</div>
+                <label className="flex items-center gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    checked={regAgree}
+                    onChange={(e) => setRegAgree(e.target.checked)}
+                    className="w-4 h-4 accent-blue-600"
+                  />
+                  <span className="text-gray-800 font-medium">위 내용에 동의합니다</span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setShowRegister(false)}
@@ -296,15 +421,15 @@ function Login() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isRegisterLoading}
-                  className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition disabled:opacity-60"
+                  disabled={isRegisterLoading || !regAgree}
+                  className="px-5 py-2 rounded-md text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition disabled:opacity-40"
                 >
-                  {isRegisterLoading ? '등록 중...' : '회원가입'}
+                  {isRegisterLoading ? '가입 중...' : '회원가입'}
                 </button>
               </div>
               {registerResult && (
-                <div className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-md p-3">
-                  <div>상태: {registerResult.status}</div>
+                <div className="text-sm text-gray-700 bg-emerald-50 border border-emerald-200 rounded-md p-3">
+                  가입 완료. 로그인 후 <b>교사 인증</b>을 진행해주세요.
                 </div>
               )}
             </form>
