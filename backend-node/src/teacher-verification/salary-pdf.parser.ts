@@ -9,7 +9,18 @@
  * 위변조 방지 핵심 — 푸터 교차검증:
  *   본문 "[학교명]"  ↔  푸터 "학교명/..."  ↔  본문 "성명 XXX"  ↔  푸터 ".../이름"
  */
-import { PDFParse } from 'pdf-parse';
+// pdfjs-dist legacy build 를 동적 import — ESM 전용 패키지를 NestJS CJS 에서 로드.
+// pdf-parse 대신 직접 사용하는 이유: pdf-parse v2 가 @napi-rs/canvas 를 강하게
+// 요구해 Vercel 서버리스에서 cold-start 시 함수가 죽는 이슈 회피.
+// 텍스트 추출(getTextContent)은 canvas 불필요.
+type PdfjsModule = typeof import('pdfjs-dist/legacy/build/pdf.mjs');
+let pdfjsPromise: Promise<PdfjsModule> | null = null;
+function loadPdfjs(): Promise<PdfjsModule> {
+  if (!pdfjsPromise) {
+    pdfjsPromise = import('pdfjs-dist/legacy/build/pdf.mjs');
+  }
+  return pdfjsPromise;
+}
 
 export type SalaryParseResult =
   | {
@@ -39,10 +50,34 @@ export async function parseSalaryPdf(
 ): Promise<SalaryParseResult> {
   let text = '';
   try {
-    const parser = new PDFParse({ data: buffer });
-    const result = await parser.getText();
-    text = result.text || '';
-  } catch (err) {
+    const pdfjs = await loadPdfjs();
+    // Buffer → Uint8Array (pdfjs는 ArrayBuffer/Uint8Array 를 요구)
+    const data = new Uint8Array(
+      buffer.buffer,
+      buffer.byteOffset,
+      buffer.byteLength,
+    );
+    // 서버 환경: font/eval 비활성화로 Vercel 함수 안정화 (worker 는 legacy build 에서 자동 비활성)
+    const loadingTask = pdfjs.getDocument({
+      data,
+      disableFontFace: true,
+      useSystemFonts: false,
+      isEvalSupported: false,
+    });
+    const doc = await loadingTask.promise;
+    const parts: string[] = [];
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      // items 는 TextItem | TextMarkedContent 유니온 — str 가 있는 것만 사용
+      for (const it of content.items as Array<{ str?: string }>) {
+        if (typeof it.str === 'string') parts.push(it.str);
+      }
+      parts.push('\n');
+    }
+    await doc.destroy();
+    text = parts.join(' ');
+  } catch {
     return { ok: false, reason: 'PDF를 읽을 수 없습니다.' };
   }
 
