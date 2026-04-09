@@ -103,10 +103,12 @@ function Login() {
     e.preventDefault();
     setIsLoginLoading(true);
     try {
-      const res = await client.post('/users/login', {
-        schoolCode,
-        teacherCode,
-      });
+      // text/plain 으로 보내면 CORS preflight(OPTIONS) 안 뜸 → 학교 방화벽 우회
+      const res = await client.post(
+        '/users/login',
+        JSON.stringify({ schoolCode, teacherCode }),
+        { headers: { 'Content-Type': 'text/plain' }, transformRequest: [(d) => d] },
+      );
       // Backend returns { message, userId } if ACTIVE
       localStorage.setItem('userId', res.data.userId);
       localStorage.setItem('schoolCode', schoolCode);

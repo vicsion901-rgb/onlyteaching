@@ -1,4 +1,6 @@
+// @ts-ignore - @vercel/node provided at build time
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+// @ts-ignore - pg types optional
 import { Pool } from 'pg';
 
 // 전역 커넥션 풀 — 서버리스 인스턴스 재사용 시 그대로 유지
@@ -34,7 +36,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { schoolCode, teacherCode } = req.body || {};
+    // text/plain 으로 와도 파싱 가능하게 처리
+    let body: any = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch { body = {}; }
+    }
+    const { schoolCode, teacherCode } = body || {};
 
     if (!schoolCode || !teacherCode) {
       return res.status(400).json({ message: '학교코드와 교사코드를 입력해주세요.' });
