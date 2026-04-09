@@ -16,6 +16,7 @@ import { AutobiographyCompilationModule } from './autobiography-compilation/auto
 import { MealsModule } from './meals/meals.module';
 import { ProofreadModule } from './proofread/proofread.module';
 import { ProofreadResponseInterceptor } from './proofread/proofread-response.interceptor';
+import { TeacherVerificationModule } from './teacher-verification/teacher-verification.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { ProofreadResponseInterceptor } from './proofread/proofread-response.int
     AutobiographyCompilationModule,
     MealsModule,
     ProofreadModule,
+    TeacherVerificationModule,
   ],
   providers: [
     {

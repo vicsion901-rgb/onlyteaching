@@ -211,7 +211,18 @@ function Layout({ children }) {
   );
 
   const sidebarFooter = (
-    <div className="w-full p-4 border-t border-gray-200">
+    <div className="w-full p-4 border-t border-gray-200 space-y-2">
+      <Link
+        to="/teacher-verification"
+        onClick={() => handleSidebarClick('teacher-verification')}
+        className={`w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+          location.pathname === '/teacher-verification'
+            ? 'bg-blue-100 text-blue-700'
+            : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+        }`}
+      >
+        🎓 교사 인증
+      </Link>
       <button
         onClick={handleLogout}
         className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors"

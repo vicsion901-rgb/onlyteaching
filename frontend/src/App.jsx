@@ -21,6 +21,7 @@ import CareClassroom from './pages/CareClassroom';
 import PresenterPicker from './pages/PresenterPicker';
 import SeatArrangement from './pages/SeatArrangement';
 import RoleAssignment from './pages/RoleAssignment';
+import TeacherVerification from './pages/TeacherVerification';
 import Layout from './components/Layout';
 
 function App() {
@@ -49,6 +50,7 @@ function App() {
           <Route path="/presenter-picker" element={<PresenterPicker />} />
           <Route path="/seat-arrangement" element={<SeatArrangement />} />
           <Route path="/role-assignment" element={<RoleAssignment />} />
+          <Route path="/teacher-verification" element={<TeacherVerification />} />
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </Layout>
