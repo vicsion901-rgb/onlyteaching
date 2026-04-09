@@ -9,7 +9,12 @@
  * 위변조 방지 핵심 — 푸터 교차검증:
  *   본문 "[학교명]"  ↔  푸터 "학교명/..."  ↔  본문 "성명 XXX"  ↔  푸터 ".../이름"
  */
-import { PDFParse } from 'pdf-parse';
+// CRITICAL: pdf-parse 를 top-level 에서 import 하면 Vercel 서버리스에서
+// NestJS bootstrap 단계에 @napi-rs/canvas 초기화가 터져 함수 전체가
+// FUNCTION_INVOCATION_FAILED 로 죽는다. 회원가입/로그인 외 모든 NestJS
+// 엔드포인트가 사망하는 원인이었으므로, 실제 PDF 요청이 들어올 때만
+// 함수 내부에서 require 하도록 지연 로드 처리.
+// (2026-04-09 사고 복구 — 자세한 내용은 docs/온리티칭_배포구조_및_에이전트_프롬프트_가이드.*)
 
 export type SalaryParseResult =
   | {
@@ -39,10 +44,15 @@ export async function parseSalaryPdf(
 ): Promise<SalaryParseResult> {
   let text = '';
   try {
+    // 지연 로드: 이 라인이 실행되는 시점은 실제 업로드 요청이 들어올 때뿐이라
+    // NestJS cold-start / 다른 엔드포인트에는 전혀 영향을 주지 않는다.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pdfParseMod: any = require('pdf-parse');
+    const PDFParse = pdfParseMod.PDFParse || pdfParseMod.default || pdfParseMod;
     const parser = new PDFParse({ data: buffer });
     const result = await parser.getText();
     text = result.text || '';
-  } catch (err) {
+  } catch {
     return { ok: false, reason: 'PDF를 읽을 수 없습니다.' };
   }
 
