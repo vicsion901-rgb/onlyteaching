@@ -1,6 +1,10 @@
 import axios from 'axios';
 
 const fallbackBase = 'http://localhost:3000';
+// 프로덕션 백엔드 (Vercel 프로젝트: onlyteaching)
+// 프론트엔드는 별도 프로젝트(onlyteaching-fpnx, www.onlyteaching.kr)로
+// 배포되므로 same-origin 호출이 불가 — 백엔드 도메인을 직접 지정한다.
+const productionBackendBase = 'https://onlyteaching.vercel.app';
 
 function resolveBaseURL() {
   if (import.meta.env.VITE_API_BASE_URL) {
@@ -11,16 +15,14 @@ function resolveBaseURL() {
     return fallbackBase;
   }
 
-  const { hostname, origin } = window.location;
+  const { hostname } = window.location;
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
 
   if (isLocalhost) {
     return fallbackBase;
   }
 
-  // Vercel 설정상 모든 경로가 api/index.ts(NestJS)로 rewrite 되므로
-  // /api 프리픽스 없이 원 경로 그대로 호출
-  return origin;
+  return productionBackendBase;
 }
 
 const client = axios.create({
