@@ -1,6 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as pdfjsLib from 'pdfjs-dist/build/pdf.mjs';
 import client from '../api/client';
+
+// PDF.js worker (CDN — 브라우저에서 PDF 텍스트 추출용)
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.7.76/pdf.worker.min.mjs';
+
+/** 브라우저에서 PDF 텍스트 추출 — 서버에 pdf-parse 불필요 */
+async function extractPdfTextInBrowser(file) {
+  const arrayBuf = await file.arrayBuffer();
+  const doc = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
+  const parts = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    for (const item of content.items) {
+      if (item.str) parts.push(item.str);
+    }
+    parts.push('\n');
+  }
+  await doc.destroy();
+  return parts.join(' ');
+}
 
 function TeacherVerification() {
   const navigate = useNavigate();
@@ -60,15 +82,13 @@ function TeacherVerification() {
     setUploading(true);
     setError('');
     try {
-      // PDF → base64 JSON 으로 전송 (multipart 대신, 초경량 함수 호환)
-      const arrayBuf = await file.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuf)));
+      // 브라우저에서 PDF 텍스트 추출 → 서버에 텍스트만 전송 (pdf-parse 불필요)
+      const pdfText = await extractPdfTextInBrowser(file);
       const res = await client.post('/teacher-verification/salary-pdf', {
         userId,
-        fileBase64: base64,
-        fileName: file.name,
+        pdfText,
       }, {
-        timeout: 30000,
+        timeout: 15000,
       });
       alert(`인증 완료! ${res.data.verifiedName} / ${res.data.verifiedSchool}`);
       setFile(null);
