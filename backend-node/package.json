@@ -13,7 +13,6 @@
     "@nestjs/platform-express": "^10.3.8",
     "@nestjs/swagger": "^7.4.2",
     "@nestjs/typeorm": "^11.0.0",
-    "@ohah/hwpjs": "^0.1.0-rc.3",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
