@@ -71,13 +71,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ message: '비밀번호 불일치' });
     }
 
-    if (user.status !== 'ACTIVE') {
+    if (user.status !== 'ACTIVE' && user.status !== 'PENDING') {
       return res.status(403).json({ message: '승인되지 않은 계정' });
     }
 
     return res.status(200).json({
       message: '로그인 성공',
       userId: user.id,
+      status: user.status,
     });
   } catch (err) {
     console.error('login handler error:', err);
