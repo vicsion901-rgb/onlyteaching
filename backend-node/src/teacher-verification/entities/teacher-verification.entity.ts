@@ -1,24 +1,29 @@
-import { Entity, Column, Index } from 'typeorm';
+import { Entity, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
+import { User } from '../../users/entities/user.entity';
 
 /**
  * 교사 인증 기록 (한 명이 여러 번 인증/재인증 할 수 있음).
  *
  * ERD 설계 원칙 적용:
  * - BaseEntity 상속 (id, createdDate, modifiedDate, status)
- * - FK 명명 표준: userId (users.id 참조)
- * - 인덱스: (userId, createdDate DESC) — 최근 인증 조회 최적화
+ * - FK: userId → users.id (ManyToOne)
+ * - 인덱스: (userId, createdDate) — 최근 인증 조회 최적화
+ * - 인덱스: (verifiedSchool, verifiedName, payPeriod) — 중복 인증 방지 조회
  * - 비정규화: verified 시점 스냅샷 (이름·학교 등) 저장
- *   → 나중에 전학/개명해도 당시 인증 정보는 그대로
- * - 민감 데이터(급여 금액·세부 내역) 저장 금지 → verified 결과만 남김
  */
 @Entity('teacher_verifications')
 @Index(['userId', 'createdDate'])
 @Index(['verifyStatus', 'createdDate'])
+@Index(['verifiedSchool', 'verifiedName', 'payPeriod'])
 export class TeacherVerification extends BaseEntity {
-  /** users.id 참조 (FK 표준) */
+  /** users.id 참조 (FK) */
   @Column()
   userId!: string;
+
+  @ManyToOne(() => User, (user) => user.teacherVerifications, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user!: User;
 
   /** 인증 결과: PENDING / VERIFIED / REJECTED */
   @Column({ default: 'PENDING' })

@@ -2,6 +2,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // @ts-ignore
 import { Pool } from 'pg';
+import crypto from 'crypto';
 
 // ── DB 풀 ──
 let pool: Pool | null = null;
@@ -15,6 +16,34 @@ function getPool(): Pool {
     });
   }
   return pool;
+}
+
+// ── 복호화 유틸 (이름 교차검증용) ──
+function getKey(): Buffer {
+  const hex = process.env.ENCRYPTION_KEY;
+  if (hex && /^[0-9a-fA-F]{64}$/.test(hex)) {
+    return Buffer.from(hex, 'hex');
+  }
+  return crypto
+    .createHash('sha256')
+    .update(process.env.FALLBACK_SECRET || 'onlyteaching-dev-key')
+    .digest();
+}
+
+function decrypt(payload: string | null | undefined): string | null {
+  if (!payload) return null;
+  try {
+    const key = getKey();
+    const buf = Buffer.from(payload, 'base64');
+    const iv = buf.subarray(0, 12);
+    const tag = buf.subarray(12, 28);
+    const ct = buf.subarray(28);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(ct), decipher.final()]).toString('utf8');
+  } catch {
+    return null;
+  }
 }
 
 // ── PDF 텍스트 파서 (salary-pdf.parser.ts 로직 인라인) ──
@@ -91,7 +120,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = getPool();
 
     if (!parsed.ok) {
-      // 실패 기록 저장
       await db.query(
         `INSERT INTO teacher_verifications (id, "userId", method, "verifyStatus", "rejectReason", "createdDate", "modifiedDate", status)
          VALUES (DEFAULT, $1, 'SALARY_PDF', 'REJECTED', $2, NOW(), NOW(), 'NORMAL')`,
@@ -100,7 +128,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ message: parsed.reason });
     }
 
-    // 성공 — 인증 기록 저장
+    // ── 이름 교차검증: 가입 시 입력한 이름 ↔ 급여명세서 이름 ──
+    const userRow = await db.query(
+      'SELECT "nameEnc" FROM users WHERE id = $1 LIMIT 1',
+      [userId],
+    );
+    if (userRow.rows.length === 0) {
+      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+    }
+    const registeredName = decrypt(userRow.rows[0].nameEnc);
+    if (registeredName && registeredName.trim() !== parsed.name.trim()) {
+      await db.query(
+        `INSERT INTO teacher_verifications (id, "userId", method, "verifyStatus", "rejectReason", "createdDate", "modifiedDate", status)
+         VALUES (DEFAULT, $1, 'SALARY_PDF', 'REJECTED', $2, NOW(), NOW(), 'NORMAL')`,
+        [userId, `이름 불일치: 가입 이름(${registeredName}) ≠ 명세서 이름(${parsed.name})`],
+      );
+      return res.status(400).json({ message: '가입 시 입력한 이름과 급여명세서의 이름이 일치하지 않습니다.' });
+    }
+
+    // ── 중복 인증 차단: 동일 (학교+이름+지급년월) VERIFIED 기록 존재 시 거부 ──
+    const dupCheck = await db.query(
+      `SELECT id FROM teacher_verifications
+       WHERE "verifiedSchool" = $1 AND "verifiedName" = $2 AND "payPeriod" = $3
+         AND "verifyStatus" = 'VERIFIED'
+       LIMIT 1`,
+      [parsed.school, parsed.name, parsed.payPeriod],
+    );
+    if (dupCheck.rows.length > 0) {
+      return res.status(400).json({
+        message: '이미 해당 급여명세서로 인증된 기록이 있습니다. 다른 월의 명세서를 사용해주세요.',
+      });
+    }
+
+    // ── 인증 성공 — 기록 저장 ──
     const expiresAt = new Date();
     expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 

@@ -72,8 +72,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const { schoolCode, teacherCode, name, phone, email, schoolName } = body || {};
 
+    // ── 필수값 검증 ──
     if (!schoolCode || !teacherCode) {
       return res.status(400).json({ message: '아이디와 비밀번호를 입력해주세요.' });
+    }
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+      return res.status(400).json({ message: '이름을 입력해주세요. (2자 이상)' });
+    }
+    if (!phone || typeof phone !== 'string' || !/^01[016789]-?\d{3,4}-?\d{4}$/.test(phone.replace(/\s/g, ''))) {
+      return res.status(400).json({ message: '올바른 전화번호를 입력해주세요.' });
+    }
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: '올바른 이메일을 입력해주세요.' });
+    }
+    if (teacherCode.length < 6) {
+      return res.status(400).json({ message: '비밀번호는 6자 이상이어야 합니다.' });
     }
 
     const db = getPool();

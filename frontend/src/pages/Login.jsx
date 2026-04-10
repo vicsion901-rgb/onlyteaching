@@ -25,6 +25,7 @@ function Login() {
     if (digits.length < 8) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
     return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
   };
+  const [loginError, setLoginError] = useState('');
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [isRegisterLoading, setIsRegisterLoading] = useState(false);
   const [registerResult, setRegisterResult] = useState(null);
@@ -84,6 +85,7 @@ function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoginError('');
     setIsLoginLoading(true);
     try {
       // 운영(배포 환경)에서는 text/plain 으로 보내서 CORS preflight(OPTIONS) 우회
@@ -135,13 +137,17 @@ function Login() {
       navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        error.response?.data?.detail ||
-        error.message ||
-        '알 수 없는 오류';
-      alert(`로그인에 실패했습니다: ${errorMessage}`);
+      const code = error.response?.status;
+      const msg = error.response?.data?.message || '';
+      if (code === 401 && msg.includes('계정')) {
+        setLoginError('아이디 또는 비밀번호가 잘못 되었습니다. 아이디와 비밀번호를 정확히 입력해 주세요.');
+      } else if (code === 401) {
+        setLoginError('아이디 또는 비밀번호가 잘못 되었습니다. 아이디와 비밀번호를 정확히 입력해 주세요.');
+      } else if (code === 403) {
+        setLoginError('아직 승인되지 않은 계정입니다. 교사 인증을 완료해 주세요.');
+      } else {
+        setLoginError(msg || '로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      }
     } finally {
       setIsLoginLoading(false);
     }
@@ -277,6 +283,9 @@ function Login() {
               />
               <span>자동 로그인</span>
             </label>
+            {loginError && (
+              <p className="text-sm text-red-500 leading-snug">{loginError}</p>
+            )}
             <button
               type="submit"
               disabled={isLoginLoading}

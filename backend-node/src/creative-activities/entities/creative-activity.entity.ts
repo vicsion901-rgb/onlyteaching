@@ -2,6 +2,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  Index,
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
@@ -12,6 +13,10 @@ import { StudentRecord } from '../../student-records/student-record.entity';
 import { User } from '../../users/entities/user.entity';
 
 @Entity('creative_activities')
+@Index(['studentRecordId', 'area'])
+@Index(['academicYear', 'grade'])
+@Index(['createdByUserId'])
+@Index(['sentenceStatus'])
 export class CreativeActivity {
   @PrimaryGeneratedColumn()
   id: number;

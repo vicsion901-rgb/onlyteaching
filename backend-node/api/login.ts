@@ -64,7 +64,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (user.passwordHash) {
       passwordOk = await bcrypt.compare(teacherCode, user.passwordHash);
     } else if (user.teacherCode === teacherCode) {
-      passwordOk = true; // 레거시 평문 허용 (마이그레이션 전)
+      passwordOk = true;
+      // 레거시 평문 → bcrypt 자동 마이그레이션
+      const hash = await bcrypt.hash(teacherCode, 10);
+      await getPool().query(
+        `UPDATE users SET "passwordHash" = $1, "teacherCode" = '__hashed__' WHERE id = $2`,
+        [hash, user.id],
+      );
     }
 
     if (!passwordOk) {

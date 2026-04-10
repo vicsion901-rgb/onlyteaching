@@ -3,20 +3,34 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule, InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
-import { StudentRecordsModule } from './student-records/student-records.module';
-import { PromptsModule } from './prompts/prompts.module';
-import { SchedulesModule } from './schedules/schedules.module';
-import { HealthModule } from './health/health.module';
-import { LifeRecordsModule } from './life-records/life-records.module';
-import { UsersModule } from './users/users.module';
-import { AchievementStandardsModule } from './achievement-standards/achievement-standards.module';
-import { ExcelModule } from './excel/excel.module';
-import { CreativeActivitiesModule } from './creative-activities/creative-activities.module';
-import { AutobiographyCompilationModule } from './autobiography-compilation/autobiography-compilation.module';
-import { MealsModule } from './meals/meals.module';
+// ── 공통 (Cross-Cutting) ──
 import { ProofreadModule } from './proofread/proofread.module';
 import { ProofreadResponseInterceptor } from './proofread/proofread-response.interceptor';
+import { HealthModule } from './health/health.module';
+
+// ── 인증 도메인 (Auth) ──
+import { UsersModule } from './users/users.module';
 import { TeacherVerificationModule } from './teacher-verification/teacher-verification.module';
+
+// ── 학생관리 도메인 (Student Management) ──
+import { StudentsModule } from './students/students.module';
+import { StudentRecordsModule } from './student-records/student-records.module';
+import { ExcelModule } from './excel/excel.module';
+
+// ── 창의적체험활동 도메인 (Creative Activities) ──
+import { CreativeActivitiesModule } from './creative-activities/creative-activities.module';
+
+// ── 생활기록부 도메인 (Life Records) ──
+import { LifeRecordsModule } from './life-records/life-records.module';
+import { AutobiographyCompilationModule } from './autobiography-compilation/autobiography-compilation.module';
+
+// ── 교육과정 도메인 (Curriculum) ──
+import { AchievementStandardsModule } from './achievement-standards/achievement-standards.module';
+import { PromptsModule } from './prompts/prompts.module';
+
+// ── 학교생활 도메인 (School Life) ──
+import { SchedulesModule } from './schedules/schedules.module';
+import { MealsModule } from './meals/meals.module';
 
 @Module({
   imports: [
@@ -25,14 +39,17 @@ import { TeacherVerificationModule } from './teacher-verification/teacher-verifi
         const isProduction = process.env.NODE_ENV === 'production';
         
         if (isProduction && process.env.POSTGRES_URL) {
-          // Vercel Postgres 설정
           return {
             type: 'postgres',
             url: process.env.POSTGRES_URL,
             autoLoadEntities: true,
-            synchronize: true, // 주의: 프로덕션에서는 false로 하고 마이그레이션 사용하는게 좋음 (베타니까 true 허용)
-            ssl: {
-              rejectUnauthorized: false,
+            synchronize: true, // 베타 — 안정화 후 false + migration 전환
+            ssl: { rejectUnauthorized: false },
+            // 서버리스 콜드스타트 최적화
+            extra: {
+              max: 3,
+              idleTimeoutMillis: 30000,
+              connectionTimeoutMillis: 5000,
             },
           };
         }
@@ -46,19 +63,33 @@ import { TeacherVerificationModule } from './teacher-verification/teacher-verifi
         };
       },
     }),
-    StudentRecordsModule,
-    PromptsModule,
-    SchedulesModule,
+    // ── 공통 ──
     HealthModule,
-    UsersModule,
-    LifeRecordsModule,
-    AchievementStandardsModule,
-    ExcelModule, // ✅ 엑셀 업로드/자동매핑 모듈 추가
-    CreativeActivitiesModule,
-    AutobiographyCompilationModule,
-    MealsModule,
     ProofreadModule,
+
+    // ── 인증 ──
+    UsersModule,
     TeacherVerificationModule,
+
+    // ── 학생관리 ──
+    StudentsModule,
+    StudentRecordsModule,
+    ExcelModule,
+
+    // ── 창체 ──
+    CreativeActivitiesModule,
+
+    // ── 생기부 ──
+    LifeRecordsModule,
+    AutobiographyCompilationModule,
+
+    // ── 교육과정 ──
+    AchievementStandardsModule,
+    PromptsModule,
+
+    // ── 학교생활 ──
+    SchedulesModule,
+    MealsModule,
   ],
   providers: [
     {

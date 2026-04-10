@@ -1,4 +1,5 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, ManyToOne, JoinColumn, PrimaryGeneratedColumn } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('students')
 @Index(['residentId'], {
@@ -6,6 +7,7 @@ import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
   where: '"residentId" IS NOT NULL',
 })
 @Index(['name', 'birthDate', 'studentNumber'], { unique: true })
+@Index(['userId'])
 export class StudentEntity {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -25,4 +27,12 @@ export class StudentEntity {
 
   @Column({ type: 'text', nullable: true })
   address!: string | null;
+
+  /** 담당 교사 (FK → users.id) */
+  @Column({ type: 'varchar', nullable: true })
+  userId!: string | null;
+
+  @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'userId' })
+  user!: User;
 }

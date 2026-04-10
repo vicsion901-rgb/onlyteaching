@@ -2,16 +2,20 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   Unique,
   Index,
 } from 'typeorm';
+import { TeacherVerification } from '../../teacher-verification/entities/teacher-verification.entity';
 
 export type UserStatus = 'PENDING' | 'ACTIVE' | 'REJECTED';
 
 @Entity('users')
 @Unique(['schoolCode', 'teacherCode'])
 @Index(['emailHash'])
+@Index(['status'])
+@Index(['schoolName'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -54,4 +58,9 @@ export class User {
 
   @CreateDateColumn()
   createdAt!: Date;
+
+  // ─── 관계 (FK) ───
+
+  @OneToMany(() => TeacherVerification, (tv) => tv.user)
+  teacherVerifications!: TeacherVerification[];
 }
