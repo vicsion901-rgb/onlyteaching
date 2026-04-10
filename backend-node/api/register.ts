@@ -70,11 +70,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       try { body = JSON.parse(body); } catch { body = {}; }
     }
 
-    const { schoolCode, teacherCode, name, phone, email, schoolName } = body || {};
+    const { email, password, name, phone, schoolName } = body || {};
 
-    // ── 필수값 검증 ──
-    if (!schoolCode || !teacherCode) {
-      return res.status(400).json({ message: '아이디와 비밀번호를 입력해주세요.' });
+    // ── 필수값 검증 (이메일 = 로그인 ID) ──
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return res.status(400).json({ message: '올바른 이메일을 입력해주세요.' });
+    }
+    if (!password || typeof password !== 'string' || password.length < 8) {
+      return res.status(400).json({ message: '비밀번호는 8자 이상이어야 합니다.' });
     }
     if (!name || typeof name !== 'string' || name.trim().length < 2) {
       return res.status(400).json({ message: '이름을 입력해주세요. (2자 이상)' });
@@ -82,52 +85,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!phone || typeof phone !== 'string' || !/^01[016789]-?\d{3,4}-?\d{4}$/.test(phone.replace(/\s/g, ''))) {
       return res.status(400).json({ message: '올바른 전화번호를 입력해주세요.' });
     }
-    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ message: '올바른 이메일을 입력해주세요.' });
-    }
-    if (teacherCode.length < 6) {
-      return res.status(400).json({ message: '비밀번호는 6자 이상이어야 합니다.' });
-    }
 
+    const trimmedEmail = email.trim().toLowerCase();
     const db = getPool();
 
-    // 아이디 중복 체크
+    // 이메일(= 로그인 ID) 중복 체크
+    const eHash = searchHash(trimmedEmail);
     const dupCheck = await db.query(
-      'SELECT id FROM users WHERE "schoolCode" = $1 LIMIT 1',
-      [schoolCode],
+      'SELECT id FROM users WHERE "schoolCode" = $1 OR "emailHash" = $2 LIMIT 1',
+      [trimmedEmail, eHash],
     );
     if (dupCheck.rows.length > 0) {
-      return res.status(400).json({ message: '이미 등록된 아이디입니다' });
-    }
-
-    // 이메일 중복 체크
-    const eHash = searchHash(email);
-    if (eHash) {
-      const dupEmail = await db.query(
-        'SELECT id FROM users WHERE "emailHash" = $1 LIMIT 1',
-        [eHash],
-      );
-      if (dupEmail.rows.length > 0) {
-        return res.status(400).json({ message: '이미 등록된 이메일입니다' });
-      }
+      return res.status(400).json({ message: '이미 등록된 이메일입니다.' });
     }
 
     // 비밀번호 해시
-    const passwordHash = await bcrypt.hash(teacherCode, 10);
+    const passwordHash = await bcrypt.hash(password, 10);
 
     // 개인정보 암호화
     const nameEnc = encrypt(name);
-    const emailEnc = encrypt(email);
+    const emailEnc = encrypt(trimmedEmail);
     const phoneEnc = encrypt(phone);
 
-    // 저장
+    // 저장: schoolCode = 이메일 (로그인 ID로 사용)
     const result = await db.query(
       `INSERT INTO users (id, "schoolCode", "teacherCode", "passwordHash",
         "nameEnc", "emailEnc", "emailHash", "phoneEnc", "schoolName",
         status, "createdAt")
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, 'PENDING', NOW())
+       VALUES (gen_random_uuid(), $1, '__hashed__', $2, $3, $4, $5, $6, $7, 'PENDING', NOW())
        RETURNING id, status`,
-      [schoolCode, '__hashed__', passwordHash, nameEnc, emailEnc, eHash, phoneEnc, schoolName || null],
+      [trimmedEmail, passwordHash, nameEnc, emailEnc, eHash, phoneEnc, schoolName || null],
     );
 
     const user = result.rows[0];

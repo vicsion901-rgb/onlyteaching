@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>OnlyTeaching 작업 보고서 — 2026-04-10</title>
+<style>
+  @page { size: A4; margin: 20mm; }
+  body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; color: #1a1a1a; line-height: 1.7; max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+  h1 { font-size: 22px; border-bottom: 3px solid #6b21a8; padding-bottom: 8px; color: #6b21a8; }
+  h2 { font-size: 17px; margin-top: 32px; color: #374151; border-left: 4px solid #6b21a8; padding-left: 10px; }
+  h3 { font-size: 14px; margin-top: 20px; color: #6b21a8; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th { background: #f3f0ff; color: #4c1d95; text-align: left; padding: 8px 10px; border: 1px solid #ddd; }
+  td { padding: 7px 10px; border: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #fafafa; }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; margin-right: 4px; }
+  .tag-erd { background: #dbeafe; color: #1e40af; }
+  .tag-module { background: #d1fae5; color: #065f46; }
+  .tag-perf { background: #fef3c7; color: #92400e; }
+  .tag-security { background: #fee2e2; color: #991b1b; }
+  .tag-ux { background: #ede9fe; color: #5b21b6; }
+  .summary { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0; }
+  .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center; }
+  code { background: #f3f4f6; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>OnlyTeaching 일일 작업 보고서</h1>
+<p><b>날짜:</b> 2026년 4월 10일 (목) &nbsp;|&nbsp; <b>커밋:</b> <code>18a2889</code> &nbsp;|&nbsp; <b>변경:</b> 21개 파일, +431 / -160</p>
+
+<div class="summary">
+<b>작업 요약:</b> ERD 기반 인덱스/관계 설계, 배민 스타일 모듈 분리, 경량화 최적화, 보안 허점 수정, 평문 비밀번호 해시화, 로그인 UX 개선
+</div>
+
+<h2>1. ERD 기반 인덱스/관계 설계 <span class="tag tag-erd">ERD</span></h2>
+
+<table>
+<tr><th style="width:40%">파일</th><th>수정 내용</th></tr>
+<tr><td><code>users/entities/user.entity.ts</code></td><td>@Index(['status']), @Index(['schoolName']) 추가. @OneToMany → TeacherVerification 관계 설정</td></tr>
+<tr><td><code>teacher-verification/entities/teacher-verification.entity.ts</code></td><td>@ManyToOne → User FK 관계 추가. 중복 인증 방지용 @Index(['verifiedSchool','verifiedName','payPeriod']) 추가</td></tr>
+<tr><td><code>student-records/student-record.entity.ts</code></td><td>userId 컬럼 + @ManyToOne → User FK 추가. @Index(['userId']), @Index(['name'])</td></tr>
+<tr><td><code>creative-activities/entities/creative-activity.entity.ts</code></td><td>@Index 4개 추가: (studentRecordId+area), (academicYear+grade), (createdByUserId), (sentenceStatus)</td></tr>
+<tr><td><code>schedules/schedule.entity.ts</code></td><td>userId 컬럼 + @ManyToOne → User FK 추가. @Index(['userId','date']), @Index(['date'])</td></tr>
+<tr><td><code>students/entities/student.entity.ts</code></td><td>userId 컬럼 + @ManyToOne → User FK 추가. @Index(['userId'])</td></tr>
+<tr><td><code>meals/meal.entity.ts</code></td><td>@ManyToOne → User (createdByUserId). @OneToMany → MealLike 관계 추가</td></tr>
+<tr><td><code>meals/meal-like.entity.ts</code></td><td>@ManyToOne → Meal, @ManyToOne → User FK 관계 추가. @Index(['schoolCode'])</td></tr>
+<tr><td><code>achievement-standard.entity.ts</code></td><td>@Index(['subject','grade_group']), @Index(['code'], unique) 추가</td></tr>
+<tr><td><code>student-record-comment.entity.ts</code></td><td>@Index(['category','subcategory']) 추가</td></tr>
+<tr><td><code>prompts/prompt.entity.ts</code></td><td>userId 컬럼 + @ManyToOne → User FK 추가. @Index(['userId'])</td></tr>
+</table>
+
+<h2>2. 모듈 구역 분리 (배민 스타일) <span class="tag tag-module">Module</span></h2>
+
+<table>
+<tr><th style="width:40%">파일</th><th>수정 내용</th></tr>
+<tr><td><code>students/students.module.ts</code></td><td><b>[신규]</b> StudentsModule 생성 — StudentEntity + StudentRepository를 올바른 NestJS 모듈로 캡슐화</td></tr>
+<tr><td><code>excel/excel.module.ts</code></td><td>직접 StudentRepository 주입 → StudentsModule import로 변경 (올바른 의존성 주입)</td></tr>
+<tr><td><code>app.module.ts</code></td><td>6개 도메인 구역으로 재매핑: 공통 / 인증 / 학생관리 / 창체 / 생기부 / 교육과정 / 학교생활. 커넥션 풀 최적화(max:3)</td></tr>
+<tr><td><code>main.ts</code></td><td>레거시 Express 라우트 제거. Swagger를 동적 import로 변경 (프로덕션 번들 제외)</td></tr>
+</table>
+
+<h2>3. 경량화 + 속도 최적화 <span class="tag tag-perf">Perf</span></h2>
+
+<table>
+<tr><th style="width:40%">파일</th><th>수정 내용</th></tr>
+<tr><td><code>package.json</code></td><td>bcryptjs(중복) 제거. @nestjs/swagger + swagger-ui-express → devDependencies로 이동</td></tr>
+<tr><td><code>main.ts</code></td><td>Swagger 동적 import (프로덕션 빌드에서 제외 → 번들 사이즈 절감)</td></tr>
+<tr><td><code>app.module.ts</code></td><td>TypeORM Postgres 커넥션 풀: max:3, idleTimeout:30s, connectionTimeout:5s</td></tr>
+</table>
+
+<h2>4. 보안 허점 수정 <span class="tag tag-security">Security</span></h2>
+
+<table>
+<tr><th style="width:40%">파일</th><th>수정 내용</th></tr>
+<tr><td><code>api/register.ts</code></td><td>필수값 서버 검증 추가: 이름(2자+), 전화번호(정규식), 이메일(정규식), 비밀번호(6자+)</td></tr>
+<tr><td><code>api/salary-pdf.ts</code></td><td><b>이름 교차검증:</b> 가입 이름 ↔ 급여명세서 이름 불일치 시 거부. <b>중복 인증 차단:</b> 동일(학교+이름+지급년월) VERIFIED 기록 시 거부</td></tr>
+<tr><td><code>api/login.ts</code></td><td>레거시 평문 비밀번호 로그인 시 자동 bcrypt 해시 마이그레이션 추가</td></tr>
+<tr><td><code>scripts/migrate-plaintext-passwords.ts</code></td><td><b>[신규]</b> 평문 비밀번호 일괄 해시화 스크립트. 실행 완료 (3명: yujin, master0109, master)</td></tr>
+</table>
+
+<h2>5. 프론트엔드 UX 개선 <span class="tag tag-ux">UX</span></h2>
+
+<table>
+<tr><th style="width:40%">파일</th><th>수정 내용</th></tr>
+<tr><td><code>frontend/src/pages/Login.jsx</code></td><td>로그인 실패 시 alert() 팝업 → 네이버 스타일 인라인 빨간 텍스트로 변경. 로그인 버튼 바로 위에 표시, 재입력 시 자동 초기화</td></tr>
+</table>
+
+<h2>DB 마이그레이션 실행 기록</h2>
+<div class="summary">
+<code>migrate-plaintext-passwords.ts</code> 실행 완료 (2026-04-10 20:20)<br>
+• yujin: password123 → bcrypt 해시<br>
+• master0109@naver.com: admin → bcrypt 해시<br>
+• master: buksu → bcrypt 해시<br>
+→ DB에 평문 비밀번호 0건
+</div>
+
+<div class="footer">
+OnlyTeaching 개발 일일 보고서 | 생성: Claude Opus 4.6 | 2026-04-10
+</div>
+
+</body>
+</html>

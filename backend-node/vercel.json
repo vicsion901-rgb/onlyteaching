@@ -8,7 +8,9 @@
     "api/login.ts": { "maxDuration": 10 },
     "api/register.ts": { "maxDuration": 10 },
     "api/teacher-verification-status.ts": { "maxDuration": 10 },
-    "api/salary-pdf.ts": { "maxDuration": 15 }
+    "api/salary-pdf.ts": { "maxDuration": 15 },
+    "api/password-reset-request.ts": { "maxDuration": 10 },
+    "api/password-reset.ts": { "maxDuration": 10 }
   },
   "rewrites": [
     { "source": "/api/users/login", "destination": "/api/login" },
@@ -17,6 +19,8 @@
     { "source": "/users/register", "destination": "/api/register" },
     { "source": "/teacher-verification/status", "destination": "/api/teacher-verification-status" },
     { "source": "/teacher-verification/salary-pdf", "destination": "/api/salary-pdf" },
+    { "source": "/api/password-reset-request", "destination": "/api/password-reset-request" },
+    { "source": "/api/password-reset", "destination": "/api/password-reset" },
     { "source": "/(.*)", "destination": "/api/index" }
   ],
   "env": {

@@ -11,7 +11,6 @@ const MAX_SAVED_IDS = 5;
 function Login() {
   const [schoolCode, setSchoolCode] = useState('');
   const [teacherCode, setTeacherCode] = useState('');
-  const [regLoginId, setRegLoginId] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regPasswordConfirm, setRegPasswordConfirm] = useState('');
   const [regName, setRegName] = useState('');
@@ -177,16 +176,14 @@ function Login() {
     setIsRegisterLoading(true);
     try {
       const res = await client.post('/users/register', {
-        schoolCode: regLoginId, // legacy: 아이디 자리
-        teacherCode: regPassword, // legacy: 비밀번호 자리
-        name: regName,
         email: regEmail,
+        password: regPassword,
+        name: regName,
         phone: regPhone,
       });
       setRegisterResult(res.data);
-      // 회원가입 성공 → 자동 로그인 처리 (교사인증 페이지로 바로 이동)
       localStorage.setItem('userId', res.data.userId);
-      localStorage.setItem('schoolCode', regLoginId);
+      localStorage.setItem('schoolCode', regEmail);
       localStorage.setItem('loginMessage', '가입 완료. 교사 인증을 진행해주세요.');
       alert('가입이 완료되었습니다. 교사 인증 페이지로 이동합니다.');
       window.location.reload();
@@ -219,22 +216,22 @@ function Login() {
             </div>
           <form className="space-y-4" onSubmit={handleLogin}>
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">아이디</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
               <input
-                type="text"
+                type="email"
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                placeholder="아이디를 입력하세요"
+                placeholder="이메일을 입력하세요"
                 value={schoolCode}
                 onChange={(e) => setSchoolCode(e.target.value)}
                 onFocus={() => setShowIdDropdown(true)}
                 onBlur={() => setTimeout(() => setShowIdDropdown(false), 150)}
-                autoComplete="off"
+                autoComplete="email"
               />
               {showIdDropdown && savedIds.length > 0 && (
                 <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-60 overflow-auto">
                   <div className="px-3 py-1.5 text-xs text-gray-400 border-b border-gray-100">
-                    저장된 아이디
+                    저장된 이메일
                   </div>
                   {savedIds.map((id) => (
                     <div
@@ -294,6 +291,15 @@ function Login() {
               {isLoginLoading ? '로그인 중...' : '로그인'}
             </button>
           </form>
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => navigate('/reset-password')}
+              className="text-sm text-gray-500 hover:text-blue-600 underline"
+            >
+              비밀번호를 잊으셨나요?
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => setShowRegister(true)}
@@ -324,16 +330,17 @@ function Login() {
             </div>
             <form className="space-y-4" onSubmit={handleRegister}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">아이디</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">이메일 (로그인 ID)</label>
                 <input
-                  type="text"
+                  type="email"
                   required
                   autoComplete="username"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="로그인에 사용할 아이디 (이메일 권장)"
-                  value={regLoginId}
-                  onChange={(e) => setRegLoginId(e.target.value)}
+                  placeholder="name@example.com"
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
                 />
+                <p className="text-xs text-gray-400 mt-1">비밀번호 찾기 시 이 이메일로 안내가 발송됩니다.</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -387,17 +394,6 @@ function Login() {
                     onChange={(e) => setRegPhone(formatPhone(e.target.value))}
                   />
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
-                <input
-                  type="email"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="name@example.com"
-                  value={regEmail}
-                  onChange={(e) => setRegEmail(e.target.value)}
-                />
               </div>
 
               <div className="bg-gray-50 border border-gray-200 rounded-md p-3 text-xs text-gray-600 space-y-1.5">

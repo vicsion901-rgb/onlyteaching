@@ -22,6 +22,7 @@ import PresenterPicker from './pages/PresenterPicker';
 import SeatArrangement from './pages/SeatArrangement';
 import RoleAssignment from './pages/RoleAssignment';
 import TeacherVerification from './pages/TeacherVerification';
+import ResetPassword from './pages/ResetPassword';
 import Layout from './components/Layout';
 
 function App() {
@@ -51,6 +52,7 @@ function App() {
           <Route path="/seat-arrangement" element={<SeatArrangement />} />
           <Route path="/role-assignment" element={<RoleAssignment />} />
           <Route path="/teacher-verification" element={<TeacherVerification />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </Layout>

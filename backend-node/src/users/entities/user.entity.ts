@@ -51,6 +51,14 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   schoolName!: string | null;
 
+  // ─── 비밀번호 재설정 ───
+
+  @Column({ type: 'varchar', nullable: true })
+  resetToken!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  resetTokenExpiry!: string | null;
+
   // ─── 상태 / 메타 ───
 
   @Column({ default: 'PENDING' })
