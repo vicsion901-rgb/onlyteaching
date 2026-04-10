@@ -60,11 +60,14 @@ function TeacherVerification() {
     setUploading(true);
     setError('');
     try {
-      const form = new FormData();
-      form.append('file', file);
-      form.append('userId', userId);
-      const res = await client.post('/teacher-verification/salary-pdf', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      // PDF → base64 JSON 으로 전송 (multipart 대신, 초경량 함수 호환)
+      const arrayBuf = await file.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuf)));
+      const res = await client.post('/teacher-verification/salary-pdf', {
+        userId,
+        fileBase64: base64,
+        fileName: file.name,
+      }, {
         timeout: 30000,
       });
       alert(`인증 완료! ${res.data.verifiedName} / ${res.data.verifiedSchool}`);
