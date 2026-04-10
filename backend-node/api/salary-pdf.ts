@@ -127,3 +127,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ message: '인증 처리 중 오류가 발생했습니다.' });
   }
 }
+// deploy trigger 1775796168
