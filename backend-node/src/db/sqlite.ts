@@ -1,13 +1,16 @@
 // @ts-nocheck
+// 로컬 개발용 SQLite — 프로덕션(Vercel)에서는 Postgres 사용, 이 파일은 로드되지 않음
 const path = require('path');
-const sqlite3 = require('sqlite3');
-
-// Single shared connection (sqlite3 is serialized by default)
-const DB_PATH = path.resolve(__dirname, '..', '..', 'db.sqlite');
-const db = new sqlite3.Database(DB_PATH);
-
-// Ensure FK constraints
-db.exec('PRAGMA foreign_keys = ON;');
+let db;
+try {
+  const sqlite3 = require('sqlite3');
+  const DB_PATH = path.resolve(__dirname, '..', '..', 'db.sqlite');
+  db = new sqlite3.Database(DB_PATH);
+  db.exec('PRAGMA foreign_keys = ON;');
+} catch {
+  // sqlite3 미설치 (Vercel 프로덕션) — legacy-routes 미사용이므로 무시
+  db = null;
+}
 
 const run = (sql, params = []) =>
   new Promise((resolve, reject) => {

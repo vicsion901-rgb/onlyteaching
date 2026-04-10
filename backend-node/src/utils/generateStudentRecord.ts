@@ -1,8 +1,13 @@
 // generateStudentRecord.ts
 
-import Database from 'better-sqlite3';
-
-const db = new Database('db.sqlite');
+// 로컬 개발용 SQLite — Vercel 프로덕션에서는 사용되지 않음
+let db: any = null;
+try {
+  const Database = require('better-sqlite3');
+  db = new Database('db.sqlite');
+} catch {
+  // better-sqlite3 미설치 (Vercel) — 무시
+}
 
 type Keyword = {
   subcategory: string;

@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { createWorker } from 'tesseract.js';
 import { StudentRecordsService } from './student-records.service';
-import { toJson, toMarkdown } from '@ohah/hwpjs';
-import * as sharp from 'sharp';
+
+// 무거운 패키지 지연 로드 — NestJS bootstrap 시 로드하지 않아 Vercel OOM 방지
+// 실제 요청이 들어올 때만 require()
+function getSharp(): any { return require('sharp').default || require('sharp'); }
+function getTesseract(): any { return require('tesseract.js'); }
+function getHwpjs(): any { return require('@ohah/hwpjs'); }
 
 @Injectable()
 export class OCRService {
@@ -14,14 +17,16 @@ export class OCRService {
   }
 
   async extractTextFromImage(buffer: Buffer): Promise<string> {
-    const processedBuffer = await sharp.default(buffer)
-      .resize({ width: 3000 }) 
+    const sharpFn = getSharp();
+    const processedBuffer = await sharpFn(buffer)
+      .resize({ width: 3000 })
       .grayscale()
-      .linear(1.5, -0.3) 
-      .threshold(160) 
+      .linear(1.5, -0.3)
+      .threshold(160)
       .sharpen()
       .toBuffer();
 
+    const { createWorker } = getTesseract();
     const worker = await createWorker(['kor', 'eng']); 
     const { data: { text } } = await worker.recognize(processedBuffer);
     await worker.terminate();
@@ -31,6 +36,7 @@ export class OCRService {
 
   async parseHwp(buffer: Buffer) {
     try {
+      const { toMarkdown } = getHwpjs();
       const { markdown, images } = toMarkdown(buffer, {
         image: 'blob', // Get images as Blob/Buffer
         useHtml: false,

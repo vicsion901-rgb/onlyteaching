@@ -6,7 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import sharp from 'sharp';
+// sharp 지연 로드 — NestJS bootstrap OOM 방지
+function getSharp(): any { return require('sharp').default || require('sharp'); }
 import { Between, Repository } from 'typeorm';
 
 import { MealLike } from './meal-like.entity';
@@ -34,7 +35,7 @@ export class MealsService {
       throw new BadRequestException('이미지 파일이 필요합니다');
     }
 
-    const optimized = await sharp(buffer)
+    const optimized = await getSharp()(buffer)
       .rotate()
       .resize({ width: 1280, withoutEnlargement: true })
       .webp({ quality: 82 })
