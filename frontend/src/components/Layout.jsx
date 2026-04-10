@@ -371,7 +371,20 @@ function Layout({ children }) {
       {/* ===== Main content ===== */}
       <main className="flex-1 min-w-0 p-2 sm:p-4 pt-16 md:p-8 md:pt-8 transition-all duration-300 overflow-x-hidden">
         <div className="max-w-7xl mx-auto w-full">
-          {children}
+          {verifyStatus !== 'VERIFIED' && !isVerifyPage ? (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+              <p className="text-xl font-semibold text-gray-700 mb-4">교사 인증을 먼저 완료해주세요.</p>
+              <p className="text-gray-500 mb-6">교사 인증이 완료되면 모든 기능을 이용할 수 있습니다.</p>
+              <button
+                onClick={() => navigate('/teacher-verification')}
+                className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition"
+              >
+                교사 인증하러 가기
+              </button>
+            </div>
+          ) : (
+            children
+          )}
         </div>
       </main>
     </div>
