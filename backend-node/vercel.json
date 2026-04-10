@@ -68,12 +68,6 @@
       "dest": "/api/index.ts"
     }
   ],
-  "functions": {
-    "api/index.ts": {
-      "memory": 3009,
-      "maxDuration": 60
-    }
-  },
   "env": {
     "NODE_ENV": "production"
   },
