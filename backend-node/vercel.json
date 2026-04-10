@@ -10,6 +10,10 @@
       "use": "@vercel/node"
     },
     {
+      "src": "api/teacher-verification-status.ts",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/index.ts",
       "use": "@vercel/node"
     }
@@ -30,6 +34,10 @@
     {
       "src": "/users/register",
       "dest": "/api/register.ts"
+    },
+    {
+      "src": "/teacher-verification/status",
+      "dest": "/api/teacher-verification-status.ts"
     },
     {
       "src": "/api/swagger-ui-init.js",
