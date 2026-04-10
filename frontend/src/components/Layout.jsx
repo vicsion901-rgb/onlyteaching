@@ -55,10 +55,9 @@ function Layout({ children }) {
   const [isHovered, setIsHovered] = useState(false);
 
   const handleSidebarClick = (tabId, e) => {
-    // 교사 인증 전에는 다른 탭 접근 차단
+    // 교사 인증 전에는 다른 탭 접근 차단 — 조용히 교사인증 페이지로 이동
     if (verifyStatus !== 'VERIFIED' && tabId !== 'teacher-verification') {
       if (e) e.preventDefault();
-      alert('교사 인증이 필요합니다. 먼저 교사 인증을 완료해주세요.');
       navigate('/teacher-verification');
       return;
     }
@@ -371,11 +370,7 @@ function Layout({ children }) {
       {/* ===== Main content ===== */}
       <main className="flex-1 min-w-0 p-2 sm:p-4 pt-16 md:p-8 md:pt-8 transition-all duration-300 overflow-x-hidden">
         <div className="max-w-7xl mx-auto w-full">
-          {verifyStatus !== 'VERIFIED' && !isVerifyPage ? (
-            <>{navigate('/teacher-verification', { replace: true }) && null}</>
-          ) : (
-            children
-          )}
+          {children}
         </div>
       </main>
     </div>
