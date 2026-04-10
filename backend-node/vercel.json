@@ -1,76 +1,23 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/login.ts",
-      "use": "@vercel/node"
+  "functions": {
+    "api/index.ts": {
+      "memory": 3009,
+      "maxDuration": 60
     },
-    {
-      "src": "api/register.ts",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "api/teacher-verification-status.ts",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "api/salary-pdf.ts",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "api/index.ts",
-      "use": "@vercel/node",
-      "config": {
-        "memory": 3009,
-        "maxDuration": 60
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/users/login",
-      "dest": "/api/login.ts"
-    },
-    {
-      "src": "/users/login",
-      "dest": "/api/login.ts"
-    },
-    {
-      "src": "/api/users/register",
-      "dest": "/api/register.ts"
-    },
-    {
-      "src": "/users/register",
-      "dest": "/api/register.ts"
-    },
-    {
-      "src": "/teacher-verification/status",
-      "dest": "/api/teacher-verification-status.ts"
-    },
-    {
-      "src": "/teacher-verification/salary-pdf",
-      "dest": "/api/salary-pdf.ts"
-    },
-    {
-      "src": "/api/swagger-ui-init.js",
-      "dest": "/api/swagger-ui-init.js"
-    },
-    {
-      "src": "/api/swagger-ui-bundle.js",
-      "dest": "/api/swagger-ui-bundle.js"
-    },
-    {
-      "src": "/api/swagger-ui-standalone-preset.js",
-      "dest": "/api/swagger-ui-standalone-preset.js"
-    },
-    {
-      "src": "/api/swagger-ui.css",
-      "dest": "/api/swagger-ui.css"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/api/index.ts"
-    }
+    "api/login.ts": { "maxDuration": 10 },
+    "api/register.ts": { "maxDuration": 10 },
+    "api/teacher-verification-status.ts": { "maxDuration": 10 },
+    "api/salary-pdf.ts": { "maxDuration": 15 }
+  },
+  "rewrites": [
+    { "source": "/api/users/login", "destination": "/api/login" },
+    { "source": "/users/login", "destination": "/api/login" },
+    { "source": "/api/users/register", "destination": "/api/register" },
+    { "source": "/users/register", "destination": "/api/register" },
+    { "source": "/teacher-verification/status", "destination": "/api/teacher-verification-status" },
+    { "source": "/teacher-verification/salary-pdf", "destination": "/api/salary-pdf" },
+    { "source": "/(.*)", "destination": "/api/index" }
   ],
   "env": {
     "NODE_ENV": "production"
