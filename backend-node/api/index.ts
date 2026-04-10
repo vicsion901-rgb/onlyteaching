@@ -36,7 +36,15 @@ async function bootstrap(): Promise<INestApplication> {
 }
 
 export default async function handler(req: any, res: any) {
-  const app = await bootstrap();
-  const expressApp = app.getHttpAdapter().getInstance();
-  return expressApp(req, res);
+  try {
+    const app = await bootstrap();
+    const expressApp = app.getHttpAdapter().getInstance();
+    return expressApp(req, res);
+  } catch (err: any) {
+    console.error('NestJS bootstrap FATAL:', err?.message, err?.stack);
+    res.status(500).json({
+      error: 'NestJS bootstrap failed',
+      message: err?.message || 'unknown',
+    });
+  }
 }
