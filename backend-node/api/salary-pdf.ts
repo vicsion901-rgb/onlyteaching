@@ -146,17 +146,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ message: '가입 시 입력한 이름과 급여명세서의 이름이 일치하지 않습니다.' });
     }
 
-    // ── 중복 인증 차단: 동일 (학교+이름+지급년월) VERIFIED 기록 존재 시 거부 ──
+    // ── 중복 인증 차단: 동일 (학교+이름)으로 이미 VERIFIED 된 다른 계정이 있으면 거부 ──
     const dupCheck = await db.query(
-      `SELECT id FROM teacher_verifications
-       WHERE "verifiedSchool" = $1 AND "verifiedName" = $2 AND "payPeriod" = $3
+      `SELECT id, "userId" FROM teacher_verifications
+       WHERE "verifiedSchool" = $1 AND "verifiedName" = $2
          AND "verifyStatus" = 'VERIFIED'
        LIMIT 1`,
-      [parsed.school, parsed.name, parsed.payPeriod],
+      [parsed.school, parsed.name],
     );
-    if (dupCheck.rows.length > 0) {
+    if (dupCheck.rows.length > 0 && dupCheck.rows[0].userId !== userId) {
       return res.status(400).json({
-        message: '이미 해당 급여명세서로 인증된 기록이 있습니다. 다른 월의 명세서를 사용해주세요.',
+        message: '이미 해당 학교/이름으로 인증된 계정이 존재합니다.',
       });
     }
 
