@@ -410,7 +410,7 @@ function Login() {
 
               <div className="bg-gray-50 border border-gray-200 rounded-md p-3 text-xs text-gray-600 space-y-1.5">
                 <div className="font-semibold text-gray-800">개인정보 수집·이용 동의 (필수)</div>
-                <div>· 수집 항목: 아이디, 비밀번호(암호화), 이름·이메일·전화(암호화 저장)</div>
+                <div>· 수집 항목: 이메일(로그인 ID), 비밀번호(암호화), 이름·전화(암호화 저장)</div>
                 <div>· 이용 목적: 회원 식별, 교사 자격 확인, 서비스 이용</div>
                 <div>· 보유 기간: 회원 탈퇴 시 즉시 파기</div>
                 <div>· 비밀번호와 개인정보는 안전하게 암호화되어 저장되며, 관리자도 확인할 수 없습니다.</div>
