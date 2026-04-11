@@ -152,24 +152,35 @@ function Login() {
     }
   };
 
+  const [registerError, setRegisterError] = useState('');
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setRegisterResult(null);
+    setRegisterError('');
 
     if (!regAgree) {
-      alert('개인정보 수집·이용에 동의해주세요.');
-      return;
-    }
-    if (regPassword.length < 8) {
-      alert('비밀번호는 8자 이상이어야 합니다.');
-      return;
-    }
-    if (regPassword !== regPasswordConfirm) {
-      alert('비밀번호가 일치하지 않습니다.');
+      setRegisterError('개인정보 수집·이용에 동의해주세요.');
       return;
     }
     if (!/^[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}$/.test(regEmail)) {
-      alert('올바른 이메일 형식이 아닙니다.');
+      setRegisterError('올바른 이메일 형식이 아닙니다.');
+      return;
+    }
+    if (regPassword.length < 8) {
+      setRegisterError('비밀번호는 8자 이상이어야 합니다.');
+      return;
+    }
+    if (regPassword !== regPasswordConfirm) {
+      setRegisterError('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    if (!regName || regName.trim().length < 2) {
+      setRegisterError('이름을 입력해주세요. (2자 이상)');
+      return;
+    }
+    if (!regPhone || !/^01[016789]-?\d{3,4}-?\d{4}$/.test(regPhone.replace(/\s/g, ''))) {
+      setRegisterError('전화번호를 입력해주세요.');
       return;
     }
 
@@ -195,7 +206,7 @@ function Login() {
         error.response?.data?.detail ||
         error.message ||
         '알 수 없는 오류';
-      alert(`회원가입 실패: ${msg}`);
+      setRegisterError(msg);
     } finally {
       setIsRegisterLoading(false);
     }
@@ -413,6 +424,9 @@ function Login() {
                 </label>
               </div>
 
+              {registerError && (
+                <p className="text-sm text-red-500 leading-snug">{registerError}</p>
+              )}
               <div className="flex items-center justify-end gap-2 pt-1">
                 <button
                   type="button"
