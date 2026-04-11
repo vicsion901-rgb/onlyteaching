@@ -185,8 +185,8 @@ function Login() {
       localStorage.setItem('userId', res.data.userId);
       localStorage.setItem('schoolCode', regEmail);
       localStorage.setItem('loginMessage', '가입 완료. 교사 인증을 진행해주세요.');
-      alert('가입이 완료되었습니다. 교사 인증 페이지로 이동합니다.');
-      window.location.reload();
+      setShowRegister(false);
+      navigate('/teacher-verification');
     } catch (error) {
       console.error('Register error:', error);
       const msg =
