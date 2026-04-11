@@ -37,20 +37,8 @@ function ResetPassword() {
   const handleReset = async (e) => {
     e.preventDefault();
     setResetError('');
-    if (newPassword.length < 9) {
-      setResetError('비밀번호는 9자 이상이어야 합니다.');
-      return;
-    }
-    if (!/[a-zA-Z]/.test(newPassword)) {
-      setResetError('비밀번호에 영문자를 포함해주세요.');
-      return;
-    }
-    if (!/[0-9]/.test(newPassword)) {
-      setResetError('비밀번호에 숫자를 포함해주세요.');
-      return;
-    }
-    if (!/[^a-zA-Z0-9]/.test(newPassword)) {
-      setResetError('비밀번호에 특수문자를 포함해주세요.');
+    if (newPassword.length < 9 || !/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^a-zA-Z0-9]/.test(newPassword)) {
+      setResetError('비밀번호는 9자 이상이며, 영문·숫자·특수문자를 모두 포함해야 합니다.');
       return;
     }
     if (newPassword !== confirmPassword) {

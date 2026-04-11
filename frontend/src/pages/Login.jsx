@@ -167,20 +167,8 @@ function Login() {
       setRegisterError('올바른 이메일 형식이 아닙니다.');
       return;
     }
-    if (regPassword.length < 9) {
-      setRegisterError('비밀번호는 9자 이상이어야 합니다.');
-      return;
-    }
-    if (!/[a-zA-Z]/.test(regPassword)) {
-      setRegisterError('비밀번호에 영문자를 포함해주세요.');
-      return;
-    }
-    if (!/[0-9]/.test(regPassword)) {
-      setRegisterError('비밀번호에 숫자를 포함해주세요.');
-      return;
-    }
-    if (!/[^a-zA-Z0-9]/.test(regPassword)) {
-      setRegisterError('비밀번호에 특수문자를 포함해주세요.');
+    if (regPassword.length < 9 || !/[a-zA-Z]/.test(regPassword) || !/[0-9]/.test(regPassword) || !/[^a-zA-Z0-9]/.test(regPassword)) {
+      setRegisterError('비밀번호는 9자 이상이며, 영문·숫자·특수문자를 모두 포함해야 합니다.');
       return;
     }
     if (regName && regName.trim().length >= 2 && regPassword.includes(regName.trim())) {
