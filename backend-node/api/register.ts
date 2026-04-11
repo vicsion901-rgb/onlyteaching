@@ -76,11 +76,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       return res.status(400).json({ message: '올바른 이메일을 입력해주세요.' });
     }
-    if (!password || typeof password !== 'string' || password.length < 8) {
-      return res.status(400).json({ message: '비밀번호는 8자 이상이어야 합니다.' });
+    if (!password || typeof password !== 'string' || password.length < 9) {
+      return res.status(400).json({ message: '비밀번호는 9자 이상이어야 합니다.' });
+    }
+    if (!/[a-zA-Z]/.test(password)) {
+      return res.status(400).json({ message: '비밀번호에 영문자를 포함해주세요.' });
+    }
+    if (!/[0-9]/.test(password)) {
+      return res.status(400).json({ message: '비밀번호에 숫자를 포함해주세요.' });
+    }
+    if (!/[^a-zA-Z0-9]/.test(password)) {
+      return res.status(400).json({ message: '비밀번호에 특수문자를 포함해주세요.' });
     }
     if (!name || typeof name !== 'string' || name.trim().length < 2) {
       return res.status(400).json({ message: '이름을 입력해주세요. (2자 이상)' });
+    }
+    if (password.includes(name.trim())) {
+      return res.status(400).json({ message: '비밀번호에 본인 이름을 포함할 수 없습니다.' });
     }
     if (!phone || typeof phone !== 'string' || !/^01[016789]-?\d{3,4}-?\d{4}$/.test(phone.replace(/\s/g, ''))) {
       return res.status(400).json({ message: '올바른 전화번호를 입력해주세요.' });

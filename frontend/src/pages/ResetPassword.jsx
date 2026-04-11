@@ -37,8 +37,20 @@ function ResetPassword() {
   const handleReset = async (e) => {
     e.preventDefault();
     setResetError('');
-    if (newPassword.length < 8) {
-      setResetError('비밀번호는 8자 이상이어야 합니다.');
+    if (newPassword.length < 9) {
+      setResetError('비밀번호는 9자 이상이어야 합니다.');
+      return;
+    }
+    if (!/[a-zA-Z]/.test(newPassword)) {
+      setResetError('비밀번호에 영문자를 포함해주세요.');
+      return;
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      setResetError('비밀번호에 숫자를 포함해주세요.');
+      return;
+    }
+    if (!/[^a-zA-Z0-9]/.test(newPassword)) {
+      setResetError('비밀번호에 특수문자를 포함해주세요.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -137,9 +149,9 @@ function ResetPassword() {
                   <input
                     type="password"
                     required
-                    minLength={8}
+                    minLength={9}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="8자 이상"
+                    placeholder="9자 이상 (영문+숫자+특수문자)"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                   />
@@ -149,7 +161,7 @@ function ResetPassword() {
                   <input
                     type="password"
                     required
-                    minLength={8}
+                    minLength={9}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="다시 입력"
                     value={confirmPassword}

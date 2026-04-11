@@ -167,8 +167,24 @@ function Login() {
       setRegisterError('올바른 이메일 형식이 아닙니다.');
       return;
     }
-    if (regPassword.length < 8) {
-      setRegisterError('비밀번호는 8자 이상이어야 합니다.');
+    if (regPassword.length < 9) {
+      setRegisterError('비밀번호는 9자 이상이어야 합니다.');
+      return;
+    }
+    if (!/[a-zA-Z]/.test(regPassword)) {
+      setRegisterError('비밀번호에 영문자를 포함해주세요.');
+      return;
+    }
+    if (!/[0-9]/.test(regPassword)) {
+      setRegisterError('비밀번호에 숫자를 포함해주세요.');
+      return;
+    }
+    if (!/[^a-zA-Z0-9]/.test(regPassword)) {
+      setRegisterError('비밀번호에 특수문자를 포함해주세요.');
+      return;
+    }
+    if (regName && regName.trim().length >= 2 && regPassword.includes(regName.trim())) {
+      setRegisterError('비밀번호에 본인 이름을 포함할 수 없습니다.');
       return;
     }
     if (regPassword !== regPasswordConfirm) {
@@ -359,10 +375,10 @@ function Login() {
                   <input
                     type="password"
                     required
-                    minLength={8}
+                    minLength={9}
                     autoComplete="new-password"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="8자 이상"
+                    placeholder="9자 이상 (영문+숫자+특수문자)"
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
                   />
@@ -372,7 +388,7 @@ function Login() {
                   <input
                     type="password"
                     required
-                    minLength={8}
+                    minLength={9}
                     autoComplete="new-password"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="다시 입력"
