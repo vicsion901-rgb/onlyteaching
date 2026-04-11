@@ -9,12 +9,13 @@ function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isLoginPage = location.pathname === '/login';
+  const isResetPage = location.pathname === '/reset-password';
   const isVerifyPage = location.pathname === '/teacher-verification';
 
   // 교사 인증 게이트 — 인증 안 됐으면 /teacher-verification 외 다른 탭 접근 차단
   const [verifyStatus, setVerifyStatus] = useState(null); // null=loading, 'VERIFIED', 'BLOCKED'
   useEffect(() => {
-    if (isLoginPage) return;
+    if (isLoginPage || isResetPage) return;
     const userId = localStorage.getItem('userId');
     if (!userId) {
       navigate('/login', { replace: true });
@@ -276,7 +277,7 @@ function Layout({ children }) {
     </div>
   );
 
-  if (isLoginPage) {
+  if (isLoginPage || isResetPage) {
     return <div className="min-h-screen bg-white">{children}</div>;
   }
 
