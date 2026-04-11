@@ -206,6 +206,27 @@ function TeacherVerification() {
 
       {renderStatusCard()}
 
+      {/* 인증 완료 시 안내사항 표시 */}
+      {status?.verifyStatus === 'VERIFIED' && !(status.expiresAt && new Date(status.expiresAt).getTime() < Date.now()) ? (
+        <div className="bg-white rounded-xl shadow border border-gray-200 p-6 space-y-3">
+          <p className="text-gray-800 font-semibold">
+            온리티칭 회원이 되신 것을 축하드립니다.
+          </p>
+          <p className="text-sm text-gray-600">
+            다음 내용을 숙지하시어 이용에 불편이 없으셨으면 좋겠습니다.
+          </p>
+          <ul className="text-sm text-gray-700 space-y-2 list-disc pl-5">
+            <li>온리티칭에서 공유되는 모든 자료의 저작권은 원저작자에게 있으며, 온리티칭 내에서만 수정 및 재배포가 가능합니다.</li>
+            <li>
+              <b>인증만료일({status.expiresAt ? new Date(status.expiresAt).toLocaleDateString('ko-KR') : '-'})</b> 전에 다시 교사인증을 받아야 합니다.
+            </li>
+            <li>접속했을 때 권한이 없다고 나오면 로그아웃 후 다시 로그인해보세요.</li>
+            <li>회원 탈퇴 시 모든 개인정보는 즉시 파기됩니다.</li>
+            <li>이용 중 문의사항은 <a href="mailto:vicsion901@gmail.com" className="text-blue-600 underline">vicsion901@gmail.com</a>으로 연락주세요.</li>
+          </ul>
+        </div>
+      ) : (
+      <>
       {/* 단계 표시 */}
       <div className="grid grid-cols-3 gap-2">
         {[
@@ -360,6 +381,8 @@ function TeacherVerification() {
             </button>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );
