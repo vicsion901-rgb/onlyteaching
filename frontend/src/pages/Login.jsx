@@ -370,7 +370,7 @@ function Login() {
           </button>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">업무를 더 쉽게, 교사를 더 자유롭게</p>
+        <p className="text-center text-lg text-gray-400 mt-6">업무를 더 쉽게, 교사를 더 자유롭게</p>
       </div>
 
       {showRegister && (
