@@ -310,9 +310,9 @@ function Layout({ children }) {
 
   if (isLoginPage || isResetPage) {
     return (
-      <div className="min-h-screen bg-white flex flex-col">
-        <div className="flex-1">{children}</div>
-        <footer className="w-full py-2 px-4 sm:px-6" style={{ backgroundColor: 'rgba(124, 58, 237, 0.4)' }}>
+      <div className="min-h-screen bg-white">
+        <div className="pb-12">{children}</div>
+        <footer className="fixed bottom-0 left-0 w-full py-2 px-4 sm:px-6 z-[50]" style={{ backgroundColor: 'rgba(124, 58, 237, 0.4)' }}>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-1 max-w-7xl mx-auto">
             <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
               <Link to="/terms" className="text-purple-900 hover:text-purple-600 transition">이용약관</Link>
