@@ -293,6 +293,13 @@ function Layout({ children }) {
             >
               🏠 대시보드
             </Link>
+            <Link
+              to="/account"
+              onClick={() => setIsProfileOpen(false)}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+            >
+              ⚙️ 계정 관리
+            </Link>
             {/* 로그아웃 */}
             <div className="border-t border-gray-100 mt-1">
               <button

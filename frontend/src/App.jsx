@@ -26,6 +26,7 @@ import ResetPassword from './pages/ResetPassword';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import Policy from './pages/Policy';
+import AccountSettings from './pages/AccountSettings';
 import Layout from './components/Layout';
 
 function App() {
@@ -59,6 +60,7 @@ function App() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/policy" element={<Policy />} />
+          <Route path="/account" element={<AccountSettings />} />
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </Layout>
