@@ -11,7 +11,8 @@
     "api/salary-pdf.ts": { "maxDuration": 15 },
     "api/password-reset-request.ts": { "maxDuration": 10 },
     "api/password-reset.ts": { "maxDuration": 10 },
-    "api/account.ts": { "maxDuration": 10 }
+    "api/account.ts": { "maxDuration": 10 },
+    "api/student-records.ts": { "maxDuration": 10 }
   },
   "rewrites": [
     { "source": "/api/users/login", "destination": "/api/login" },
@@ -23,6 +24,7 @@
     { "source": "/api/password-reset-request", "destination": "/api/password-reset-request" },
     { "source": "/api/password-reset", "destination": "/api/password-reset" },
     { "source": "/api/account", "destination": "/api/account" },
+    { "source": "/api/student-records", "destination": "/api/student-records" },
     { "source": "/(.*)", "destination": "/api/index" }
   ],
   "env": {

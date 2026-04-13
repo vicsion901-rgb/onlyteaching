@@ -229,7 +229,7 @@ function StudentRecords() {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const res = await client.get('/student-records/list');
+        const res = await client.get('/api/student-records');
         const list = res.data && res.data.length > 0 ? res.data : [];
         setStudents(withPlaceholders(list));
         setSelectedFields((prev) => applyResponsiveResidentField(prev, list));
@@ -277,7 +277,7 @@ function StudentRecords() {
     setSaveMessage(mode === 'auto' ? '자동 저장 중...' : '저장 중...');
     try {
       const payload = buildPayload(list);
-      const res = await client.post('/student-records/bulk', payload);
+      const res = await client.post('/api/student-records', payload);
       const savedList = Array.isArray(res.data) ? res.data : [];
       // Ignore out-of-order responses so stale saves don't overwrite newer edits.
       if (seq !== saveSeqRef.current) return;
@@ -412,7 +412,7 @@ function StudentRecords() {
         address: s.address || '',
       }));
 
-      const res = await client.post('/student-records/bulk', payload);
+      const res = await client.post('/api/student-records', payload);
       const savedList = Array.isArray(res.data) ? res.data : [];
       setStudents(withPlaceholders(savedList));
       setSaveMessage(`엑셀 반영 완료: ${parsed.length}명`);
