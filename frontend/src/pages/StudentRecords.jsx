@@ -1,6 +1,102 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
+import * as XLSX from 'xlsx';
+
+// ── 엑셀 파싱 유틸 (브라우저에서 직접 파싱) ──
+const FIELD_DICT = {
+  student_number: ['번호', '순번', 'No', '학생번호'],
+  name: ['이름', '성명', '학생명', 'Name'],
+  birth_date: ['생년월일', '생일', '출생일', '출생일자', 'DOB', 'Birth'],
+  resident_id: ['주민등록번호', '주민번호', 'RRN', 'ID Number'],
+  address: ['주소', '거주지', '집주소', 'Address'],
+};
+
+const norm = (s) => String(s ?? '').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9가-힣]/g, '').trim();
+
+const levenshtein = (a, b) => {
+  const s = norm(a), t = norm(b);
+  if (!s) return t.length; if (!t) return s.length;
+  const dp = Array.from({ length: s.length + 1 }, () => new Array(t.length + 1).fill(0));
+  for (let i = 0; i <= s.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= t.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= s.length; i++)
+    for (let j = 1; j <= t.length; j++) {
+      const cost = s[i - 1] === t[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+    }
+  return dp[s.length][t.length];
+};
+
+const similarity = (a, b) => { const s = norm(a), t = norm(b); return 1 - levenshtein(s, t) / Math.max(s.length, t.length, 1); };
+
+const bestMatch = (header, candidates) => {
+  const h = norm(header); if (!h) return 0;
+  let best = 0;
+  for (const c of candidates) {
+    const cc = norm(c); if (!cc) continue;
+    best = Math.max(best, h.includes(cc) || cc.includes(h) ? 0.92 : 0, similarity(h, cc));
+  }
+  return best;
+};
+
+const extractRrnDigits = (text) => { const s = String(text ?? ''); const m = s.match(/(\d{6})[- ]?(\d{7})/); if (m) return m[1]+m[2]; const d = s.replace(/\D/g, ''); return d.length === 13 ? d : ''; };
+const formatRrn = (d13) => { const d = String(d13||'').replace(/\D/g,''); return d.length === 13 ? `${d.slice(0,6)}-${d.slice(6)}` : ''; };
+const birthFromRrn = (d13) => {
+  const d = String(d13||'').replace(/\D/g,''); if (!/^\d{13}$/.test(d)) return '';
+  const yy = Number(d.slice(0,2)), mm = Number(d.slice(2,4)), dd = Number(d.slice(4,6)), g = Number(d[6]);
+  if (!(mm>=1&&mm<=12) || !(dd>=1&&dd<=31)) return '';
+  let c = 1900; if([3,4,7,8].includes(g)) c=2000; if([9,0].includes(g)) c=1800;
+  return `${c+yy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+};
+const normBirthIso = (text) => {
+  const s = String(text??'').trim();
+  const m1 = s.match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
+  if (m1) return `${m1[1]}-${m1[2].padStart(2,'0')}-${m1[3].padStart(2,'0')}`;
+  const m2 = s.match(/(^|[^0-9])(\d{4})(\d{2})(\d{2})([^0-9]|$)/);
+  if (m2) return `${m2[2]}-${m2[3]}-${m2[4]}`;
+  return '';
+};
+
+function parseExcelInBrowser(arrayBuffer) {
+  const wb = XLSX.read(arrayBuffer, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  if (!ws) return { mapping: {}, students: [] };
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+  if (!rows.length) return { mapping: {}, students: [] };
+
+  // 헤더 행 자동 탐지
+  let bestH = { idx: 0, header: (rows[0]||[]).map(h=>String(h??'').trim()), fieldToCol: {}, matched: 0, score: 0 };
+  for (let r = 0; r < Math.min(rows.length, 30); r++) {
+    const row = rows[r]||[], header = row.map(h=>String(h??'').trim());
+    const nonEmpty = header.filter(h=>h!=='');
+    if (nonEmpty.length===1 && /학생|명부/.test(nonEmpty[0])) continue;
+    const ftc = {}; let matched=0, total=0;
+    for (const field of Object.keys(FIELD_DICT)) {
+      let bf = { col:-1, score:0 };
+      for (let i=0; i<header.length; i++) { const sc = bestMatch(header[i], FIELD_DICT[field]); if(sc>bf.score) bf={col:i,score:sc}; }
+      if (bf.col>=0 && bf.score>=0.75) { ftc[field]=bf; matched++; total+=bf.score; }
+    }
+    const eff = total + ((ftc.name?.score??0)>=0.75?0.5:0);
+    if (matched > bestH.matched || (matched===bestH.matched && eff>bestH.score))
+      bestH = { idx:r, header, fieldToCol:ftc, matched, score:eff };
+  }
+  if (bestH.matched < 2) bestH = { idx:0, header:(rows[0]||[]).map(h=>String(h??'').trim()), fieldToCol:{}, matched:0, score:0 };
+
+  const students = [];
+  for (let r = bestH.idx+1; r < rows.length; r++) {
+    const row = rows[r]||[];
+    const get = (field) => { const m = bestH.fieldToCol[field]; return m ? String(row[m.col]??'').trim() : ''; };
+    const rrnD = extractRrnDigits(get('resident_id'));
+    const rid = rrnD ? formatRrn(rrnD) : '';
+    const bd = rrnD ? birthFromRrn(rrnD) : normBirthIso(get('birth_date'));
+    const numRaw = get('student_number').replace(/\D/g,'');
+    const sn = numRaw ? String(Number(numRaw)) : String(Math.max(1, r - bestH.idx));
+    const item = { student_number: sn, name: get('name'), birth_date: bd, resident_id: rid, address: get('address') };
+    if (Object.values(item).some(v=>String(v||'').trim())) students.push(item);
+  }
+  return { mapping: bestH.fieldToCol, students };
+}
 
 const EXTRA_FIELDS = [
   { key: 'residentNumber', label: '주민등록번호' },
@@ -297,25 +393,33 @@ function StudentRecords() {
     if (!f) return;
     try {
       setSaveMessage('엑셀 업로드 중...');
-      const formData = new FormData();
-      formData.append('file', f);
-      const res = await client.post('/student-records/upload-excel', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
 
-      const savedList = Array.isArray(res.data?.saved) ? res.data.saved : [];
+      // 브라우저에서 직접 엑셀 파싱 (NestJS 의존 제거)
+      const arrayBuffer = await f.arrayBuffer();
+      const { students: parsed } = parseExcelInBrowser(arrayBuffer);
+
+      if (!parsed.length) {
+        setSaveMessage('엑셀에서 학생 정보를 찾지 못했습니다.');
+        return;
+      }
+
+      // 파싱된 데이터를 기존 bulk API 형식으로 변환하여 저장
+      const payload = parsed.map((s, i) => ({
+        number: Number(s.student_number) || (i + 1),
+        name: s.name || '',
+        residentNumber: s.resident_id || '',
+        birthDate: s.birth_date || '',
+        address: s.address || '',
+      }));
+
+      const res = await client.post('/student-records/bulk', payload);
+      const savedList = Array.isArray(res.data) ? res.data : [];
       setStudents(withPlaceholders(savedList));
-      setSaveMessage(`엑셀 반영 완료: ${res.data?.count ?? savedList.length}명`);
+      setSaveMessage(`엑셀 반영 완료: ${parsed.length}명`);
 
       setSelectedFields((prev) => applyResponsiveResidentField(prev, savedList));
-
-      // 관리자용 컬럼 매핑 UI를 위해 mapping 정보를 반환값으로 제공(현재는 결과 영역에 표시)
-      if (res.data?.mapping) {
-        setResponse(JSON.stringify({ mapping: res.data.mapping }, null, 2));
-      }
     } catch (e) {
       console.error('Excel upload failed', e);
-      // 요구사항: 오류 메시지는 띄우지 않고 조용히 유지 (상단 상태만 초기화)
       setSaveMessage('');
     }
   };
