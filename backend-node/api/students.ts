@@ -51,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // 기존 데이터 전체 삭제 후 재삽입 (replace 모드)
       await db.query('DELETE FROM student_records');
 
-      const saved = [];
+      const saved: any[] = [];
       for (const s of students) {
         const num = Number(s.number) || 0;
         const name = String(s.name || '').trim();
