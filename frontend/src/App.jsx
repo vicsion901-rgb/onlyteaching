@@ -23,6 +23,9 @@ import SeatArrangement from './pages/SeatArrangement';
 import RoleAssignment from './pages/RoleAssignment';
 import TeacherVerification from './pages/TeacherVerification';
 import ResetPassword from './pages/ResetPassword';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import Policy from './pages/Policy';
 import Layout from './components/Layout';
 
 function App() {
@@ -53,6 +56,9 @@ function App() {
           <Route path="/role-assignment" element={<RoleAssignment />} />
           <Route path="/teacher-verification" element={<TeacherVerification />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/policy" element={<Policy />} />
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </Layout>

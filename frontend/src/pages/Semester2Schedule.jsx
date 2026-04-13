@@ -65,7 +65,7 @@ function Semester2Schedule() {
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isSubmitting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
+                  className={`inline-flex items-center px-4 py-2 border border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 ${isSubmitting ? 'bg-gray-400' : 'bg-white hover:bg-gray-50 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400`}
                 >
                   {isSubmitting ? '생성 중...' : '생성하기'}
                 </button>

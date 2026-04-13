@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import { ChevronRight } from 'lucide-react';
 import { getTabItems } from '../config/tabRegistry';
+import WalkingAnimation from '../components/WalkingAnimation';
 
 const GREETING_TEXT = 'On1yTeaching';
 
@@ -155,15 +156,20 @@ function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col">
-        <h1
-          className="text-3xl font-bold text-gray-900 italic"
-          style={{ letterSpacing: '0.06em' }}
-        >
-          {greeting || GREETING_TEXT}
-        </h1>
-        <span className="text-base text-gray-500 mt-1">오직 가르치기만 하십시오.</span>
+    <div className="space-y-4 flex flex-col min-h-[calc(100vh-2rem)]">
+      <div className="flex items-end gap-6 sm:gap-10 -mt-2">
+        <div className="flex flex-col">
+          <h1
+            className="text-3xl font-bold text-gray-900 italic"
+            style={{ letterSpacing: '0.06em' }}
+          >
+            {greeting || GREETING_TEXT}
+          </h1>
+          <span className="text-base font-semibold shimmer-text">오직 가르치기만 하십시오.</span>
+        </div>
+        <div className="hidden sm:block pb-1">
+          <WalkingAnimation />
+        </div>
       </div>
       
       <div className="space-y-8">
@@ -181,7 +187,7 @@ function Dashboard() {
                   <div
                     key={tab.id}
                     onClick={() => handleTabClick(tab.id, tab.route)}
-                    className={`group relative flex items-center space-x-3 sm:space-x-4 rounded-xl border bg-white px-3 sm:px-5 py-3 sm:py-4 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 ${
+                    className={`group relative flex items-center space-x-3 sm:space-x-4 rounded-xl border bg-white px-3 sm:px-5 py-2 sm:py-2.5 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 ${
                       index === 0 && hasUsage
                         ? 'border-indigo-300 ring-2 ring-indigo-100'
                         : 'border-gray-200 hover:border-indigo-300'
@@ -216,18 +222,34 @@ function Dashboard() {
       </div>
       
       {/* AI Prompt Section - Split layout */}
-      <div className="bg-white overflow-hidden shadow rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <h2 className="text-lg font-medium leading-6 text-gray-900 mb-4">통합형 업무 도우미</h2>
-          
-          <form onSubmit={handlePromptSubmit}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="bg-white overflow-hidden shadow rounded-lg flex-1 flex flex-col">
+        <div className="px-4 py-5 sm:p-6 flex-1 flex flex-col">
+          <form onSubmit={handlePromptSubmit} className="flex-1 flex flex-col">
+            {/* 제목 행 - 같은 높이 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-2">
+              <h2 className="text-lg font-medium leading-6 text-gray-900">통합형 업무 도우미</h2>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-medium leading-6 text-gray-900">결과</h3>
+                  {activeTabId === 'life-records' && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">
+                      생활기록부
+                    </span>
+                  )}
+                </div>
+                {usedModel && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                    OnlyTeaching DB
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1">
               {/* Left: textarea */}
               <div className="flex flex-col">
-                <label htmlFor="prompt" className="sr-only">Prompt</label>
                 <textarea
                   id="prompt"
-                  className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 pb-10 flex-1 resize-none min-h-[240px]"
+                  className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 pb-4 flex-1 resize-none min-h-[100px] overflow-y-auto"
                   placeholder={'예시) 000학생 관련해서 발표능력 상, 정리정돈 중, 예의범절 하로 생기부 4줄 작성해줘.'}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
@@ -241,43 +263,38 @@ function Dashboard() {
               </div>
 
               {/* Right: result */}
-              <div className="bg-gray-50 rounded-md p-4 border border-gray-200 flex flex-col">
-                <div className="flex justify-between items-center mb-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-medium text-gray-900">결과:</h3>
-                    {activeTabId === 'life-records' && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">
-                        생활기록부
-                      </span>
-                    )}
-                  </div>
-                  {usedModel && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                      OnlyTeaching DB
-                    </span>
-                  )}
-                </div>
-                <div className="bg-white border border-gray-200 rounded-md p-3 flex-1">
+              <div className="flex flex-col min-h-[100px]">
+                <div className="bg-white border border-gray-300 rounded-md p-3 flex-1 overflow-y-auto shadow-sm">
                   <ResultRenderer text={response} />
                 </div>
               </div>
             </div>
 
             {/* Submit button - below grid, aligned to left column */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
               <div className="flex justify-end">
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={isLoading}
-                  className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isLoading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
+                  className={`inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 ${isLoading ? 'bg-gray-100' : 'bg-white hover:bg-gray-50'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400`}
                 >
                   {isLoading ? '생성 중...' : '생성하기 (Ctrl + Enter)'}
+                </button>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setPrompt(''); setResponse(''); setUsedModel(''); }}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
+                >
+                  초기화
                 </button>
               </div>
             </div>
           </form>
         </div>
       </div>
+
     </div>
   );
 }
@@ -286,7 +303,7 @@ export default Dashboard;
 
 function ResultRenderer({ text }) {
   if (!text) {
-    return <p className="text-sm text-gray-400">결과가 여기에 표시됩니다.</p>;
+    return <p className="text-sm text-gray-400" style={{ fontFamily: 'inherit' }}>결과가 여기에 표시됩니다.</p>;
   }
 
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);

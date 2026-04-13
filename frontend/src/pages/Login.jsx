@@ -223,7 +223,15 @@ function Login() {
       <div className="w-full max-w-md relative z-0">
         <div className="text-center mb-8">
           <div className="text-3xl font-extrabold text-purple-700 tracking-tight">ONLY TEACHING</div>
-          <div className="text-lg text-gray-800 font-semibold leading-snug mt-1">오직 가르치기만 하십시오</div>
+          <div
+            className="text-lg font-semibold leading-snug mt-1"
+            style={{
+              background: 'linear-gradient(135deg, #c0c0c0 0%, #f8f8f8 40%, #a0a0a0 50%, #f0f0f0 60%, #b0b0b0 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >오직 가르치기만 하십시오</div>
         </div>
 
         <div className="w-full bg-white p-8 rounded-2xl shadow-lg space-y-5">
@@ -491,7 +499,7 @@ function Login() {
                 <button
                   type="submit"
                   disabled={isRegisterLoading || !regAgree}
-                  className="px-5 py-2 rounded-md text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition disabled:opacity-40"
+                  className="px-5 py-2 rounded-md text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition disabled:opacity-40"
                 >
                   {isRegisterLoading ? '가입 중...' : '회원가입'}
                 </button>

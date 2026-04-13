@@ -678,7 +678,7 @@ function Schedule() {
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                   placeholder="예: 1학기 현장체험학습을 5월, 10월 금요일에 배치하고, 여름방학은 7월 20일부터 시작해줘."
-                  className="w-full h-24 p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none bg-white"
+                  className="w-full h-24 p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent resize-none bg-white"
                   disabled={isAiLoading}
                   onKeyDown={(e) => {
                     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -694,7 +694,7 @@ function Schedule() {
                     className={`flex items-center gap-2 px-4 py-2 rounded-md text-white font-medium text-sm transition-all ${
                       isAiLoading || !aiPrompt.trim()
                         ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-green-600 hover:bg-green-700 shadow-sm hover:shadow'
+                        : 'bg-white hover:bg-gray-50 border-gray-300 shadow-sm hover:shadow'
                     }`}
                   >
                     {isAiLoading ? (
