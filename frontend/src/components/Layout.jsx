@@ -309,7 +309,34 @@ function Layout({ children }) {
   );
 
   if (isLoginPage || isResetPage) {
-    return <div className="min-h-screen bg-white">{children}</div>;
+    return (
+      <div className="min-h-screen bg-white flex flex-col">
+        <div className="flex-1">{children}</div>
+        <footer className="w-full py-2 px-4 sm:px-6" style={{ backgroundColor: 'rgba(124, 58, 237, 0.4)' }}>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-1 max-w-7xl mx-auto">
+            <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+              <Link to="/terms" className="text-purple-900 hover:text-purple-600 transition">이용약관</Link>
+              <span className="text-purple-400">|</span>
+              <Link to="/privacy" className="text-purple-900 hover:text-purple-600 transition font-semibold">개인정보처리방침</Link>
+              <span className="text-purple-400">|</span>
+              <Link to="/policy" className="text-purple-900 hover:text-purple-600 transition">운영정책</Link>
+            </div>
+            <span className="text-xs text-white/80">© 2026 OnlyTeaching</span>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <a href="https://www.instagram.com/orti.t_/" target="_blank" rel="noopener noreferrer" className="text-purple-800 hover:text-purple-600 transition" aria-label="Instagram">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+              </a>
+              <a href="#" className="text-purple-800 hover:text-purple-600 transition" aria-label="X">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              </a>
+              <a href="#" className="text-purple-800 hover:text-purple-600 transition" aria-label="Threads">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.59 12c.025 3.086.718 5.496 2.057 7.164 1.432 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.042 1.259-1.233 1.878-2.786 1.9-4.753-.025-2.4-.9-4.265-2.6-5.556-1.477-1.12-3.376-1.714-5.474-1.745a9.584 9.584 0 00-.614.003c-1.36.058-2.54.427-3.507 1.095-1.122.775-1.8 1.883-1.91 3.117-.088 1.003.198 1.96.805 2.692.577.696 1.457 1.15 2.477 1.279.95.12 1.885.006 2.693-.33a3.58 3.58 0 001.676-1.397c.336-.556.498-1.199.468-1.858a2.937 2.937 0 00-.842-1.912c-.554-.548-1.286-.838-2.117-.838-.377 0-.748.064-1.103.19l-.672-1.888c.55-.196 1.13-.3 1.725-.31h.094c1.378.013 2.614.507 3.48 1.392.87.89 1.348 2.09 1.384 3.473.046 1.064-.2 2.078-.71 2.94a5.61 5.61 0 01-2.69 2.197c-1.142.474-2.432.659-3.75.538-1.59-.163-2.97-.83-3.884-1.882-.917-1.052-1.37-2.442-1.274-3.908.15-1.77 1.073-3.29 2.597-4.343 1.265-.874 2.79-1.36 4.536-1.446a11.66 11.66 0 01.756-.004c2.488.038 4.736.756 6.503 2.098 1.998 1.516 3.083 3.78 3.116 6.535-.028 2.467-.824 4.473-2.37 5.964C18.02 23.2 15.862 23.972 12.186 24z"/></svg>
+              </a>
+            </div>
+          </div>
+        </footer>
+      </div>
+    );
   }
 
   if (isPolicyPage) {

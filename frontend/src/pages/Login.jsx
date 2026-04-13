@@ -223,15 +223,7 @@ function Login() {
       <div className="w-full max-w-md relative z-0">
         <div className="text-center mb-8">
           <div className="text-3xl font-extrabold text-purple-700 tracking-tight">ONLY TEACHING</div>
-          <div
-            className="text-lg font-semibold leading-snug mt-1"
-            style={{
-              background: 'linear-gradient(135deg, #c0c0c0 0%, #f8f8f8 40%, #a0a0a0 50%, #f0f0f0 60%, #b0b0b0 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >오직 가르치기만 하십시오</div>
+          <div className="text-lg font-semibold leading-snug mt-1 shimmer-text">오직 가르치기만 하십시오</div>
         </div>
 
         <div className="w-full bg-white p-8 rounded-2xl shadow-lg space-y-5">
