@@ -28,16 +28,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     let body: any = req.body;
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
-    const { token, newPassword } = body || {};
+    const { token, newPassword, hashed } = body || {};
 
     if (!token || typeof token !== 'string') {
       return res.status(400).json({ message: '유효하지 않은 요청입니다.' });
     }
-    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 9) {
-      return res.status(400).json({ message: '비밀번호는 9자 이상이어야 합니다.' });
+    if (!newPassword || typeof newPassword !== 'string') {
+      return res.status(400).json({ message: '비밀번호를 입력해주세요.' });
     }
-    if (!/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^a-zA-Z0-9]/.test(newPassword)) {
-      return res.status(400).json({ message: '비밀번호는 영문, 숫자, 특수문자를 모두 포함해야 합니다.' });
+    if (!hashed) {
+      if (newPassword.length < 9) return res.status(400).json({ message: '비밀번호는 9자 이상이어야 합니다.' });
+      if (!/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^a-zA-Z0-9]/.test(newPassword)) {
+        return res.status(400).json({ message: '비밀번호는 영문, 숫자, 특수문자를 모두 포함해야 합니다.' });
+      }
     }
 
     const db = getPool();

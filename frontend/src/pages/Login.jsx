@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import client from '../api/client';
+import { hashPassword } from '../api/hash';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo-login.png';
 
@@ -95,11 +96,12 @@ function Login() {
         (window.location.hostname === 'localhost' ||
           window.location.hostname === '127.0.0.1');
 
+      const hashedPw = await hashPassword(teacherCode);
       const res = isLocalhost
-        ? await client.post('/users/login', { schoolCode, teacherCode })
+        ? await client.post('/users/login', { schoolCode, teacherCode: hashedPw, hashed: true })
         : await client.post(
             '/users/login',
-            JSON.stringify({ schoolCode, teacherCode }),
+            JSON.stringify({ schoolCode, teacherCode: hashedPw, hashed: true }),
             {
               headers: { 'Content-Type': 'text/plain' },
               transformRequest: [(d) => d],
@@ -190,11 +192,13 @@ function Login() {
 
     setIsRegisterLoading(true);
     try {
+      const hashedRegPw = await hashPassword(regPassword);
       const res = await client.post('/users/register', {
         email: regEmail,
-        password: regPassword,
+        password: hashedRegPw,
         name: regName,
         phone: regPhone,
+        hashed: true,
       });
       setRegisterResult(res.data);
       localStorage.setItem('userId', res.data.userId);

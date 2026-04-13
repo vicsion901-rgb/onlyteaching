@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
+import { hashPassword } from '../api/hash';
 
 function AccountSettings() {
   const navigate = useNavigate();
@@ -56,7 +57,9 @@ function AccountSettings() {
     }
     if (newPw !== confirmPw) return showErr('새 비밀번호가 일치하지 않습니다.');
     try {
-      const res = await client.post('/api/account', { userId, action: 'changePassword', currentPassword: currentPw, newPassword: newPw });
+      const hashedCurrent = await hashPassword(currentPw);
+      const hashedNew = await hashPassword(newPw);
+      const res = await client.post('/api/account', { userId, action: 'changePassword', currentPassword: hashedCurrent, newPassword: hashedNew, hashed: true });
       showMsg(res.data.message);
       setCurrentPw(''); setNewPw(''); setConfirmPw('');
     } catch (err) {
@@ -98,7 +101,8 @@ function AccountSettings() {
     if (!deletePw) return showErr('비밀번호를 입력해주세요.');
     if (!window.confirm('정말 탈퇴하시겠습니까? 모든 데이터가 즉시 삭제됩니다.')) return;
     try {
-      await client.delete('/api/account', { data: { userId, password: deletePw } });
+      const hashedDeletePw = await hashPassword(deletePw);
+      await client.delete('/api/account', { data: { userId, password: hashedDeletePw, hashed: true } });
       localStorage.clear();
       navigate('/login');
     } catch (err) {

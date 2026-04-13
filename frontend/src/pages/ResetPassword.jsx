@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import client from '../api/client';
+import { hashPassword } from '../api/hash';
 
 function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -47,7 +48,8 @@ function ResetPassword() {
     }
     setResetLoading(true);
     try {
-      await client.post('/api/password-reset', { token, newPassword });
+      const hashedPw = await hashPassword(newPassword);
+      await client.post('/api/password-reset', { token, newPassword: hashedPw, hashed: true });
       setResetDone(true);
     } catch (err) {
       setResetError(err.response?.data?.message || '처리 중 오류가 발생했습니다.');
