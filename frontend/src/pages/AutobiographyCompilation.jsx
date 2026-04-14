@@ -597,10 +597,36 @@ function AutobiographyCompilation() {
 
         </div>
 
+        {/* 자서전 목차 (항상 표시) + 뷰어 버튼 */}
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900">자서전 목차</h2>
+            <button type="button" onClick={() => setResponse(response || '__viewer__')}
+              className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100">
+              📖 뷰어로 보기
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {FIXED_CHAPTERS.map((ch, i) => {
+              const hasContent = response && response !== '__viewer__' && parseResponseToChapters(response)[i]?.status === 'filled';
+              return (
+                <div key={ch.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-100 hover:bg-gray-50">
+                  <span className="text-xs font-bold text-gray-400 w-5">{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{ch.title}</p>
+                    <p className="text-xs text-gray-400">{ch.period}</p>
+                  </div>
+                  <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${hasContent ? 'bg-emerald-400' : 'bg-gray-200'}`} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* 전자북 결과 모달 */}
         {response && (
           <EbookModal
-            response={response}
+            response={response === '__viewer__' ? '' : response}
             activeTab={activeTab}
             usedModel={usedModel}
             onClose={() => { setResponse(''); setUsedModel(''); }}
@@ -717,86 +743,107 @@ function parseResponseToChapters(text) {
   });
 }
 
+function ChapterPage({ ch, idx }) {
+  if (ch.content) {
+    return (
+      <div className="h-full overflow-y-auto px-6 py-5">
+        <div className="text-center mb-4">
+          <span className="text-xs text-amber-500 tracking-widest">{ch.period}</span>
+          <h2 className="text-lg font-bold text-gray-900 mt-1">제{idx + 1}장. {ch.title}</h2>
+          <div className="w-12 h-0.5 bg-amber-300 mx-auto mt-2" />
+        </div>
+        <div className="text-sm text-gray-800 leading-[1.9] space-y-2" style={{ fontFamily: "'Noto Serif KR', serif" }}>
+          {ch.content.split('\n').filter(Boolean).map((line, i) => (
+            <p key={i} className="text-justify">{line}</p>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="h-full flex flex-col items-center justify-center text-center px-6">
+      <span className="text-xs text-amber-500 tracking-widest mb-1">{ch.period}</span>
+      <h2 className="text-lg font-bold text-gray-900">제{idx + 1}장. {ch.title}</h2>
+      <div className="w-12 h-0.5 bg-amber-300 mx-auto mt-2 mb-6" />
+      <div className="text-3xl mb-3 opacity-20">📖</div>
+      <p className="text-sm text-gray-400 leading-relaxed max-w-[220px]">{ch.placeholder}</p>
+      <p className="text-xs text-gray-300 mt-2">관련 내용이 입력되면 이 장이 채워집니다.</p>
+    </div>
+  );
+}
+
 function EbookModal({ response, activeTab, usedModel, onClose }) {
-  const [page, setPage] = React.useState(0);
+  const [spread, setSpread] = React.useState(0); // 0 = 챕터 0,1 / 1 = 챕터 2,3 ...
   const [showToc, setShowToc] = React.useState(false);
   const chapters = React.useMemo(() => parseResponseToChapters(response), [response]);
-  const ch = chapters[page];
+
+  const leftIdx = spread * 2;
+  const rightIdx = spread * 2 + 1;
+  const maxSpread = Math.ceil(chapters.length / 2) - 1;
+  const leftCh = chapters[leftIdx];
+  const rightCh = rightIdx < chapters.length ? chapters[rightIdx] : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-2">
-      <div className="bg-amber-50 w-full max-w-2xl rounded-2xl shadow-2xl border border-amber-200 relative flex flex-col" style={{ height: '80vh', maxHeight: 700 }}>
+    <div className="fixed inset-0 z-50 bg-stone-800 flex flex-col">
+      {/* 상단 바 */}
+      <div className="flex items-center justify-between px-5 py-2 bg-stone-900/80">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setShowToc(!showToc)} className="text-xs text-amber-300 hover:text-amber-100 border border-amber-700 rounded px-2 py-1">목차</button>
+          <span className="text-sm font-semibold text-amber-200">
+            {activeTab === 'student' ? '학생 자서전' : '선생님 자서전'}
+          </span>
+          {usedModel && <span className="text-xs text-amber-500">AI</span>}
+          <span className="text-xs text-stone-400">{leftIdx + 1}~{Math.min(rightIdx + 1, chapters.length)} / {chapters.length}장</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigator.clipboard.writeText(response)} className="text-xs text-stone-300 hover:text-white border border-stone-600 rounded px-2 py-1">복사</button>
+          <button onClick={onClose} className="text-xs text-stone-300 hover:text-white border border-stone-600 rounded px-2 py-1">닫기 ✕</button>
+        </div>
+      </div>
 
-        {/* 상단 바 */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-amber-200 bg-amber-100/50 rounded-t-2xl">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setShowToc(!showToc)} className="text-xs text-amber-800 hover:text-amber-600 border border-amber-300 rounded px-2 py-1">
-              목차
+      {/* 목차 드롭다운 */}
+      {showToc && (
+        <div className="absolute left-4 top-12 z-10 w-64 bg-white rounded-xl shadow-xl border border-amber-200 py-2 max-h-[70vh] overflow-y-auto">
+          {chapters.map((c, i) => (
+            <button key={c.id} onClick={() => { setSpread(Math.floor(i / 2)); setShowToc(false); }}
+              className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-amber-50 ${Math.floor(i / 2) === spread ? 'bg-amber-100 font-semibold' : 'text-gray-700'}`}>
+              <span className="text-xs text-amber-500 w-5">{i + 1}</span>
+              <span className="flex-1">{c.title}</span>
+              <span className={`w-2 h-2 rounded-full ${c.status === 'filled' ? 'bg-emerald-400' : 'bg-gray-300'}`} />
             </button>
-            <span className="text-sm font-semibold text-amber-900">
-              {activeTab === 'student' ? '학생 자서전' : '선생님 자서전'}
-            </span>
-            {usedModel && <span className="text-xs text-amber-600">AI 생성</span>}
+          ))}
+        </div>
+      )}
+
+      {/* 두 단 책 본문 */}
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="flex bg-amber-50 rounded-xl shadow-2xl overflow-hidden" style={{ width: '90vw', maxWidth: 1100, height: '75vh', maxHeight: 650 }}>
+          {/* 왼쪽 페이지 */}
+          <div className="flex-1 border-r border-amber-200">
+            {leftCh && <ChapterPage ch={leftCh} idx={leftIdx} />}
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => navigator.clipboard.writeText(response)} className="text-xs text-amber-700 hover:text-amber-500 border border-amber-300 rounded px-2 py-1">전체 복사</button>
-            <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-800 border border-gray-300 rounded px-2 py-1">닫기</button>
+          {/* 오른쪽 페이지 */}
+          <div className="flex-1">
+            {rightCh ? <ChapterPage ch={rightCh} idx={rightIdx} /> : (
+              <div className="h-full flex items-center justify-center text-gray-300 text-sm">끝</div>
+            )}
           </div>
         </div>
+      </div>
 
-        {/* 목차 드롭다운 */}
-        {showToc && (
-          <div className="absolute left-4 top-14 z-10 w-64 bg-white rounded-xl shadow-xl border border-amber-200 py-2 max-h-[60vh] overflow-y-auto">
-            <div className="px-3 py-1 text-xs font-semibold text-amber-800 border-b border-amber-100 mb-1">목차</div>
-            {chapters.map((c, i) => (
-              <button key={c.id} onClick={() => { setPage(i); setShowToc(false); }}
-                className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-amber-50 ${i === page ? 'bg-amber-100 font-semibold text-amber-900' : 'text-gray-700'}`}>
-                <span className="text-xs text-amber-500 w-5">{i + 1}</span>
-                <span className="flex-1">{c.title}</span>
-                <span className={`w-2 h-2 rounded-full ${c.status === 'filled' ? 'bg-emerald-400' : 'bg-gray-300'}`} />
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* 본문 */}
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          {/* 장 번호 + 시기 */}
-          <div className="text-center mb-6">
-            <span className="text-xs text-amber-500 tracking-widest uppercase">{ch.period}</span>
-            <h2 className="text-xl font-bold text-gray-900 mt-1">제{page + 1}장. {ch.title}</h2>
-            <div className="w-16 h-0.5 bg-amber-300 mx-auto mt-3" />
-          </div>
-
-          {/* 내용 */}
-          {ch.content ? (
-            <div className="text-sm text-gray-800 leading-[1.9] space-y-3" style={{ fontFamily: "'Noto Serif KR', serif" }}>
-              {ch.content.split('\n').filter(Boolean).map((line, i) => (
-                <p key={i} className="text-justify">{line}</p>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center py-12">
-              <div className="text-4xl mb-4 opacity-30">📖</div>
-              <p className="text-sm text-gray-400 leading-relaxed max-w-xs">{ch.placeholder}</p>
-              <p className="text-xs text-gray-300 mt-3">입력 탭에서 관련 내용을 작성하면 이 장이 채워집니다.</p>
-            </div>
-          )}
+      {/* 하단 네비게이션 */}
+      <div className="flex items-center justify-center gap-6 py-3 bg-stone-900/80">
+        <button onClick={() => setSpread(Math.max(0, spread - 1))} disabled={spread === 0}
+          className="text-sm text-amber-300 hover:text-amber-100 disabled:text-stone-600 disabled:cursor-not-allowed">
+          ← 이전
+        </button>
+        <div className="flex items-center gap-1.5">
+          {Array.from({ length: maxSpread + 1 }).map((_, i) => (
+            <button key={i} onClick={() => setSpread(i)}
+              className={`w-2 h-2 rounded-full transition ${i === spread ? 'bg-amber-400 scale-125' : 'bg-stone-600'}`} />
+          ))}
         </div>
-
-        {/* 하단 네비게이션 */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-amber-200 bg-amber-100/30 rounded-b-2xl">
-          <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
-            className="text-sm text-amber-800 hover:text-amber-600 disabled:text-gray-300 disabled:cursor-not-allowed">
-            ← 이전
-          </button>
-          <div className="flex items-center gap-1">
-            {chapters.map((_, i) => (
-              <button key={i} onClick={() => setPage(i)}
-                className={`w-2 h-2 rounded-full transition ${i === page ? 'bg-amber-600 scale-125' : chapters[i].status === 'filled' ? 'bg-amber-300' : 'bg-gray-300'}`} />
-            ))}
-          </div>
-          <button onClick={() => setPage(Math.min(chapters.length - 1, page + 1))} disabled={page === chapters.length - 1}
+        <button onClick={() => setSpread(Math.min(maxSpread, spread + 1))} disabled={spread === maxSpread}
             className="text-sm text-amber-800 hover:text-amber-600 disabled:text-gray-300 disabled:cursor-not-allowed">
             다음 →
           </button>
