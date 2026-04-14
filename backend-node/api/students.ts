@@ -51,28 +51,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json([]);
       }
 
-      const saved: any[] = [];
+      // 배치 INSERT (한 번에 전부)
+      const values: any[] = [];
+      const placeholders: string[] = [];
+      let idx = 1;
+
       for (const s of students) {
-        const num = Number(s.number) || 0;
         const name = String(s.name || '').trim();
         if (!name) continue;
-
-        const result = await db.query(
-          `INSERT INTO student_records (number, name, "residentNumber", "birthDate", address, sponsor, remark)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
-           RETURNING *`,
-          [
-            num,
-            name,
-            String(s.residentNumber || '').trim(),
-            String(s.birthDate || '').trim(),
-            String(s.address || '').trim(),
-            String(s.sponsor || '').trim(),
-            String(s.remark || '').trim(),
-          ],
+        placeholders.push(`($${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++})`);
+        values.push(
+          Number(s.number) || 0,
+          name,
+          String(s.residentNumber || '').trim(),
+          String(s.birthDate || '').trim(),
+          String(s.address || '').trim(),
+          String(s.sponsor || '').trim(),
+          String(s.remark || '').trim(),
         );
-        saved.push(result.rows[0]);
       }
+
+      if (placeholders.length === 0) {
+        return res.status(200).json([]);
+      }
+
+      const { rows: saved } = await db.query(
+        `INSERT INTO student_records (number, name, "residentNumber", "birthDate", address, sponsor, remark)
+         VALUES ${placeholders.join(', ')}
+         RETURNING *`,
+        values,
+      );
 
       return res.status(200).json(saved);
     } catch (err: any) {
