@@ -51,10 +51,19 @@ const birthFromRrn = (d13) => {
 };
 const normBirthIso = (text) => {
   const s = String(text??'').trim();
+  // YYYY-MM-DD or YYYY/MM/DD
   const m1 = s.match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
   if (m1) return `${m1[1]}-${m1[2].padStart(2,'0')}-${m1[3].padStart(2,'0')}`;
+  // YYYYMMDD (8자리)
   const m2 = s.match(/(^|[^0-9])(\d{4})(\d{2})(\d{2})([^0-9]|$)/);
   if (m2) return `${m2[2]}-${m2[3]}-${m2[4]}`;
+  // YYMMDD (6자리) — 엑셀에서 흔한 형식
+  const m3 = s.match(/^(\d{6})$/);
+  if (m3) {
+    const yy = Number(s.slice(0,2));
+    const yyyy = yy <= 29 ? 2000 + yy : 1900 + yy;
+    return `${yyyy}-${s.slice(2,4)}-${s.slice(4,6)}`;
+  }
   return '';
 };
 
@@ -92,8 +101,10 @@ function parseExcelInBrowser(arrayBuffer) {
     const bd = rrnD ? birthFromRrn(rrnD) : normBirthIso(get('birth_date'));
     const numRaw = get('student_number').replace(/\D/g,'');
     const sn = numRaw ? String(Number(numRaw)) : String(Math.max(1, r - bestH.idx));
-    const item = { student_number: sn, name: get('name'), birth_date: bd, resident_id: rid, address: get('address') };
-    if (Object.values(item).some(v=>String(v||'').trim())) students.push(item);
+    const name = get('name');
+    if (!name || !/[가-힣a-zA-Z]/.test(name)) continue; // 이름이 없거나 한글/영문이 아니면 건너뜀
+    const item = { student_number: sn, name, birth_date: bd, resident_id: rid, address: get('address') };
+    students.push(item);
   }
   return { mapping: bestH.fieldToCol, students };
 }
