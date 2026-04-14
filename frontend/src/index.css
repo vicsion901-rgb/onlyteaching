@@ -27,6 +27,11 @@
   100% { background-position: -50% center; }
 }
 
+/* 버튼 텍스트 줄바꿈 방지 */
+button, [type="submit"], [type="button"], [role="button"] {
+  white-space: nowrap;
+}
+
 /* 모바일 글로벌 안전장치 — 가로 스크롤 방지 + 텍스트 줄바꿈 보장 */
 html, body {
   max-width: 100vw;

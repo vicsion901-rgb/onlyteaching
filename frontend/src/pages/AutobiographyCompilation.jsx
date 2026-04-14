@@ -354,15 +354,22 @@ function AutobiographyCompilation() {
                   : '선생님 관찰과 지도 관점을 반영한 자서전 초안을 생성합니다.'}
               </p>
             </div>
-            <button
-              type="submit"
-              disabled={isGenerating}
-              className={`inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 ${
-                isGenerating ? 'bg-gray-100' : 'bg-white hover:bg-gray-50'
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400`}
-            >
-              {isGenerating ? '생성 중...' : '생성하기 (Ctrl + Enter)'}
-            </button>
+            {isGenerating ? (
+              <button
+                type="button"
+                onClick={() => { window.__abortAutobiography?.(); }}
+                className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md shadow-sm text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 whitespace-nowrap"
+              >
+                생성 중단
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 whitespace-nowrap"
+              >
+                생성하기 (Ctrl+Enter)
+              </button>
+            )}
           </div>
 
           {/* 연동 자료 섹션 — 입력 폼 안으로 통합 */}
