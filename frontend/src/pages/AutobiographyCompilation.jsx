@@ -52,6 +52,8 @@ function AutobiographyCompilation() {
   const [studentPrompt, setStudentPrompt] = useState('');
   const [teacherPrompt, setTeacherPrompt] = useState('');
   const [teacherForm, setTeacherForm] = useState(INITIAL_TEACHER_FORM);
+  const [registeredName, setRegisteredName] = useState('');
+  const [nameMode, setNameMode] = useState('registered'); // 'registered' | 'custom'
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [response, setResponse] = useState('');
@@ -114,6 +116,7 @@ function AutobiographyCompilation() {
       client.get('/api/account', { params: { userId } })
         .then(res => {
           if (res.data?.name) {
+            setRegisteredName(res.data.name);
             setTeacherForm(prev => prev.teacherName ? prev : { ...prev, teacherName: res.data.name });
           }
         })
@@ -320,7 +323,7 @@ function AutobiographyCompilation() {
       <div className="bg-white shadow rounded-lg p-1.5 grid grid-cols-2 gap-1.5">
         {[
           { id: 'student', icon: '🎙', label: '학생', sub: '라디오 사연 + @', color: 'bg-sky-600' },
-          { id: 'teacher', icon: '👩‍🏫', label: '선생님', sub: '돌봄교실 + @', color: 'bg-amber-500' },
+          { id: 'teacher', icon: '👩‍🏫', label: '선생님', sub: '돌봄교실 + @', color: 'bg-purple-600' },
         ].map((t) => (
           <button
             key={t.id}
@@ -472,16 +475,30 @@ function AutobiographyCompilation() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">이름</label>
-                  <input
-                    type="text"
-                    value={teacherForm.teacherName}
-                    onChange={(e) => handleTeacherFieldChange('teacherName', e.target.value)}
-                    className="block w-full rounded-md border-gray-300 shadow-sm text-sm"
-                    placeholder={
-                      teacherForm.teacherRole === '교장' ? '예: 박철수 교장' :
-                      teacherForm.teacherRole === '교감' ? '예: 이영희 교감' : '예: 김민지'
-                    }
-                  />
+                  <select
+                    value={nameMode}
+                    onChange={(e) => {
+                      setNameMode(e.target.value);
+                      if (e.target.value === 'registered') {
+                        handleTeacherFieldChange('teacherName', registeredName);
+                      } else {
+                        handleTeacherFieldChange('teacherName', '');
+                      }
+                    }}
+                    className="block w-full rounded-md border-gray-300 shadow-sm text-sm mb-1"
+                  >
+                    {registeredName && <option value="registered">{registeredName}</option>}
+                    <option value="custom">직접 입력</option>
+                  </select>
+                  {nameMode === 'custom' && (
+                    <input
+                      type="text"
+                      value={teacherForm.teacherName}
+                      onChange={(e) => handleTeacherFieldChange('teacherName', e.target.value)}
+                      className="block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                      placeholder="원하는 이름 또는 별명 입력"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">역할</label>
