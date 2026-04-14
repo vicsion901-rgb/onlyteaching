@@ -590,27 +590,35 @@ function AutobiographyCompilation() {
           </div>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6 flex flex-col">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div>
-              <h2 className="text-lg font-medium text-gray-900">생성 결과</h2>
-              <p className="mt-1 text-sm text-gray-500">
-                {activeTab === 'student'
-                  ? '학생 관점의 자서전 초안이 여기에 표시됩니다.'
-                  : '선생님 관점의 자서전 초안이 여기에 표시됩니다.'}
-              </p>
+        {/* 생성 결과 모달 */}
+        {response && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+            <div className="bg-white w-full max-w-3xl rounded-xl shadow-2xl border border-gray-200 relative max-h-[85vh] flex flex-col">
+              <div className="flex items-center justify-between p-5 border-b border-gray-200">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">생성 결과</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    {activeTab === 'student' ? '학생 관점 자서전 초안' : '선생님 관점 자서전 초안'}
+                    {usedModel && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">{usedModel}</span>}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => navigator.clipboard.writeText(response)}
+                    className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    복사
+                  </button>
+                  <button onClick={() => { setResponse(''); setUsedModel(''); }}
+                    className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    닫기
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                <ResultRenderer text={response} />
+              </div>
             </div>
-            {usedModel ? (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                {usedModel}
-              </span>
-            ) : null}
           </div>
-
-          <div className="flex-1 bg-gray-50 rounded-md border border-gray-200 p-4 min-h-[420px]">
-            <ResultRenderer text={response} />
-          </div>
-        </div>
+        )}
       </form>
     </div>
   );
