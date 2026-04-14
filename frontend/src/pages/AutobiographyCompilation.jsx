@@ -818,17 +818,19 @@ function EbookModal({ response, activeTab, usedModel, onClose }) {
     return () => { window.removeEventListener('mousemove', show); window.removeEventListener('touchstart', show); clearTimeout(hideTimer.current); };
   }, []);
 
-  // 단어 검색
+  // 단어 검색 (본문 + 제목 + placeholder 전부 검색)
   const doSearch = () => {
     if (!searchQuery.trim()) { setSearchResults([]); return; }
     const q = searchQuery.trim().toLowerCase();
     const results = [];
     chapters.forEach((ch, i) => {
-      if (!ch.content) return;
-      const idx = ch.content.toLowerCase().indexOf(q);
+      const searchable = [ch.title, ch.period, ch.content || '', ch.placeholder || ''].join(' ');
+      const idx = searchable.toLowerCase().indexOf(q);
       if (idx >= 0) {
-        const start = Math.max(0, idx - 20);
-        const snippet = '...' + ch.content.slice(start, idx + q.length + 30) + '...';
+        const textSource = ch.content || ch.placeholder || ch.title;
+        const srcIdx = textSource.toLowerCase().indexOf(q);
+        const start = Math.max(0, srcIdx - 20);
+        const snippet = srcIdx >= 0 ? '...' + textSource.slice(start, srcIdx + q.length + 30) + '...' : ch.title;
         results.push({ page: i, title: ch.title, snippet });
       }
     });
