@@ -12,7 +12,7 @@ function PresenterPicker() {
   const intervalRef = useRef(null);
 
   useEffect(() => {
-    client.get('/student-records/list').then((res) => {
+    client.get('/api/students').then((res) => {
       setStudents(res.data || []);
     }).catch(() => {
       setStudents([]);

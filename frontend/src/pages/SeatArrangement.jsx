@@ -10,7 +10,7 @@ function SeatArrangement() {
   const [animating, setAnimating] = useState(false);
 
   useEffect(() => {
-    client.get('/student-records/list').then((res) => {
+    client.get('/api/students').then((res) => {
       const list = res.data || [];
       setStudents(list);
       if (list.length > 0) {

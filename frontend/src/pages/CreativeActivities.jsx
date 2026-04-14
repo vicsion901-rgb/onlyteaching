@@ -41,7 +41,7 @@ function CreativeActivities() {
     setIsLoadingStudents(true);
     setErrorMsg('');
     try {
-      const res = await client.get('/student-records/list');
+      const res = await client.get('/api/students');
       const list = Array.isArray(res.data) ? res.data : [];
       const cleaned = list
         .filter((s) => s && typeof s.id !== 'undefined')
@@ -68,7 +68,7 @@ function CreativeActivities() {
     setIsLoadingActivities(true);
     setErrorMsg('');
     try {
-      const res = await client.get(`/creative-activities/student/${studentId}`);
+      const res = await client.get(`/api/creative?studentId=${studentId}`);
       setActivities(res.data?.activities || []);
     } catch (e) {
       console.error(e);
@@ -121,7 +121,7 @@ function CreativeActivities() {
         semester: form.semester === '' ? null : Number(form.semester),
         hours: form.hours === '' ? null : Number(form.hours),
       };
-      const res = await client.post('/creative-activities', payload);
+      const res = await client.post('/api/creative', payload);
       if (!res.data?.success) throw new Error(res.data?.error || '저장 실패');
 
       // reset minimal fields, keep student/year/grade/semester/type
@@ -202,7 +202,7 @@ function CreativeActivities() {
     setErrorMsg('');
     try {
       for (const id of selectedActivityIds) {
-        const res = await client.delete(`/creative-activities/${id}`);
+        const res = await client.delete(`/api/creative?id=${id}`);
         if (!res.data?.success) throw new Error(res.data?.error || '삭제 실패');
       }
       clearSelected();

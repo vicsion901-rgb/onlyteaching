@@ -14,7 +14,7 @@ function Newsletter() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await client.post('/prompts/', { 
+      const res = await client.post('/api/prompts', { 
         content: prompt,
         ai_model: selectedModel 
       });

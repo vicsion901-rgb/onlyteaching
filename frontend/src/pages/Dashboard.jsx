@@ -84,7 +84,7 @@ function Dashboard() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await client.get('/schedules/');
+        const res = await client.get('/api/schedules');
         // Group events by date
         const eventsByDate = {};
         res.data.forEach(event => {
@@ -141,7 +141,7 @@ function Dashboard() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await client.post('/prompts/', { 
+      const res = await client.post('/api/prompts', { 
         content: prompt,
         ai_model: selectedModel 
       });

@@ -140,7 +140,7 @@ function Schedule() {
           // Given: A generated event
           // When: Sending to backend
           // Then: Update local state
-          const res = await client.post('/schedules/', ev);
+          const res = await client.post('/api/schedules', ev);
           setEvents(prev => ({
             ...prev,
             [ev.date]: [...(prev[ev.date] || []), res.data]
@@ -186,7 +186,7 @@ function Schedule() {
   // Fetch events from backend
   const fetchEvents = async () => {
     try {
-      const res = await client.get('/schedules/');
+      const res = await client.get('/api/schedules');
       // Group events by date
       const eventsByDate = {};
       res.data.forEach(event => {
@@ -222,7 +222,7 @@ function Schedule() {
     }
 
     try {
-      await Promise.all(eventsToDelete.map(ev => client.delete(`/schedules/${ev.id}`)));
+      await Promise.all(eventsToDelete.map(ev => client.delete(`/api/schedules?id=${ev.id}`)));
       await fetchEvents();
       alert('삭제되었습니다.');
     } catch (error) {
@@ -241,7 +241,7 @@ function Schedule() {
     }
 
     try {
-      await Promise.all(allEvents.map(ev => client.delete(`/schedules/${ev.id}`)));
+      await Promise.all(allEvents.map(ev => client.delete(`/api/schedules?id=${ev.id}`)));
       await fetchEvents();
       alert('모든 일정이 초기화되었습니다.');
     } catch (error) {
@@ -282,7 +282,7 @@ function Schedule() {
     const color = colorOverride ?? personalColor;
     
     try {
-      const response = await client.post('/schedules/', {
+      const response = await client.post('/api/schedules', {
         title,
         date: dateStr,
         memo: color,
@@ -341,7 +341,7 @@ function Schedule() {
 
   const handleDeleteEvent = async (eventId, dateStr) => {
     try {
-      await client.delete(`/schedules/${eventId}`);
+      await client.delete(`/api/schedules?id=${eventId}`);
       setEvents((prev) => {
         const next = { ...prev };
         if (next[dateStr]) {
@@ -362,7 +362,7 @@ function Schedule() {
     const targets = events[dateStr] || [];
     if (targets.length === 0) return;
     try {
-      await Promise.all(targets.map((ev) => client.delete(`/schedules/${ev.id}`)));
+      await Promise.all(targets.map((ev) => client.delete(`/api/schedules?id=${ev.id}`)));
       setEvents((prev) => {
         const next = { ...prev };
         delete next[dateStr];

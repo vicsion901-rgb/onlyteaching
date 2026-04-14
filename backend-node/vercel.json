@@ -12,7 +12,14 @@
     "api/password-reset-request.ts": { "maxDuration": 10 },
     "api/password-reset.ts": { "maxDuration": 10 },
     "api/account.ts": { "maxDuration": 10 },
-    "api/students.ts": { "maxDuration": 10 }
+    "api/students.ts": { "maxDuration": 10 },
+    "api/schedules.ts": { "maxDuration": 10 },
+    "api/achievements.ts": { "maxDuration": 10 },
+    "api/prompts.ts": { "maxDuration": 30 },
+    "api/creative.ts": { "maxDuration": 10 },
+    "api/liferecords.ts": { "maxDuration": 30 },
+    "api/meals.ts": { "maxDuration": 10 },
+    "api/autobiography.ts": { "maxDuration": 60 }
   },
   "rewrites": [
     { "source": "/api/users/login", "destination": "/api/login" },
@@ -25,6 +32,13 @@
     { "source": "/api/password-reset", "destination": "/api/password-reset" },
     { "source": "/api/account", "destination": "/api/account" },
     { "source": "/api/students", "destination": "/api/students" },
+    { "source": "/api/schedules", "destination": "/api/schedules" },
+    { "source": "/api/achievements", "destination": "/api/achievements" },
+    { "source": "/api/prompts", "destination": "/api/prompts" },
+    { "source": "/api/creative", "destination": "/api/creative" },
+    { "source": "/api/liferecords", "destination": "/api/liferecords" },
+    { "source": "/api/meals", "destination": "/api/meals" },
+    { "source": "/api/autobiography", "destination": "/api/autobiography" },
     { "source": "/(.*)", "destination": "/api/index" }
   ],
   "env": {

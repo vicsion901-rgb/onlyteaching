@@ -27,7 +27,7 @@ function LifeRecords() {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const res = await client.get('/student-records/list');
+        const res = await client.get('/api/students');
         setStudents(res.data || []);
       } catch (error) {
         console.error("Failed to fetch students", error);
@@ -45,7 +45,7 @@ function LifeRecords() {
     }
     
     try {
-      const res = await client.get(`/life-records/keywords?query=${query}`);
+      const res = await client.get(`/api/liferecords?action=keywords&query=${query}`);
       setSearchResults(res.data);
     } catch (error) {
       console.error("Failed to search keywords", error);
@@ -58,7 +58,7 @@ function LifeRecords() {
     if (suggestionsByKeyword[key] || suggestionLoading[key]) return;
     setSuggestionLoading((prev) => ({ ...prev, [key]: true }));
     try {
-      const res = await client.get(`/life-records/comments/by-keyword?keyword=${encodeURIComponent(keywordObj.keyword)}`);
+      const res = await client.get(`/api/liferecords?action=comments&keyword=${encodeURIComponent(keywordObj.keyword)}`);
       setSuggestionsByKeyword((prev) => ({ ...prev, [key]: res.data || [] }));
     } catch (error) {
       console.error("Failed to load suggestions", error);
@@ -71,7 +71,7 @@ function LifeRecords() {
     if (!suggestion) return;
     setPrompt((prev) => prev ? `${prev}\n${suggestion.content}` : suggestion.content);
     try {
-      const res = await client.post(`/life-records/comments/${suggestion.comment_id}/use`);
+      const res = await client.post(`/api/liferecords?action=use&commentId=${suggestion.comment_id}`);
       // Update local cache with new usage_count
       setSuggestionsByKeyword((prev) => {
         const updated = { ...prev };
@@ -120,7 +120,7 @@ function LifeRecords() {
     setIsLoading(true);
     try {
       if (keywordTexts.length > 0 || studentNameText) {
-        const res = await client.post('/life-records/generate', {
+        const res = await client.post('/api/liferecords?action=generate', {
           selected_keywords: keywordTexts,
           student_name: studentNameText,
           additional_context: additionalContext,
@@ -129,7 +129,7 @@ function LifeRecords() {
         setResponse(res.data.generated_text);
         setUsedModel(res.data.ai_model);
       } else {
-        const res = await client.post('/prompts/', { 
+        const res = await client.post('/api/prompts', { 
           content: additionalContext,
           ai_model: selectedModel 
         });

@@ -24,7 +24,7 @@ function RoleAssignment() {
   const [assigned, setAssigned] = useState(false);
 
   useEffect(() => {
-    client.get('/student-records/list').then((res) => {
+    client.get('/api/students').then((res) => {
       setStudents(res.data || []);
     }).catch(() => {
       setStudents([]);

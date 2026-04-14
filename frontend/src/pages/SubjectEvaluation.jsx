@@ -24,7 +24,7 @@ function SubjectEvaluation() {
   const fetchAchievementStandards = async () => {
     setIsAchLoading(true);
     try {
-      const res = await client.get('/achievement-standards', {
+      const res = await client.get('/api/achievements', {
         params: {
           grade_group: gradeFilter || undefined,
           subject: subjectFilter || undefined,
@@ -44,7 +44,7 @@ function SubjectEvaluation() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await client.post('/prompts/', { 
+      const res = await client.post('/api/prompts', { 
         content: prompt,
         ai_model: selectedModel 
       });

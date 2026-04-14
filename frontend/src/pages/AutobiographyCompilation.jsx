@@ -83,7 +83,7 @@ function AutobiographyCompilation() {
     const fetchStudents = async () => {
       setIsLoadingStudents(true);
       try {
-        const res = await client.get('/student-records/list');
+        const res = await client.get('/api/students');
         const list = Array.isArray(res.data) ? res.data : [];
         const cleaned = list
           .filter((student) => student && typeof (student.student_id ?? student.id) !== 'undefined')
@@ -178,7 +178,7 @@ function AutobiographyCompilation() {
     // 학사일정
     if (selectedSources.schedule) {
       try {
-        const res = await client.get('/schedules/');
+        const res = await client.get('/api/schedules');
         data.schedule = Array.isArray(res.data) ? res.data.slice(0, 30) : [];
       } catch {
         data.schedule = [];
@@ -188,7 +188,7 @@ function AutobiographyCompilation() {
     // 학생명부
     if (selectedSources.studentRecords) {
       try {
-        const res = await client.get('/student-records/list');
+        const res = await client.get('/api/students');
         data.studentRecords = Array.isArray(res.data)
           ? res.data.map((s) => ({ number: s.number, name: s.name }))
           : [];
@@ -200,7 +200,7 @@ function AutobiographyCompilation() {
     // 생활기록부
     if (selectedSources.lifeRecords) {
       try {
-        const res = await client.get('/life-records/keywords?query=');
+        const res = await client.get('/api/liferecords?action=keywords&query=');
         data.lifeRecords = Array.isArray(res.data) ? res.data.slice(0, 20) : [];
       } catch {
         data.lifeRecords = [];
@@ -210,7 +210,7 @@ function AutobiographyCompilation() {
     // 교과평가
     if (selectedSources.subjectEvaluation) {
       try {
-        const res = await client.get('/achievement-standards');
+        const res = await client.get('/api/achievements');
         data.subjectEvaluation = Array.isArray(res.data) ? res.data.slice(0, 20) : [];
       } catch {
         data.subjectEvaluation = [];
@@ -220,7 +220,7 @@ function AutobiographyCompilation() {
     // 오늘의 급식
     if (selectedSources.todayMeal) {
       try {
-        const res = await client.get('/meals');
+        const res = await client.get('/api/meals');
         data.todayMeal = Array.isArray(res.data?.items) ? res.data.items.slice(0, 10) : [];
       } catch {
         data.todayMeal = [];
@@ -271,7 +271,7 @@ function AutobiographyCompilation() {
         selected_sources: Object.keys(selectedSources).filter((k) => selectedSources[k]),
       };
 
-      const res = await client.post('/autobiography-compilation/generate', payload);
+      const res = await client.post('/api/autobiography', payload);
       setResponse(extractGeneratedText(res.data));
       setUsedModel(res.data?.ai_model || res.data?.model || '');
     } catch (error) {

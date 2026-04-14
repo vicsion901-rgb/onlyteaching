@@ -52,7 +52,7 @@ function TodayMeal() {
     }
 
     try {
-      const res = await client.get('/meals', {
+      const res = await client.get('/api/meals', {
         params: { schoolCode, startDate: weekStart, endDate: weekEnd },
       });
       setMeals(Array.isArray(res.data) ? res.data : []);
@@ -64,7 +64,7 @@ function TodayMeal() {
 
   const fetchLeaderboard = async () => {
     try {
-      const res = await client.get('/meals/leaderboard/weekly', {
+      const res = await client.get('/api/meals?action=leaderboard', {
         params: { weekStart, weekEnd },
       });
       setLeaderboard(Array.isArray(res.data) ? res.data : []);
@@ -104,11 +104,11 @@ function TodayMeal() {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const uploadRes = await client.post('/meals/upload-image', formData, {
+      const uploadRes = await client.post('/api/meals?action=upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      await client.post('/meals', {
+      await client.post('/api/meals', {
         schoolCode,
         mealDate,
         caption,
@@ -138,7 +138,7 @@ function TodayMeal() {
     setErrorMsg('');
 
     try {
-      await client.post(`/meals/${mealId}/like`, { schoolCode, userId });
+      await client.post(`/api/meals?action=like&mealId=${mealId}`, { schoolCode, userId });
       await Promise.all([fetchMeals(), fetchLeaderboard()]);
     } catch (error) {
       console.error('Failed to like meal post', error);
