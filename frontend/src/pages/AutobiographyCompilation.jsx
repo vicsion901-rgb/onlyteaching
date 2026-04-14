@@ -784,7 +784,7 @@ function EbookModal({ response, activeTab, usedModel, onClose }) {
   const rightCh = rightIdx < chapters.length ? chapters[rightIdx] : null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-stone-800 flex flex-col">
+    <div className="fixed inset-0 z-[100] bg-stone-800 flex flex-col">
       {/* 상단 바 */}
       <div className="flex items-center justify-between px-5 py-2 bg-stone-900/80">
         <div className="flex items-center gap-3">
@@ -818,12 +818,12 @@ function EbookModal({ response, activeTab, usedModel, onClose }) {
       {/* 두 단 책 본문 */}
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="flex bg-amber-50 rounded-xl shadow-2xl overflow-hidden" style={{ width: '90vw', maxWidth: 1100, height: '75vh', maxHeight: 650 }}>
-          {/* 왼쪽 페이지 */}
-          <div className="flex-1 border-r border-amber-200">
+          {/* 왼쪽 페이지 - 클릭하면 이전 */}
+          <div className="flex-1 border-r border-amber-200 cursor-pointer" onClick={() => setSpread(Math.max(0, spread - 1))}>
             {leftCh && <ChapterPage ch={leftCh} idx={leftIdx} />}
           </div>
-          {/* 오른쪽 페이지 */}
-          <div className="flex-1">
+          {/* 오른쪽 페이지 - 클릭하면 다음 */}
+          <div className="flex-1 cursor-pointer" onClick={() => setSpread(Math.min(maxSpread, spread + 1))}>
             {rightCh ? <ChapterPage ch={rightCh} idx={rightIdx} /> : (
               <div className="h-full flex items-center justify-center text-gray-300 text-sm">끝</div>
             )}
