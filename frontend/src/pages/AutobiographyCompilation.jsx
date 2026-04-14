@@ -844,10 +844,9 @@ function EbookModal({ response, activeTab, usedModel, onClose }) {
           ))}
         </div>
         <button onClick={() => setSpread(Math.min(maxSpread, spread + 1))} disabled={spread === maxSpread}
-            className="text-sm text-amber-800 hover:text-amber-600 disabled:text-gray-300 disabled:cursor-not-allowed">
-            다음 →
-          </button>
-        </div>
+          className="text-sm text-amber-300 hover:text-amber-100 disabled:text-stone-600 disabled:cursor-not-allowed">
+          다음 →
+        </button>
       </div>
     </div>
   );
