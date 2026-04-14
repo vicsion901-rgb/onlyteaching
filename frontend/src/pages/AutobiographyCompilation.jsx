@@ -59,6 +59,8 @@ function AutobiographyCompilation() {
   const [response, setResponse] = useState('');
   const [usedModel, setUsedModel] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [chapterOrder, setChapterOrder] = useState(() => FIXED_CHAPTERS.map((_, i) => i));
+  const [dragIdx, setDragIdx] = useState(null);
   const [isSourcePickerOpen, setIsSourcePickerOpen] = useState(false);
   const [selectedSources, setSelectedSources] = useState({
     radioStory: false,
@@ -607,11 +609,31 @@ function AutobiographyCompilation() {
             </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {FIXED_CHAPTERS.map((ch, i) => {
-              const hasContent = response && response !== '__viewer__' && parseResponseToChapters(response)[i]?.status === 'filled';
+            {chapterOrder.map((origIdx, pos) => {
+              const ch = FIXED_CHAPTERS[origIdx];
+              const hasContent = response && response !== '__viewer__' && parseResponseToChapters(response)[origIdx]?.status === 'filled';
               return (
-                <div key={ch.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-100 hover:bg-gray-50">
-                  <span className="text-xs font-bold text-gray-400 w-5">{i + 1}</span>
+                <div
+                  key={ch.id}
+                  draggable
+                  onDragStart={() => setDragIdx(pos)}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                  onDrop={() => {
+                    if (dragIdx === null || dragIdx === pos) return;
+                    setChapterOrder(prev => {
+                      const next = [...prev];
+                      const [moved] = next.splice(dragIdx, 1);
+                      next.splice(pos, 0, moved);
+                      return next;
+                    });
+                    setDragIdx(null);
+                  }}
+                  onDragEnd={() => setDragIdx(null)}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-grab active:cursor-grabbing transition-all ${
+                    dragIdx === pos ? 'border-purple-400 bg-purple-50 shadow-lg scale-[1.02] opacity-80' : 'border-gray-100 hover:bg-gray-50 hover:border-gray-200'
+                  }`}
+                >
+                  <span className="text-xs font-bold text-gray-400 w-5">{pos + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{ch.title}</p>
                     <p className="text-xs text-gray-400">{ch.period}</p>
@@ -628,6 +650,7 @@ function AutobiographyCompilation() {
           <EbookModal
             response={response === '__viewer__' ? '' : response}
             activeTab={activeTab}
+            chapterOrder={chapterOrder}
             usedModel={usedModel}
             onClose={() => { setResponse(''); setUsedModel(''); }}
           />
@@ -777,7 +800,7 @@ function ChapterContent({ ch, idx, highlight }) {
   );
 }
 
-function EbookModal({ response, activeTab, usedModel, onClose }) {
+function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder }) {
   const [spread, setSpread] = React.useState(0);
   const [showToc, setShowToc] = React.useState(false);
   const [showSearch, setShowSearch] = React.useState(false);
@@ -788,7 +811,13 @@ function EbookModal({ response, activeTab, usedModel, onClose }) {
   const [controlsVisible, setControlsVisible] = React.useState(true);
   const hideTimer = React.useRef(null);
 
-  const chapters = React.useMemo(() => parseResponseToChapters(response), [response]);
+  const allChapters = React.useMemo(() => parseResponseToChapters(response), [response]);
+  const chapters = React.useMemo(() => {
+    if (chapterOrder && chapterOrder.length === allChapters.length) {
+      return chapterOrder.map(i => allChapters[i]);
+    }
+    return allChapters;
+  }, [allChapters, chapterOrder]);
   const maxSpread = Math.ceil(chapters.length / 2) - 1;
   const leftIdx = spread * 2;
   const rightIdx = spread * 2 + 1;
