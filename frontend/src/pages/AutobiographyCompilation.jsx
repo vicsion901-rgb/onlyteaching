@@ -743,110 +743,206 @@ function parseResponseToChapters(text) {
   });
 }
 
-function ChapterPage({ ch, idx }) {
-  if (ch.content) {
-    return (
-      <div className="h-full overflow-y-auto px-6 py-5">
-        <div className="text-center mb-4">
-          <span className="text-xs text-amber-500 tracking-widest">{ch.period}</span>
-          <h2 className="text-lg font-bold text-gray-900 mt-1">제{idx + 1}장. {ch.title}</h2>
-          <div className="w-12 h-0.5 bg-amber-300 mx-auto mt-2" />
-        </div>
-        <div className="text-sm text-gray-800 leading-[1.9] space-y-2" style={{ fontFamily: "'Noto Serif KR', serif" }}>
+function ChapterContent({ ch, idx, highlight }) {
+  const hl = (text) => {
+    if (!highlight) return text;
+    const re = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.split(re).map((part, i) =>
+      re.test(part) ? <mark key={i} className="bg-yellow-300 px-0.5 rounded">{part}</mark> : part
+    );
+  };
+  return (
+    <div className="h-full overflow-y-auto px-8 py-6" style={{ fontFamily: "'Noto Serif KR', serif" }}>
+      <div className="text-center mb-5">
+        <span className="text-[10px] text-amber-500 tracking-[0.2em] uppercase">{ch.period}</span>
+        <h2 className="text-lg font-bold text-gray-900 mt-1">제{idx + 1}장</h2>
+        <h3 className="text-base text-gray-700 mt-0.5">{ch.title}</h3>
+        <div className="w-10 h-px bg-amber-400 mx-auto mt-3" />
+      </div>
+      {ch.content ? (
+        <div className="text-[13px] text-gray-800 leading-[2] space-y-2.5">
           {ch.content.split('\n').filter(Boolean).map((line, i) => (
-            <p key={i} className="text-justify">{line}</p>
+            <p key={i} className="text-justify indent-4">{hl(line)}</p>
           ))}
         </div>
-      </div>
-    );
-  }
-  return (
-    <div className="h-full flex flex-col items-center justify-center text-center px-6">
-      <span className="text-xs text-amber-500 tracking-widest mb-1">{ch.period}</span>
-      <h2 className="text-lg font-bold text-gray-900">제{idx + 1}장. {ch.title}</h2>
-      <div className="w-12 h-0.5 bg-amber-300 mx-auto mt-2 mb-6" />
-      <div className="text-3xl mb-3 opacity-20">📖</div>
-      <p className="text-sm text-gray-400 leading-relaxed max-w-[220px]">{ch.placeholder}</p>
-      <p className="text-xs text-gray-300 mt-2">관련 내용이 입력되면 이 장이 채워집니다.</p>
+      ) : (
+        <div className="flex flex-col items-center justify-center text-center pt-16">
+          <div className="text-3xl mb-3 opacity-15">✎</div>
+          <p className="text-sm text-gray-400 leading-relaxed max-w-[200px]">{ch.placeholder}</p>
+          <p className="text-[11px] text-gray-300 mt-3">관련 내용이 입력되면 채워집니다.</p>
+        </div>
+      )}
+      <div className="text-center text-[10px] text-gray-300 mt-6">{idx + 1}</div>
     </div>
   );
 }
 
 function EbookModal({ response, activeTab, usedModel, onClose }) {
-  const [spread, setSpread] = React.useState(0); // 0 = 챕터 0,1 / 1 = 챕터 2,3 ...
+  const [spread, setSpread] = React.useState(0);
   const [showToc, setShowToc] = React.useState(false);
-  const chapters = React.useMemo(() => parseResponseToChapters(response), [response]);
+  const [showSearch, setShowSearch] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchResults, setSearchResults] = React.useState([]);
+  const [pageInput, setPageInput] = React.useState('');
+  const [highlight, setHighlight] = React.useState('');
+  const [controlsVisible, setControlsVisible] = React.useState(true);
+  const hideTimer = React.useRef(null);
 
+  const chapters = React.useMemo(() => parseResponseToChapters(response), [response]);
+  const maxSpread = Math.ceil(chapters.length / 2) - 1;
   const leftIdx = spread * 2;
   const rightIdx = spread * 2 + 1;
-  const maxSpread = Math.ceil(chapters.length / 2) - 1;
   const leftCh = chapters[leftIdx];
   const rightCh = rightIdx < chapters.length ? chapters[rightIdx] : null;
 
+  const goSpread = (s) => setSpread(Math.max(0, Math.min(maxSpread, s)));
+  const goPage = (p) => goSpread(Math.floor(p / 2));
+
+  // 키보드 이벤트
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowLeft') goSpread(spread - 1);
+      if (e.key === 'ArrowRight') goSpread(spread + 1);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [spread]);
+
+  // 컨트롤 자동 숨김
+  React.useEffect(() => {
+    const show = () => { setControlsVisible(true); clearTimeout(hideTimer.current); hideTimer.current = setTimeout(() => setControlsVisible(false), 4000); };
+    show();
+    window.addEventListener('mousemove', show);
+    window.addEventListener('touchstart', show);
+    return () => { window.removeEventListener('mousemove', show); window.removeEventListener('touchstart', show); clearTimeout(hideTimer.current); };
+  }, []);
+
+  // 단어 검색
+  const doSearch = () => {
+    if (!searchQuery.trim()) { setSearchResults([]); return; }
+    const q = searchQuery.trim().toLowerCase();
+    const results = [];
+    chapters.forEach((ch, i) => {
+      if (!ch.content) return;
+      const idx = ch.content.toLowerCase().indexOf(q);
+      if (idx >= 0) {
+        const start = Math.max(0, idx - 20);
+        const snippet = '...' + ch.content.slice(start, idx + q.length + 30) + '...';
+        results.push({ page: i, title: ch.title, snippet });
+      }
+    });
+    setSearchResults(results);
+    setHighlight(searchQuery.trim());
+  };
+
+  // 페이지 이동
+  const goToPage = () => {
+    const n = Number(pageInput);
+    if (n >= 1 && n <= chapters.length) { goPage(n - 1); setShowSearch(false); setPageInput(''); }
+  };
+
   return (
-    <div className="fixed inset-0 z-[100] bg-stone-800 flex flex-col">
-      {/* 상단 바 */}
-      <div className="flex items-center justify-between px-5 py-2 bg-stone-900/80">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setShowToc(!showToc)} className="text-xs text-amber-300 hover:text-amber-100 border border-amber-700 rounded px-2 py-1">목차</button>
-          <span className="text-sm font-semibold text-amber-200">
-            {activeTab === 'student' ? '학생 자서전' : '선생님 자서전'}
-          </span>
-          {usedModel && <span className="text-xs text-amber-500">AI</span>}
-          <span className="text-xs text-stone-400">{leftIdx + 1}~{Math.min(rightIdx + 1, chapters.length)} / {chapters.length}장</span>
+    <div className="fixed inset-0 z-[200] bg-stone-900 flex flex-col select-none">
+      {/* 상단 바 - 자동 숨김 */}
+      <div className={`flex items-center justify-between px-4 py-2 bg-black/60 transition-opacity duration-500 ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="flex items-center gap-2">
+          <button onClick={() => { setShowToc(!showToc); setShowSearch(false); }} className="text-xs text-amber-300 hover:text-white border border-amber-800 rounded px-2 py-1" aria-label="목차">☰ 목차</button>
+          <button onClick={() => { setShowSearch(!showSearch); setShowToc(false); }} className="text-xs text-amber-300 hover:text-white border border-amber-800 rounded px-2 py-1" aria-label="검색">🔍 검색</button>
+          <span className="text-xs text-stone-400 ml-2">{leftIdx + 1}~{Math.min(rightIdx + 1, chapters.length)} / {chapters.length}장</span>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => navigator.clipboard.writeText(response)} className="text-xs text-stone-300 hover:text-white border border-stone-600 rounded px-2 py-1">복사</button>
-          <button onClick={onClose} className="text-xs text-stone-300 hover:text-white border border-stone-600 rounded px-2 py-1">닫기 ✕</button>
+          <span className="text-xs text-amber-200">{activeTab === 'student' ? '학생 자서전' : '선생님 자서전'}</span>
+          <button onClick={() => navigator.clipboard.writeText(response)} className="text-xs text-stone-400 hover:text-white border border-stone-700 rounded px-2 py-1" aria-label="전체 복사">복사</button>
+          <button onClick={onClose} className="text-xs text-stone-400 hover:text-white border border-stone-700 rounded px-2 py-1" aria-label="닫기">✕</button>
         </div>
       </div>
 
-      {/* 목차 드롭다운 */}
+      {/* 목차 패널 */}
       {showToc && (
-        <div className="absolute left-4 top-12 z-10 w-64 bg-white rounded-xl shadow-xl border border-amber-200 py-2 max-h-[70vh] overflow-y-auto">
+        <div className="absolute left-2 top-12 z-20 w-60 bg-white/95 rounded-lg shadow-2xl border border-amber-200 py-1 max-h-[75vh] overflow-y-auto backdrop-blur">
+          <div className="px-3 py-1.5 text-xs font-bold text-amber-800 border-b border-amber-100">목차</div>
           {chapters.map((c, i) => (
-            <button key={c.id} onClick={() => { setSpread(Math.floor(i / 2)); setShowToc(false); }}
-              className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-amber-50 ${Math.floor(i / 2) === spread ? 'bg-amber-100 font-semibold' : 'text-gray-700'}`}>
-              <span className="text-xs text-amber-500 w-5">{i + 1}</span>
-              <span className="flex-1">{c.title}</span>
-              <span className={`w-2 h-2 rounded-full ${c.status === 'filled' ? 'bg-emerald-400' : 'bg-gray-300'}`} />
+            <button key={c.id} onClick={() => { goPage(i); setShowToc(false); }}
+              className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-amber-50 ${Math.floor(i / 2) === spread ? 'bg-amber-100 font-semibold text-amber-900' : 'text-gray-700'}`}>
+              <span className="text-[10px] text-amber-500 w-4">{i + 1}</span>
+              <span className="flex-1 truncate">{c.title}</span>
+              <span className={`w-1.5 h-1.5 rounded-full ${c.status === 'filled' ? 'bg-emerald-400' : 'bg-gray-300'}`} />
             </button>
           ))}
         </div>
       )}
 
-      {/* 두 단 책 본문 */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="flex bg-amber-50 rounded-xl shadow-2xl overflow-hidden" style={{ width: '90vw', maxWidth: 1100, height: '75vh', maxHeight: 650 }}>
-          {/* 왼쪽 페이지 - 클릭하면 이전 */}
-          <div className="flex-1 border-r border-amber-200 cursor-pointer" onClick={() => setSpread(Math.max(0, spread - 1))}>
-            {leftCh && <ChapterPage ch={leftCh} idx={leftIdx} />}
+      {/* 검색 패널 */}
+      {showSearch && (
+        <div className="absolute right-2 top-12 z-20 w-72 bg-white/95 rounded-lg shadow-2xl border border-amber-200 p-3 backdrop-blur">
+          <div className="text-xs font-bold text-gray-800 mb-2">단어 검색</div>
+          <div className="flex gap-1 mb-2">
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && doSearch()}
+              className="flex-1 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400" placeholder="검색어 입력" autoFocus />
+            <button onClick={doSearch} className="text-xs bg-amber-500 text-white rounded px-2 py-1 hover:bg-amber-600">검색</button>
           </div>
-          {/* 오른쪽 페이지 - 클릭하면 다음 */}
-          <div className="flex-1 cursor-pointer" onClick={() => setSpread(Math.min(maxSpread, spread + 1))}>
-            {rightCh ? <ChapterPage ch={rightCh} idx={rightIdx} /> : (
-              <div className="h-full flex items-center justify-center text-gray-300 text-sm">끝</div>
+          {searchResults.length > 0 && (
+            <div className="max-h-40 overflow-y-auto space-y-1">
+              {searchResults.map((r, i) => (
+                <button key={i} onClick={() => { goPage(r.page); setShowSearch(false); }}
+                  className="w-full text-left px-2 py-1.5 text-xs bg-gray-50 hover:bg-amber-50 rounded border border-gray-100">
+                  <span className="font-semibold text-amber-700">{r.page + 1}장 {r.title}</span>
+                  <p className="text-gray-500 mt-0.5 truncate">{r.snippet}</p>
+                </button>
+              ))}
+            </div>
+          )}
+          {searchQuery && searchResults.length === 0 && <p className="text-xs text-gray-400">결과 없음</p>}
+          <div className="border-t border-gray-200 mt-2 pt-2">
+            <div className="text-xs font-bold text-gray-800 mb-1">페이지 이동</div>
+            <div className="flex gap-1">
+              <input value={pageInput} onChange={e => setPageInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && goToPage()}
+                className="w-16 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400" placeholder="장 번호" type="number" min="1" max={chapters.length} />
+              <button onClick={goToPage} className="text-xs bg-gray-200 text-gray-700 rounded px-2 py-1 hover:bg-gray-300">이동</button>
+              <span className="text-[10px] text-gray-400 self-center ml-1">1~{chapters.length}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 책 본문 + 좌우 넘김 영역 */}
+      <div className="flex-1 flex items-center justify-center relative">
+        {/* 왼쪽 넘김 영역 */}
+        <button onClick={() => goSpread(spread - 1)} disabled={spread === 0} aria-label="이전 페이지"
+          className="absolute left-0 top-0 bottom-0 w-12 md:w-16 flex items-center justify-center z-10 group">
+          <span className={`text-2xl transition-opacity ${spread === 0 ? 'opacity-0' : 'opacity-20 group-hover:opacity-70'} text-white`}>‹</span>
+        </button>
+
+        {/* 책 */}
+        <div className="flex shadow-[0_0_60px_rgba(0,0,0,0.5)] rounded-sm overflow-hidden" style={{ width: 'min(88vw, 1050px)', height: 'min(78vh, 620px)' }}>
+          {/* 왼쪽 페이지 */}
+          <div className="flex-1 bg-amber-50 relative" style={{ boxShadow: 'inset -8px 0 12px -8px rgba(0,0,0,0.08)' }}>
+            {leftCh && <ChapterContent ch={leftCh} idx={leftIdx} highlight={highlight} />}
+          </div>
+          {/* 접힘선 */}
+          <div className="w-px bg-amber-300/60" />
+          {/* 오른쪽 페이지 */}
+          <div className="flex-1 bg-amber-50 relative hidden sm:block" style={{ boxShadow: 'inset 8px 0 12px -8px rgba(0,0,0,0.08)' }}>
+            {rightCh ? <ChapterContent ch={rightCh} idx={rightIdx} highlight={highlight} /> : (
+              <div className="h-full flex items-center justify-center text-gray-300 text-xs italic">— 끝 —</div>
             )}
           </div>
         </div>
+
+        {/* 오른쪽 넘김 영역 */}
+        <button onClick={() => goSpread(spread + 1)} disabled={spread === maxSpread} aria-label="다음 페이지"
+          className="absolute right-0 top-0 bottom-0 w-12 md:w-16 flex items-center justify-center z-10 group">
+          <span className={`text-2xl transition-opacity ${spread === maxSpread ? 'opacity-0' : 'opacity-20 group-hover:opacity-70'} text-white`}>›</span>
+        </button>
       </div>
 
-      {/* 하단 네비게이션 */}
-      <div className="flex items-center justify-center gap-6 py-3 bg-stone-900/80">
-        <button onClick={() => setSpread(Math.max(0, spread - 1))} disabled={spread === 0}
-          className="text-sm text-amber-300 hover:text-amber-100 disabled:text-stone-600 disabled:cursor-not-allowed">
-          ← 이전
-        </button>
-        <div className="flex items-center gap-1.5">
-          {Array.from({ length: maxSpread + 1 }).map((_, i) => (
-            <button key={i} onClick={() => setSpread(i)}
-              className={`w-2 h-2 rounded-full transition ${i === spread ? 'bg-amber-400 scale-125' : 'bg-stone-600'}`} />
-          ))}
-        </div>
-        <button onClick={() => setSpread(Math.min(maxSpread, spread + 1))} disabled={spread === maxSpread}
-          className="text-sm text-amber-300 hover:text-amber-100 disabled:text-stone-600 disabled:cursor-not-allowed">
-          다음 →
-        </button>
+      {/* 하단 페이지 인디케이터 */}
+      <div className={`flex items-center justify-center gap-1.5 py-2 transition-opacity duration-500 ${controlsVisible ? 'opacity-100' : 'opacity-0'}`}>
+        {Array.from({ length: maxSpread + 1 }).map((_, i) => (
+          <button key={i} onClick={() => goSpread(i)} aria-label={`${i * 2 + 1}-${i * 2 + 2}장`}
+            className={`w-1.5 h-1.5 rounded-full transition ${i === spread ? 'bg-amber-400 scale-150' : 'bg-stone-600 hover:bg-stone-500'}`} />
+        ))}
       </div>
     </div>
   );
