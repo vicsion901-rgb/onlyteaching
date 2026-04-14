@@ -824,7 +824,7 @@ function EbookModal({ response, activeTab, usedModel, onClose }) {
     const q = searchQuery.trim().toLowerCase();
     const results = [];
     chapters.forEach((ch, i) => {
-      const searchable = [ch.title, ch.period, ch.content || '', ch.placeholder || ''].join(' ');
+      const searchable = [`제${i + 1}장`, `${i + 1}`, ch.title, ch.period, ch.content || '', ch.placeholder || ''].join(' ');
       const idx = searchable.toLowerCase().indexOf(q);
       if (idx >= 0) {
         const textSource = ch.content || ch.placeholder || ch.title;
