@@ -345,13 +345,24 @@ function AutobiographyCompilation() {
 
       <form onSubmit={handleGenerate} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white shadow rounded-lg p-6 space-y-5">
-          <div>
-            <h2 className="text-lg font-medium text-gray-900">입력 설정</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              {activeTab === 'student'
-                ? '학생 관점의 자서전 초안을 생성합니다.'
-                : '선생님 관찰과 지도 관점을 반영한 자서전 초안을 생성합니다.'}
-            </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-lg font-medium text-gray-900">입력 설정</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                {activeTab === 'student'
+                  ? '학생 관점의 자서전 초안을 생성합니다.'
+                  : '선생님 관찰과 지도 관점을 반영한 자서전 초안을 생성합니다.'}
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={isGenerating}
+              className={`inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 ${
+                isGenerating ? 'bg-gray-100' : 'bg-white hover:bg-gray-50'
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400`}
+            >
+              {isGenerating ? '생성 중...' : '생성하기 (Ctrl + Enter)'}
+            </button>
           </div>
 
           {/* 연동 자료 섹션 — 입력 폼 안으로 통합 */}
@@ -577,17 +588,6 @@ function AutobiographyCompilation() {
             </div>
           )}
 
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              disabled={isGenerating}
-              className={`inline-flex items-center px-4 py-2 border border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 ${
-                isGenerating ? 'bg-gray-400' : 'bg-white hover:bg-gray-50 border-gray-300'
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400`}
-            >
-              {isGenerating ? '생성 중...' : '생성하기 (Ctrl + Enter)'}
-            </button>
-          </div>
         </div>
 
         {/* 생성 결과 모달 */}
