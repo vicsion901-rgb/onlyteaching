@@ -107,6 +107,18 @@ function AutobiographyCompilation() {
     };
 
     fetchStudents();
+
+    // 교사 이름 자동 로드
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      client.get('/api/account', { params: { userId } })
+        .then(res => {
+          if (res.data?.name) {
+            setTeacherForm(prev => prev.teacherName ? prev : { ...prev, teacherName: res.data.name });
+          }
+        })
+        .catch(() => {});
+    }
   }, []);
 
   const selectedStudent = useMemo(
