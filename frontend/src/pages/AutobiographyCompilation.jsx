@@ -597,34 +597,14 @@ function AutobiographyCompilation() {
 
         </div>
 
-        {/* 생성 결과 모달 */}
+        {/* 전자북 결과 모달 */}
         {response && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-            <div className="bg-white w-full max-w-3xl rounded-xl shadow-2xl border border-gray-200 relative max-h-[85vh] flex flex-col">
-              <div className="flex items-center justify-between p-5 border-b border-gray-200">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">생성 결과</h2>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    {activeTab === 'student' ? '학생 관점 자서전 초안' : '선생님 관점 자서전 초안'}
-                    {usedModel && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">{usedModel}</span>}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => navigator.clipboard.writeText(response)}
-                    className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                    복사
-                  </button>
-                  <button onClick={() => { setResponse(''); setUsedModel(''); }}
-                    className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                    닫기
-                  </button>
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto p-6">
-                <ResultRenderer text={response} />
-              </div>
-            </div>
-          </div>
+          <EbookModal
+            response={response}
+            activeTab={activeTab}
+            usedModel={usedModel}
+            onClose={() => { setResponse(''); setUsedModel(''); }}
+          />
         )}
       </form>
     </div>
@@ -679,6 +659,151 @@ function extractGeneratedText(data) {
   if (typeof data === 'string') return data;
 
   return JSON.stringify(data, null, 2);
+}
+
+// ─── 고정 챕터 구조 (시간순 전자북) ───
+const FIXED_CHAPTERS = [
+  { id: 'intro', title: '시작하는 글', period: '프롤로그', placeholder: '이 장은 자서전의 문을 여는 공간입니다. 생성 후 도입부가 채워집니다.' },
+  { id: 'background', title: '어린 시절과 배경', period: '과거', placeholder: '학생의 초기 성장 배경을 담는 영역입니다. 추가 자료가 연동되면 더 풍부해집니다.' },
+  { id: 'early', title: '학교생활의 초반', period: '입학~적응기', placeholder: '학교에 처음 적응하던 시기의 이야기가 담길 공간입니다.' },
+  { id: 'settling', title: '익숙해지는 과정', period: '적응기~안정기', placeholder: '학교생활에 익숙해지며 자리를 잡아가는 과정을 담습니다.' },
+  { id: 'relations', title: '관계와 협력', period: '성장기', placeholder: '친구, 선생님, 공동체와의 관계를 통해 성장한 경험을 담습니다.' },
+  { id: 'responsibility', title: '책임감과 역할', period: '성장기', placeholder: '맡은 역할과 책임을 통해 변화한 모습을 기록합니다.' },
+  { id: 'turning', title: '성장의 전환점', period: '전환기', placeholder: '의미 있는 변화의 순간, 전환점이 된 사건을 담습니다.' },
+  { id: 'present', title: '현재의 모습', period: '현재', placeholder: '지금의 모습과 태도, 성장한 결과를 정리합니다.' },
+  { id: 'future', title: '앞으로의 가능성', period: '미래', placeholder: '앞으로의 꿈과 가능성, 기대를 담는 공간입니다.' },
+  { id: 'closing', title: '맺는 글', period: '에필로그', placeholder: '자서전을 마무리하는 따뜻한 인사를 담습니다.' },
+];
+
+function parseResponseToChapters(text) {
+  if (!text) return FIXED_CHAPTERS.map(ch => ({ ...ch, content: '', status: 'empty' }));
+
+  // AI 응답에서 ## 제목으로 분리 시도
+  const sections = text.split(/^##\s*/m).filter(Boolean);
+  const parsed = {};
+  for (const sec of sections) {
+    const lines = sec.split('\n');
+    const title = lines[0].trim();
+    const body = lines.slice(1).join('\n').trim();
+    if (body) parsed[title] = body;
+  }
+
+  // 고정 챕터에 매핑
+  return FIXED_CHAPTERS.map((ch, idx) => {
+    // 제목 유사도로 매칭
+    let matched = '';
+    for (const [title, body] of Object.entries(parsed)) {
+      if (title.includes(ch.title) || ch.title.includes(title) ||
+          title.includes(ch.period) || idx === 0 && title.includes('시작')) {
+        matched = body;
+        delete parsed[title];
+        break;
+      }
+    }
+    // 매칭 안 되면 순서대로 배분
+    if (!matched && Object.keys(parsed).length > 0) {
+      const remaining = Object.entries(parsed);
+      if (remaining.length > 0 && idx < FIXED_CHAPTERS.length) {
+        const [key, val] = remaining[0];
+        matched = val;
+        delete parsed[key];
+      }
+    }
+    return {
+      ...ch,
+      content: matched,
+      status: matched ? 'filled' : 'empty',
+    };
+  });
+}
+
+function EbookModal({ response, activeTab, usedModel, onClose }) {
+  const [page, setPage] = React.useState(0);
+  const [showToc, setShowToc] = React.useState(false);
+  const chapters = React.useMemo(() => parseResponseToChapters(response), [response]);
+  const ch = chapters[page];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-2">
+      <div className="bg-amber-50 w-full max-w-2xl rounded-2xl shadow-2xl border border-amber-200 relative flex flex-col" style={{ height: '80vh', maxHeight: 700 }}>
+
+        {/* 상단 바 */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-amber-200 bg-amber-100/50 rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowToc(!showToc)} className="text-xs text-amber-800 hover:text-amber-600 border border-amber-300 rounded px-2 py-1">
+              목차
+            </button>
+            <span className="text-sm font-semibold text-amber-900">
+              {activeTab === 'student' ? '학생 자서전' : '선생님 자서전'}
+            </span>
+            {usedModel && <span className="text-xs text-amber-600">AI 생성</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigator.clipboard.writeText(response)} className="text-xs text-amber-700 hover:text-amber-500 border border-amber-300 rounded px-2 py-1">전체 복사</button>
+            <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-800 border border-gray-300 rounded px-2 py-1">닫기</button>
+          </div>
+        </div>
+
+        {/* 목차 드롭다운 */}
+        {showToc && (
+          <div className="absolute left-4 top-14 z-10 w-64 bg-white rounded-xl shadow-xl border border-amber-200 py-2 max-h-[60vh] overflow-y-auto">
+            <div className="px-3 py-1 text-xs font-semibold text-amber-800 border-b border-amber-100 mb-1">목차</div>
+            {chapters.map((c, i) => (
+              <button key={c.id} onClick={() => { setPage(i); setShowToc(false); }}
+                className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-amber-50 ${i === page ? 'bg-amber-100 font-semibold text-amber-900' : 'text-gray-700'}`}>
+                <span className="text-xs text-amber-500 w-5">{i + 1}</span>
+                <span className="flex-1">{c.title}</span>
+                <span className={`w-2 h-2 rounded-full ${c.status === 'filled' ? 'bg-emerald-400' : 'bg-gray-300'}`} />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* 본문 */}
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          {/* 장 번호 + 시기 */}
+          <div className="text-center mb-6">
+            <span className="text-xs text-amber-500 tracking-widest uppercase">{ch.period}</span>
+            <h2 className="text-xl font-bold text-gray-900 mt-1">제{page + 1}장. {ch.title}</h2>
+            <div className="w-16 h-0.5 bg-amber-300 mx-auto mt-3" />
+          </div>
+
+          {/* 내용 */}
+          {ch.content ? (
+            <div className="text-sm text-gray-800 leading-[1.9] space-y-3" style={{ fontFamily: "'Noto Serif KR', serif" }}>
+              {ch.content.split('\n').filter(Boolean).map((line, i) => (
+                <p key={i} className="text-justify">{line}</p>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center py-12">
+              <div className="text-4xl mb-4 opacity-30">📖</div>
+              <p className="text-sm text-gray-400 leading-relaxed max-w-xs">{ch.placeholder}</p>
+              <p className="text-xs text-gray-300 mt-3">입력 탭에서 관련 내용을 작성하면 이 장이 채워집니다.</p>
+            </div>
+          )}
+        </div>
+
+        {/* 하단 네비게이션 */}
+        <div className="flex items-center justify-between px-5 py-3 border-t border-amber-200 bg-amber-100/30 rounded-b-2xl">
+          <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
+            className="text-sm text-amber-800 hover:text-amber-600 disabled:text-gray-300 disabled:cursor-not-allowed">
+            ← 이전
+          </button>
+          <div className="flex items-center gap-1">
+            {chapters.map((_, i) => (
+              <button key={i} onClick={() => setPage(i)}
+                className={`w-2 h-2 rounded-full transition ${i === page ? 'bg-amber-600 scale-125' : chapters[i].status === 'filled' ? 'bg-amber-300' : 'bg-gray-300'}`} />
+            ))}
+          </div>
+          <button onClick={() => setPage(Math.min(chapters.length - 1, page + 1))} disabled={page === chapters.length - 1}
+            className="text-sm text-amber-800 hover:text-amber-600 disabled:text-gray-300 disabled:cursor-not-allowed">
+            다음 →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default AutobiographyCompilation;
