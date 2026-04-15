@@ -288,8 +288,8 @@ function StudentRecords() {
     setIsSaving(true);
     setSaveMessage(mode === 'auto' ? '자동 저장 중...' : '저장 중...');
     try {
-      const payload = { students: buildPayload(list), userId: localStorage.getItem('userId') || '' };
-      await client.post('/api/students', payload);
+      const userId = localStorage.getItem('userId') || '';
+      await client.post('/api/students', { students: buildPayload(list), userId });
       // 서버 저장 성공 — 화면은 현재 상태 유지 (덮어쓰지 않음)
       if (seq !== saveSeqRef.current) return;
       setSaveMessage(mode === 'auto' ? '자동 저장되었습니다.' : '저장되었습니다.');
