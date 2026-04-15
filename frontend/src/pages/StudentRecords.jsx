@@ -372,7 +372,9 @@ function StudentRecords() {
         clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
       }
-      // Clearing with empty payload will clear DB rows on backend; UI keeps placeholders.
+      // 화면 즉시 비우기
+      setStudents(withPlaceholders([]));
+      // 서버에도 빈 배열 전송
       await saveStudents(withPlaceholders([]), 'manual');
     } catch (e) {
       console.error('Failed to delete all students', e);
