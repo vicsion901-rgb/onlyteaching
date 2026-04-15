@@ -289,12 +289,9 @@ function StudentRecords() {
     setSaveMessage(mode === 'auto' ? '자동 저장 중...' : '저장 중...');
     try {
       const payload = { students: buildPayload(list), userId: localStorage.getItem('userId') || '' };
-      const res = await client.post('/api/students', payload);
-      const savedList = Array.isArray(res.data) ? res.data : [];
-      // Ignore out-of-order responses so stale saves don't overwrite newer edits.
+      await client.post('/api/students', payload);
+      // 서버 저장 성공 — 화면은 현재 상태 유지 (덮어쓰지 않음)
       if (seq !== saveSeqRef.current) return;
-      setStudents(withPlaceholders(savedList));
-      setSelectedFields((prev) => applyResponsiveResidentField(prev, savedList));
       setSaveMessage(mode === 'auto' ? '자동 저장되었습니다.' : '저장되었습니다.');
     } catch (error) {
       console.error("Failed to save students", error);
