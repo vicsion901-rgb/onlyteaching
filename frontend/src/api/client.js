@@ -60,13 +60,9 @@ client.interceptors.response.use(
   },
 );
 
-// 백엔드 prewarm — 페이지 로드 시 주요 함수 워밍
+// 백엔드 prewarm — 페이지 로드 시 1회만 ping
 export function prewarmBackend() {
-  // 각 서버리스 함수를 가볍게 호출해서 콜드스타트 방지
   client.get('/health').catch(() => {});
-  client.get('/api/students').catch(() => {});
-  client.get('/api/schedules').catch(() => {});
-  client.get('/api/achievements').catch(() => {});
 }
 
 if (typeof window !== 'undefined') {
