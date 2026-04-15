@@ -766,7 +766,7 @@ function parseResponseToChapters(text) {
   });
 }
 
-function ChapterContent({ ch, idx, highlight }) {
+function ChapterContent({ ch, idx, highlight, onEdit }) {
   const hl = (text) => {
     if (!highlight) return text;
     const re = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
@@ -775,8 +775,8 @@ function ChapterContent({ ch, idx, highlight }) {
     );
   };
   return (
-    <div className="h-full overflow-y-auto px-8 py-6" style={{ fontFamily: "'Noto Serif KR', serif" }}>
-      <div className="text-center mb-5">
+    <div className="h-full overflow-y-auto px-8 py-6 flex flex-col" style={{ fontFamily: "'Noto Serif KR', serif" }}>
+      <div className="text-center mb-4">
         <span className="text-[10px] text-amber-500 tracking-[0.2em] uppercase">{ch.period}</span>
         <h2 className="text-lg font-bold text-gray-900 mt-1">제{idx + 1}장</h2>
         <h3 className="text-base text-gray-700 mt-0.5">{ch.title}</h3>
@@ -788,14 +788,16 @@ function ChapterContent({ ch, idx, highlight }) {
             <p key={i} className="text-justify indent-4">{hl(line)}</p>
           ))}
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center text-center pt-16">
-          <div className="text-3xl mb-3 opacity-15">✎</div>
-          <p className="text-sm text-gray-400 leading-relaxed max-w-[200px]">{ch.placeholder}</p>
-          <p className="text-[11px] text-gray-300 mt-3">관련 내용이 입력되면 채워집니다.</p>
-        </div>
-      )}
-      <div className="text-center text-[10px] text-gray-300 mt-6">{idx + 1}</div>
+      ) : null}
+      {/* 직접 입력 영역 */}
+      <textarea
+        className="flex-1 mt-3 w-full text-[13px] text-gray-800 leading-[2] bg-transparent border-none outline-none resize-none placeholder-gray-300"
+        style={{ fontFamily: "'Noto Serif KR', serif", minHeight: 100 }}
+        placeholder={ch.content ? '추가 내용을 입력하세요...' : ch.placeholder + '\n\n이곳에 직접 작성할 수 있습니다.'}
+        defaultValue=""
+        onChange={(e) => onEdit && onEdit(ch.id, e.target.value)}
+      />
+      <div className="text-center text-[10px] text-gray-300 mt-2 flex-shrink-0">{idx + 1}</div>
     </div>
   );
 }
@@ -804,6 +806,7 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder }) {
   const [spread, setSpread] = React.useState(0);
   const [showToc, setShowToc] = React.useState(false);
   const [showSearch, setShowSearch] = React.useState(false);
+  const [userEdits, setUserEdits] = React.useState({});
   const [searchQuery, setSearchQuery] = React.useState('');
   const [searchResults, setSearchResults] = React.useState([]);
   const [pageInput, setPageInput] = React.useState('');
@@ -942,20 +945,20 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder }) {
         {/* 왼쪽 넘김 영역 */}
         <button onClick={() => goSpread(spread - 1)} disabled={spread === 0} aria-label="이전 페이지"
           className="absolute left-0 top-0 bottom-0 w-12 md:w-16 flex items-center justify-center z-10 group">
-          <span className={`text-2xl transition-opacity ${spread === 0 ? 'opacity-0' : 'opacity-20 group-hover:opacity-70'} text-white`}>‹</span>
+          <span className={`text-2xl transition-opacity ${spread === 0 ? 'opacity-0' : 'opacity-60 group-hover:opacity-100'} text-white`}>‹</span>
         </button>
 
         {/* 책 */}
         <div className="flex shadow-[0_0_60px_rgba(0,0,0,0.5)] rounded-sm overflow-hidden" style={{ width: 'min(88vw, 1050px)', height: 'min(78vh, 620px)' }}>
           {/* 왼쪽 페이지 */}
           <div className="flex-1 bg-amber-50 relative" style={{ boxShadow: 'inset -8px 0 12px -8px rgba(0,0,0,0.08)' }}>
-            {leftCh && <ChapterContent ch={leftCh} idx={leftIdx} highlight={highlight} />}
+            {leftCh && <ChapterContent ch={leftCh} idx={leftIdx} highlight={highlight} onEdit={(id, val) => setUserEdits(prev => ({...prev, [id]: val}))} />}
           </div>
           {/* 접힘선 */}
           <div className="w-px bg-amber-300/60" />
           {/* 오른쪽 페이지 */}
           <div className="flex-1 bg-amber-50 relative hidden sm:block" style={{ boxShadow: 'inset 8px 0 12px -8px rgba(0,0,0,0.08)' }}>
-            {rightCh ? <ChapterContent ch={rightCh} idx={rightIdx} highlight={highlight} /> : (
+            {rightCh ? <ChapterContent ch={rightCh} idx={rightIdx} highlight={highlight} onEdit={(id, val) => setUserEdits(prev => ({...prev, [id]: val}))} /> : (
               <div className="h-full flex items-center justify-center text-gray-300 text-xs italic">— 끝 —</div>
             )}
           </div>
@@ -964,7 +967,7 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder }) {
         {/* 오른쪽 넘김 영역 */}
         <button onClick={() => goSpread(spread + 1)} disabled={spread === maxSpread} aria-label="다음 페이지"
           className="absolute right-0 top-0 bottom-0 w-12 md:w-16 flex items-center justify-center z-10 group">
-          <span className={`text-2xl transition-opacity ${spread === maxSpread ? 'opacity-0' : 'opacity-20 group-hover:opacity-70'} text-white`}>›</span>
+          <span className={`text-2xl transition-opacity ${spread === maxSpread ? 'opacity-0' : 'opacity-60 group-hover:opacity-100'} text-white`}>›</span>
         </button>
       </div>
 
