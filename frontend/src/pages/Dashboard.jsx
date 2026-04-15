@@ -156,8 +156,8 @@ function Dashboard() {
   };
 
   return (
-    <div className="space-y-4 flex flex-col min-h-[calc(100vh-2rem)]">
-      <div className="flex items-end gap-6 sm:gap-10 -mt-2">
+    <div className="space-y-3 flex flex-col min-h-[calc(100vh-2rem)]">
+      <div className="flex items-start gap-6 sm:gap-10">
         <div className="flex flex-col">
           <h1
             className="text-3xl font-bold text-gray-900 italic"
@@ -167,7 +167,7 @@ function Dashboard() {
           </h1>
           <span className="text-base font-semibold shimmer-text">오직 가르치기만 하십시오.</span>
         </div>
-        <div className="hidden sm:block pb-1">
+        <div className="hidden sm:block pt-1">
           <WalkingAnimation />
         </div>
       </div>
