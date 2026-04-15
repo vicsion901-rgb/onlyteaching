@@ -605,7 +605,7 @@ function AutobiographyCompilation() {
             <h2 className="text-lg font-medium text-gray-900">자서전 목차</h2>
             <button type="button" onClick={() => setResponse(response || '__viewer__')}
               className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100">
-              📖 뷰어로 보기
+              📖 자서전 편찬실
             </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
