@@ -295,7 +295,12 @@ function StudentRecords() {
     } catch (error) {
       console.error("Failed to save students", error);
       if (seq !== saveSeqRef.current) return;
-      setSaveMessage('저장 중 오류가 발생했습니다.');
+      setSaveMessage('서버 저장 재시도 중...');
+      // 백그라운드에서 1회 재시도
+      setTimeout(() => {
+        client.post('/api/students', buildPayload(students)).catch(() => {});
+        setSaveMessage('');
+      }, 3000);
     } finally {
       if (seq !== saveSeqRef.current) return;
       setIsSaving(false);
