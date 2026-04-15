@@ -240,7 +240,8 @@ function StudentRecords() {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const res = await client.get('/api/students');
+        const userId = localStorage.getItem('userId') || '';
+        const res = await client.get('/api/students', { params: { userId } });
         const list = res.data && res.data.length > 0 ? res.data : [];
         setStudents(withPlaceholders(list));
         setSelectedFields((prev) => applyResponsiveResidentField(prev, list));
@@ -287,7 +288,7 @@ function StudentRecords() {
     setIsSaving(true);
     setSaveMessage(mode === 'auto' ? '자동 저장 중...' : '저장 중...');
     try {
-      const payload = buildPayload(list);
+      const payload = { students: buildPayload(list), userId: localStorage.getItem('userId') || '' };
       const res = await client.post('/api/students', payload);
       const savedList = Array.isArray(res.data) ? res.data : [];
       // Ignore out-of-order responses so stale saves don't overwrite newer edits.
@@ -414,19 +415,28 @@ function StudentRecords() {
         return;
       }
 
-      // 파싱된 데이터를 기존 bulk API 형식으로 변환하여 저장
-      const payload = parsed.map((s, i) => ({
+      // 파싱된 데이터를 화면에 즉시 표시 (체감 0.1초)
+      const localList = parsed.map((s, i) => ({
+        id: `excel-${i}`,
         number: Number(s.student_number) || (i + 1),
         name: s.name || '',
         residentNumber: s.resident_id || '',
         birthDate: s.birth_date || '',
         address: s.address || '',
+        sponsor: '',
+        remark: '',
       }));
-
-      const res = await client.post('/api/students', payload);
-      const savedList = Array.isArray(res.data) ? res.data : [];
-      setStudents(withPlaceholders(savedList));
+      setStudents(withPlaceholders(localList));
       setSaveMessage(`엑셀 반영 완료: ${parsed.length}명`);
+
+      // 서버 저장은 백그라운드로 (사용자 안 기다림)
+      const serverPayload = { students: localList, userId: localStorage.getItem('userId') || '' };
+      client.post('/api/students', serverPayload)
+        .then(res => {
+          const savedList = Array.isArray(res.data) ? res.data : [];
+          setStudents(withPlaceholders(savedList));
+        })
+        .catch(err => console.error('Background save failed', err));
 
       setSelectedFields((prev) => applyResponsiveResidentField(prev, savedList));
     } catch (e) {

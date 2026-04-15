@@ -24,12 +24,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const db = getPool();
 
-  // GET - 학생 목록 조회
+  // userId 컬럼 없으면 추가 (마이그레이션)
+  try {
+    await db.query('ALTER TABLE student_records ADD COLUMN IF NOT EXISTS "userId" VARCHAR');
+  } catch { /* 이미 있으면 무시 */ }
+
+  // GET - 학생 목록 조회 (userId 격리)
   if (req.method === 'GET') {
     try {
-      const { rows } = await db.query(
-        'SELECT id, number, name, "residentNumber", "birthDate", address, sponsor, remark FROM student_records ORDER BY number ASC',
-      );
+      const userId = req.query.userId as string;
+      let rows;
+      if (userId) {
+        ({ rows } = await db.query(
+          'SELECT id, number, name, "residentNumber", "birthDate", address, sponsor, remark FROM student_records WHERE "userId" = $1 ORDER BY number ASC',
+          [userId],
+        ));
+      } else {
+        ({ rows } = await db.query(
+          'SELECT id, number, name, "residentNumber", "birthDate", address, sponsor, remark FROM student_records ORDER BY number ASC',
+        ));
+      }
       return res.status(200).json(rows);
     } catch (err: any) {
       console.error('student-records list error:', err);
@@ -37,21 +51,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // POST - 학생 일괄 저장 (upsert)
+  // POST - 학생 일괄 저장 (userId 격리)
   if (req.method === 'POST') {
     try {
       let body: any = req.body;
-      if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = []; } }
-      const students = Array.isArray(body) ? body : [];
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
 
-      // 기존 데이터 전체 삭제 후 재삽입 (replace 모드)
-      await db.query('DELETE FROM student_records');
+      const students = Array.isArray(body) ? body : (body.students || []);
+      const userId = body.userId || '';
+
+      // 본인 데이터만 삭제 (다른 교사 데이터 안 건드림)
+      if (userId) {
+        await db.query('DELETE FROM student_records WHERE "userId" = $1', [userId]);
+      } else {
+        await db.query('DELETE FROM student_records WHERE "userId" IS NULL');
+      }
 
       if (!students.length) {
         return res.status(200).json([]);
       }
 
-      // 배치 INSERT (한 번에 전부)
+      // 배치 INSERT
       const values: any[] = [];
       const placeholders: string[] = [];
       let idx = 1;
@@ -59,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       for (const s of students) {
         const name = String(s.name || '').trim();
         if (!name) continue;
-        placeholders.push(`($${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++})`);
+        placeholders.push(`($${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++})`);
         values.push(
           Number(s.number) || 0,
           name,
@@ -68,6 +88,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           String(s.address || '').trim(),
           String(s.sponsor || '').trim(),
           String(s.remark || '').trim(),
+          userId || null,
         );
       }
 
@@ -76,7 +97,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const { rows: saved } = await db.query(
-        `INSERT INTO student_records (number, name, "residentNumber", "birthDate", address, sponsor, remark)
+        `INSERT INTO student_records (number, name, "residentNumber", "birthDate", address, sponsor, remark, "userId")
          VALUES ${placeholders.join(', ')}
          RETURNING *`,
         values,
