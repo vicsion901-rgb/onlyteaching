@@ -41,7 +41,7 @@ function CreativeActivities() {
     setIsLoadingStudents(true);
     setErrorMsg('');
     try {
-      const res = await client.get('/api/students', { params: { userId: localStorage.getItem('userId') || '' } });
+      const res = await client.get('/api/students');
       const list = Array.isArray(res.data) ? res.data : [];
       const cleaned = list
         .filter((s) => s && typeof s.id !== 'undefined')

@@ -87,7 +87,7 @@ function AutobiographyCompilation() {
     const fetchStudents = async () => {
       setIsLoadingStudents(true);
       try {
-        const res = await client.get('/api/students', { params: { userId: localStorage.getItem('userId') || '' } });
+        const res = await client.get('/api/students');
         const list = Array.isArray(res.data) ? res.data : [];
         const cleaned = list
           .filter((student) => student && typeof (student.student_id ?? student.id) !== 'undefined')
@@ -205,7 +205,7 @@ function AutobiographyCompilation() {
     // 학생명부
     if (selectedSources.studentRecords) {
       try {
-        const res = await client.get('/api/students', { params: { userId: localStorage.getItem('userId') || '' } });
+        const res = await client.get('/api/students');
         data.studentRecords = Array.isArray(res.data)
           ? res.data.map((s) => ({ number: s.number, name: s.name }))
           : [];

@@ -27,7 +27,7 @@ function LifeRecords() {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const res = await client.get('/api/students', { params: { userId: localStorage.getItem('userId') || '' } });
+        const res = await client.get('/api/students');
         setStudents(res.data || []);
       } catch (error) {
         console.error("Failed to fetch students", error);
