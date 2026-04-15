@@ -24,7 +24,7 @@ function RoleAssignment() {
   const [assigned, setAssigned] = useState(false);
 
   useEffect(() => {
-    client.get('/api/students').then((res) => {
+    client.get('/api/students', { params: { userId: localStorage.getItem('userId') || '' } }).then((res) => {
       setStudents(res.data || []);
     }).catch(() => {
       setStudents([]);
