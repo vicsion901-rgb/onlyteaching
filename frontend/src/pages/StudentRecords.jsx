@@ -429,13 +429,9 @@ function StudentRecords() {
       setStudents(withPlaceholders(localList));
       setSaveMessage(`엑셀 반영 완료: ${parsed.length}명`);
 
-      // 서버 저장은 백그라운드로 (사용자 안 기다림, 실패해도 화면 유지)
+      // 서버 저장은 백그라운드로 (화면은 절대 덮어쓰지 않음)
       const serverPayload = { students: localList, userId: localStorage.getItem('userId') || '' };
       client.post('/api/students', serverPayload)
-        .then(res => {
-          const savedList = Array.isArray(res.data) ? res.data : [];
-          if (savedList.length > 0) setStudents(withPlaceholders(savedList));
-        })
         .catch(err => console.error('Background save failed', err));
 
       setSelectedFields((prev) => applyResponsiveResidentField(prev, localList));
