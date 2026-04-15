@@ -438,7 +438,7 @@ function StudentRecords() {
         })
         .catch(err => console.error('Background save failed', err));
 
-      setSelectedFields((prev) => applyResponsiveResidentField(prev, savedList));
+      setSelectedFields((prev) => applyResponsiveResidentField(prev, localList));
     } catch (e) {
       console.error('Excel upload failed', e);
       setSaveMessage('');
