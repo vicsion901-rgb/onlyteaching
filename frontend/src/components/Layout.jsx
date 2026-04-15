@@ -465,7 +465,7 @@ function Layout({ children }) {
       </aside>
 
       {/* ===== Main content ===== */}
-      <main className="flex-1 min-w-0 p-2 sm:p-4 pt-16 md:p-8 md:pt-14 pb-12 transition-all duration-300 overflow-x-hidden">
+      <main className="flex-1 min-w-0 p-2 sm:p-4 pt-16 md:p-8 md:pt-8 pb-12 transition-all duration-300 overflow-x-hidden">
         <div className="max-w-7xl mx-auto w-full">
           {children}
         </div>

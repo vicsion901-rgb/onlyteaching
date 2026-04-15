@@ -157,7 +157,7 @@ function Dashboard() {
 
   return (
     <div className="space-y-4 flex flex-col min-h-[calc(100vh-2rem)]">
-      <div className="flex items-end gap-6 sm:gap-10 -mt-6">
+      <div className="flex items-end gap-6 sm:gap-10 -mt-2">
         <div className="flex flex-col">
           <h1
             className="text-3xl font-bold text-gray-900 italic"
