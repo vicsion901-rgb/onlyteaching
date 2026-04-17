@@ -808,13 +808,17 @@ function parseResponseToChapters(text) {
 
 // ─── 블록 편집 컴포넌트 ───
 
-function AddBlockButton({ onClick }) {
+function AddBlockButton({ onClick, alwaysVisible }) {
   return (
-    <div className="flex justify-center py-0.5 opacity-0 hover:opacity-100 transition-opacity duration-200">
+    <div className={`flex justify-center py-0.5 transition-opacity duration-200 ${alwaysVisible ? 'opacity-100' : 'opacity-0 hover:opacity-100'}`}>
       <button
         type="button"
         onClick={onClick}
-        className="text-[10px] text-gray-300 hover:text-amber-600 px-3 py-0.5 rounded-full border border-transparent hover:border-amber-300 hover:bg-amber-50 transition"
+        className={`px-3 py-0.5 rounded-full border transition ${
+          alwaysVisible
+            ? 'text-xs text-amber-600 border-amber-300 bg-amber-50 hover:bg-amber-100 font-medium py-1.5 px-4'
+            : 'text-[10px] text-gray-300 hover:text-amber-600 border-transparent hover:border-amber-300 hover:bg-amber-50'
+        }`}
       >
         + 문장 추가
       </button>
@@ -1002,30 +1006,35 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
 
       {/* 블록 리스트 */}
       <div className="flex-1">
-        <AddBlockButton onClick={() => onAddBlock(ch.id, 0)} />
         {hasBlocks ? (
-          blocks.map((block, i) => (
-            <React.Fragment key={block.id}>
-              <EditableBlock
-                block={block}
-                onUpdate={(text) => onUpdateBlock(ch.id, i, text)}
-                onDelete={() => onDeleteBlock(ch.id, i)}
-                onRestore={() => onRestoreBlock(ch.id, i)}
-                onProofread={(blockId) => onProofreadBlock(ch.id, blockId)}
-                proofreadResult={proofreadResults?.[block.id]}
-                onApplyProofread={() => onApplyProofread(ch.id, block.id)}
-                onDismissProofread={() => onDismissProofread(block.id)}
-                isProofreading={isProofreading}
-              />
-              <AddBlockButton onClick={() => onAddBlock(ch.id, i + 1)} />
-            </React.Fragment>
-          ))
+          <>
+            <AddBlockButton onClick={() => onAddBlock(ch.id, 0)} />
+            {blocks.map((block, i) => (
+              <React.Fragment key={block.id}>
+                <EditableBlock
+                  block={block}
+                  onUpdate={(text) => onUpdateBlock(ch.id, i, text)}
+                  onDelete={() => onDeleteBlock(ch.id, i)}
+                  onRestore={() => onRestoreBlock(ch.id, i)}
+                  onProofread={(blockId) => onProofreadBlock(ch.id, blockId)}
+                  proofreadResult={proofreadResults?.[block.id]}
+                  onApplyProofread={() => onApplyProofread(ch.id, block.id)}
+                  onDismissProofread={() => onDismissProofread(block.id)}
+                  isProofreading={isProofreading}
+                />
+                <AddBlockButton onClick={() => onAddBlock(ch.id, i + 1)} />
+              </React.Fragment>
+            ))}
+          </>
         ) : (
-          <div className="text-center text-xs text-gray-300 py-8 italic">
-            {ch.placeholder}
-            <br /><br />
-            위의 "+" 버튼으로 문장을 추가하거나,<br />
-            자서전 생성 후 내용이 채워집니다.
+          <div className="text-center py-6">
+            <p className="text-xs text-gray-300 italic mb-4">
+              {ch.placeholder}
+            </p>
+            <AddBlockButton onClick={() => onAddBlock(ch.id, 0)} alwaysVisible />
+            <p className="text-[10px] text-gray-300 mt-3">
+              직접 문장을 추가하거나, 자서전 생성 후 내용이 채워집니다.
+            </p>
           </div>
         )}
       </div>
