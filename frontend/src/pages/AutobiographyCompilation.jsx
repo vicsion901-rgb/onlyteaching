@@ -766,7 +766,7 @@ function parseResponseToChapters(text) {
   });
 }
 
-function ChapterContent({ ch, idx, highlight, onEdit }) {
+function ChapterContent({ ch, idx, highlight, onEdit, userEdits }) {
   const hl = (text) => {
     if (!highlight) return text;
     const re = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
@@ -794,7 +794,7 @@ function ChapterContent({ ch, idx, highlight, onEdit }) {
         className="flex-1 mt-3 w-full text-[13px] text-gray-800 leading-[2] bg-transparent border-none outline-none resize-none placeholder-gray-300"
         style={{ fontFamily: "'Noto Serif KR', serif", minHeight: 100 }}
         placeholder={ch.content ? '추가 내용을 입력하세요...' : ch.placeholder + '\n\n이곳에 직접 작성할 수 있습니다.'}
-        defaultValue=""
+        value={(userEdits && userEdits[ch.id]) || ''}
         onChange={(e) => onEdit && onEdit(ch.id, e.target.value)}
       />
       <div className="text-center text-[10px] text-gray-300 mt-2 flex-shrink-0">{idx + 1}</div>
@@ -952,13 +952,13 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder }) {
         <div className="flex shadow-[0_0_60px_rgba(0,0,0,0.5)] rounded-sm overflow-hidden" style={{ width: 'min(88vw, 1050px)', height: 'min(78vh, 620px)' }}>
           {/* 왼쪽 페이지 */}
           <div className="flex-1 bg-amber-50 relative" style={{ boxShadow: 'inset -8px 0 12px -8px rgba(0,0,0,0.08)' }}>
-            {leftCh && <ChapterContent ch={leftCh} idx={leftIdx} highlight={highlight} onEdit={(id, val) => setUserEdits(prev => ({...prev, [id]: val}))} />}
+            {leftCh && <ChapterContent ch={leftCh} idx={leftIdx} highlight={highlight} userEdits={userEdits} onEdit={(id, val) => setUserEdits(prev => ({...prev, [id]: val}))} />}
           </div>
           {/* 접힘선 */}
           <div className="w-px bg-amber-300/60" />
           {/* 오른쪽 페이지 */}
           <div className="flex-1 bg-amber-50 relative hidden sm:block" style={{ boxShadow: 'inset 8px 0 12px -8px rgba(0,0,0,0.08)' }}>
-            {rightCh ? <ChapterContent ch={rightCh} idx={rightIdx} highlight={highlight} onEdit={(id, val) => setUserEdits(prev => ({...prev, [id]: val}))} /> : (
+            {rightCh ? <ChapterContent ch={rightCh} idx={rightIdx} highlight={highlight} userEdits={userEdits} onEdit={(id, val) => setUserEdits(prev => ({...prev, [id]: val}))} /> : (
               <div className="h-full flex items-center justify-center text-gray-300 text-xs italic">— 끝 —</div>
             )}
           </div>
