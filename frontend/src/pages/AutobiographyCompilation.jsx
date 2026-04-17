@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import client from '../api/client';
 
@@ -10,7 +10,6 @@ const TEACHER_ROLE_OPTIONS = [
   { value: '교감', label: '교감' },
   { value: '교장', label: '교장' },
 ];
-
 
 const SUBJECT_OPTIONS = [
   '국어', '수학', '영어', '사회', '과학', '도덕', '음악', '미술', '체육',
@@ -44,6 +43,116 @@ const INITIAL_TEACHER_FORM = {
   focus: '',
 };
 
+// ─── 고정 챕터 구조 (시간순 전자북) ───
+const FIXED_CHAPTERS = [
+  { id: 'intro', title: '시작하는 글', period: '프롤로그', placeholder: '이 장은 자서전의 문을 여는 공간입니다. 생성 후 도입부가 채워집니다.' },
+  { id: 'background', title: '어린 시절과 배경', period: '과거', placeholder: '학생의 초기 성장 배경을 담는 영역입니다. 추가 자료가 연동되면 더 풍부해집니다.' },
+  { id: 'early', title: '학교생활의 초반', period: '입학~적응기', placeholder: '학교에 처음 적응하던 시기의 이야기가 담길 공간입니다.' },
+  { id: 'settling', title: '익숙해지는 과정', period: '적응기~안정기', placeholder: '학교생활에 익숙해지며 자리를 잡아가는 과정을 담습니다.' },
+  { id: 'relations', title: '관계와 협력', period: '성장기', placeholder: '친구, 선생님, 공동체와의 관계를 통해 성장한 경험을 담습니다.' },
+  { id: 'responsibility', title: '책임감과 역할', period: '성장기', placeholder: '맡은 역할과 책임을 통해 변화한 모습을 기록합니다.' },
+  { id: 'turning', title: '성장의 전환점', period: '전환기', placeholder: '의미 있는 변화의 순간, 전환점이 된 사건을 담습니다.' },
+  { id: 'present', title: '현재의 모습', period: '현재', placeholder: '지금의 모습과 태도, 성장한 결과를 정리합니다.' },
+  { id: 'future', title: '앞으로의 가능성', period: '미래', placeholder: '앞으로의 꿈과 가능성, 기대를 담는 공간입니다.' },
+  { id: 'closing', title: '맺는 글', period: '에필로그', placeholder: '자서전을 마무리하는 따뜻한 인사를 담습니다.' },
+];
+
+// ─── 블록 관련 상수 ───
+const SOURCE_LABELS = {
+  radioStory: '라디오 사연',
+  careClassroom: '돌봄교실',
+  schedule: '학사일정',
+  studentRecords: '학생명부',
+  lifeRecords: '생활기록부',
+  subjectEvaluation: '교과평가',
+  observationJournal: '관찰일지',
+  todayMeal: '오늘의 급식',
+  'ai-generated': 'AI 생성',
+};
+
+const SOURCE_TO_CHAPTERS = {
+  radioStory: ['intro', 'relations'],
+  studentRecords: ['intro', 'background'],
+  lifeRecords: ['early', 'settling', 'relations'],
+  careClassroom: ['relations', 'responsibility'],
+  subjectEvaluation: ['early', 'responsibility'],
+  observationJournal: ['responsibility', 'turning'],
+  schedule: ['present'],
+  todayMeal: ['present'],
+};
+
+let _blockIdCounter = 0;
+const generateBlockId = () => `blk_${Date.now()}_${++_blockIdCounter}`;
+
+function createBlock(type, text, source = null, sourceLabel = null) {
+  return {
+    id: generateBlockId(),
+    type,
+    source,
+    sourceLabel: sourceLabel || (source ? SOURCE_LABELS[source] || source : null),
+    originalText: text,
+    currentText: text,
+  };
+}
+
+function formatSourceItem(source, item) {
+  switch (source) {
+    case 'studentRecords':
+      return `${item.number ? item.number + '번 ' : ''}${item.name || ''}`.trim();
+    case 'lifeRecords':
+      return typeof item === 'string' ? item : (item.content || item.comment || item.record || JSON.stringify(item));
+    case 'careClassroom': {
+      const parts = [item.date];
+      if (item.mood) parts.push(`기분: ${item.mood}`);
+      if (item.todos) parts.push(`활동: ${item.todos}`);
+      if (item.events) parts.push(item.events);
+      return parts.join(' | ');
+    }
+    case 'schedule':
+      return typeof item === 'string' ? item : (item.title || item.event || item.description || JSON.stringify(item));
+    case 'subjectEvaluation':
+      return typeof item === 'string' ? item : (item.achievement || item.description || item.comment || JSON.stringify(item));
+    case 'todayMeal':
+      return typeof item === 'string' ? item : (item.menu || item.name || JSON.stringify(item));
+    case 'radioStory':
+      return typeof item === 'string' ? item : (item.content || item.story || JSON.stringify(item));
+    default:
+      return typeof item === 'string' ? item : JSON.stringify(item);
+  }
+}
+
+function importSourceBlocks(sourceData) {
+  const chapterBlocksMap = {};
+  FIXED_CHAPTERS.forEach(ch => { chapterBlocksMap[ch.id] = []; });
+
+  if (!sourceData) return chapterBlocksMap;
+
+  for (const [sourceKey, items] of Object.entries(sourceData)) {
+    if (!Array.isArray(items) || items.length === 0) continue;
+    const targetChapters = SOURCE_TO_CHAPTERS[sourceKey] || ['present'];
+    const label = SOURCE_LABELS[sourceKey] || sourceKey;
+
+    items.forEach((item, idx) => {
+      const text = formatSourceItem(sourceKey, item);
+      if (!text || text.trim().length < 2) return;
+      const targetChapter = targetChapters[idx % targetChapters.length];
+      if (chapterBlocksMap[targetChapter]) {
+        chapterBlocksMap[targetChapter].push(createBlock('linked', text, sourceKey, label));
+      }
+    });
+  }
+
+  return chapterBlocksMap;
+}
+
+function createBlocksFromAIContent(text) {
+  if (!text) return [];
+  return text.split('\n').filter(l => l.trim()).map(line =>
+    createBlock('linked', line.trim(), 'ai-generated', 'AI 생성')
+  );
+}
+
+// ─── 메인 컴포넌트 ───
 function AutobiographyCompilation() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -53,7 +162,7 @@ function AutobiographyCompilation() {
   const [teacherPrompt, setTeacherPrompt] = useState('');
   const [teacherForm, setTeacherForm] = useState(INITIAL_TEACHER_FORM);
   const [registeredName, setRegisteredName] = useState('');
-  const [nameMode, setNameMode] = useState('registered'); // 'registered' | 'custom'
+  const [nameMode, setNameMode] = useState('registered');
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [response, setResponse] = useState('');
@@ -62,6 +171,7 @@ function AutobiographyCompilation() {
   const [chapterOrder, setChapterOrder] = useState(() => FIXED_CHAPTERS.map((_, i) => i));
   const [dragIdx, setDragIdx] = useState(null);
   const [isSourcePickerOpen, setIsSourcePickerOpen] = useState(false);
+  const [lastSourceData, setLastSourceData] = useState(null);
   const [selectedSources, setSelectedSources] = useState({
     radioStory: false,
     careClassroom: false,
@@ -112,7 +222,6 @@ function AutobiographyCompilation() {
 
     fetchStudents();
 
-    // 교사 이름 자동 로드
     const userId = localStorage.getItem('userId');
     if (userId) {
       client.get('/api/account', { params: { userId } })
@@ -166,11 +275,9 @@ function AutobiographyCompilation() {
 
   const getPromptByTab = () => (activeTab === 'student' ? studentPrompt : teacherPrompt);
 
-  // 체크된 소스별 실제 데이터 수집
   const collectSourceData = async () => {
     const data = {};
 
-    // 돌봄교실: localStorage (선생님 자서전 핵심 뼈대)
     if (selectedSources.careClassroom) {
       try {
         const raw = localStorage.getItem('careClassroomRecords');
@@ -192,7 +299,6 @@ function AutobiographyCompilation() {
       }
     }
 
-    // 학사일정
     if (selectedSources.schedule) {
       try {
         const res = await client.get('/api/schedules');
@@ -202,7 +308,6 @@ function AutobiographyCompilation() {
       }
     }
 
-    // 학생명부
     if (selectedSources.studentRecords) {
       try {
         const res = await client.get('/api/students');
@@ -214,7 +319,6 @@ function AutobiographyCompilation() {
       }
     }
 
-    // 생활기록부
     if (selectedSources.lifeRecords) {
       try {
         const res = await client.get('/api/liferecords?action=keywords&query=');
@@ -224,7 +328,6 @@ function AutobiographyCompilation() {
       }
     }
 
-    // 교과평가
     if (selectedSources.subjectEvaluation) {
       try {
         const res = await client.get('/api/achievements');
@@ -234,7 +337,6 @@ function AutobiographyCompilation() {
       }
     }
 
-    // 오늘의 급식
     if (selectedSources.todayMeal) {
       try {
         const res = await client.get('/api/meals');
@@ -244,7 +346,6 @@ function AutobiographyCompilation() {
       }
     }
 
-    // 관찰일지: 미구현 (ERD 완성 후 연동 예정)
     if (selectedSources.observationJournal) {
       data.observationJournal = [];
     }
@@ -272,6 +373,7 @@ function AutobiographyCompilation() {
 
     try {
       const sourceData = await collectSourceData();
+      setLastSourceData(sourceData);
 
       const payload = {
         tab: activeTab,
@@ -283,7 +385,6 @@ function AutobiographyCompilation() {
         teacher_name: teacherForm.teacherName.trim(),
         teacher_role: teacherForm.teacherRole.trim(),
         teacher_focus: teacherForm.focus.trim(),
-        // 연동된 탭 데이터 (백엔드 ERD 완성 후 활용)
         source_data: sourceData,
         selected_sources: Object.keys(selectedSources).filter((k) => selectedSources[k]),
       };
@@ -374,7 +475,7 @@ function AutobiographyCompilation() {
             )}
           </div>
 
-          {/* 연동 자료 섹션 — 입력 폼 안으로 통합 */}
+          {/* 연동 자료 섹션 */}
           <div className={`rounded-xl border-2 p-4 ${activeTab === 'student' ? 'border-sky-100 bg-sky-50/40' : 'border-amber-100 bg-amber-50/40'}`}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -398,7 +499,6 @@ function AutobiographyCompilation() {
               </button>
             </div>
 
-            {/* 선택된 항목 칩 — 항상 표시 */}
             {selectedCount > 0 && !isSourcePickerOpen && (
               <div className="flex flex-wrap gap-1.5">
                 {currentOptions.filter((o) => selectedSources[o.key]).map((o) => (
@@ -419,7 +519,6 @@ function AutobiographyCompilation() {
               <p className="text-xs text-gray-400">항목을 선택하면 자서전 생성 시 해당 데이터가 함께 전달됩니다.</p>
             )}
 
-            {/* 체크박스 패널 */}
             {isSourcePickerOpen && (
               <div className="grid grid-cols-2 gap-2 mt-2">
                 {currentOptions.map((option) => (
@@ -491,7 +590,6 @@ function AutobiographyCompilation() {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* 이름 + 역할 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">이름</label>
@@ -537,7 +635,6 @@ function AutobiographyCompilation() {
                 </div>
               </div>
 
-              {/* 전담교사 과목 선택 */}
               {teacherForm.teacherRole === '전담교사' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">담당 과목</label>
@@ -599,7 +696,7 @@ function AutobiographyCompilation() {
 
         </div>
 
-        {/* 자서전 목차 (항상 표시) + 뷰어 버튼 */}
+        {/* 자서전 목차 + 뷰어 버튼 */}
         <div className="bg-white shadow rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-medium text-gray-900">자서전 목차</h2>
@@ -652,6 +749,7 @@ function AutobiographyCompilation() {
             activeTab={activeTab}
             chapterOrder={chapterOrder}
             usedModel={usedModel}
+            sourceData={lastSourceData}
             onClose={() => { setResponse(''); setUsedModel(''); }}
           />
         )}
@@ -660,74 +758,23 @@ function AutobiographyCompilation() {
   );
 }
 
-function ResultRenderer({ text }) {
-  if (!text) {
-    return (
-      <div className="h-full flex items-center justify-center text-center text-sm text-gray-400 px-6">
-        생성된 자서전 내용이 여기에 표시됩니다.
-      </div>
-    );
-  }
-
-  const lines = String(text)
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  return (
-    <div className="space-y-3">
-      {lines.map((line, index) => (
-        <p key={`${line}-${index}`} className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-          {line}
-        </p>
-      ))}
-    </div>
-  );
-}
+// ─── 유틸리티 ───
 
 function extractGeneratedText(data) {
   if (!data) return '';
-
-  const candidates = [
-    data.generated_text,
-    data.generated_document,
-    data.result,
-    data.output,
-    data.content,
-  ];
-
+  const candidates = [data.generated_text, data.generated_document, data.result, data.output, data.content];
   const firstText = candidates.find((value) => typeof value === 'string' && value.trim());
   if (firstText) return firstText;
-
   if (Array.isArray(data.items)) {
-    return data.items
-      .map((item) => (typeof item === 'string' ? item : JSON.stringify(item, null, 2)))
-      .join('\n\n');
+    return data.items.map((item) => (typeof item === 'string' ? item : JSON.stringify(item, null, 2))).join('\n\n');
   }
-
   if (typeof data === 'string') return data;
-
   return JSON.stringify(data, null, 2);
 }
-
-// ─── 고정 챕터 구조 (시간순 전자북) ───
-const FIXED_CHAPTERS = [
-  { id: 'intro', title: '시작하는 글', period: '프롤로그', placeholder: '이 장은 자서전의 문을 여는 공간입니다. 생성 후 도입부가 채워집니다.' },
-  { id: 'background', title: '어린 시절과 배경', period: '과거', placeholder: '학생의 초기 성장 배경을 담는 영역입니다. 추가 자료가 연동되면 더 풍부해집니다.' },
-  { id: 'early', title: '학교생활의 초반', period: '입학~적응기', placeholder: '학교에 처음 적응하던 시기의 이야기가 담길 공간입니다.' },
-  { id: 'settling', title: '익숙해지는 과정', period: '적응기~안정기', placeholder: '학교생활에 익숙해지며 자리를 잡아가는 과정을 담습니다.' },
-  { id: 'relations', title: '관계와 협력', period: '성장기', placeholder: '친구, 선생님, 공동체와의 관계를 통해 성장한 경험을 담습니다.' },
-  { id: 'responsibility', title: '책임감과 역할', period: '성장기', placeholder: '맡은 역할과 책임을 통해 변화한 모습을 기록합니다.' },
-  { id: 'turning', title: '성장의 전환점', period: '전환기', placeholder: '의미 있는 변화의 순간, 전환점이 된 사건을 담습니다.' },
-  { id: 'present', title: '현재의 모습', period: '현재', placeholder: '지금의 모습과 태도, 성장한 결과를 정리합니다.' },
-  { id: 'future', title: '앞으로의 가능성', period: '미래', placeholder: '앞으로의 꿈과 가능성, 기대를 담는 공간입니다.' },
-  { id: 'closing', title: '맺는 글', period: '에필로그', placeholder: '자서전을 마무리하는 따뜻한 인사를 담습니다.' },
-];
 
 function parseResponseToChapters(text) {
   if (!text) return FIXED_CHAPTERS.map(ch => ({ ...ch, content: '', status: 'empty' }));
 
-  // AI 응답에서 ## 제목으로 분리 시도
   const sections = text.split(/^##\s*/m).filter(Boolean);
   const parsed = {};
   for (const sec of sections) {
@@ -737,9 +784,7 @@ function parseResponseToChapters(text) {
     if (body) parsed[title] = body;
   }
 
-  // 고정 챕터에 매핑
   return FIXED_CHAPTERS.map((ch, idx) => {
-    // 제목 유사도로 매칭
     let matched = '';
     for (const [title, body] of Object.entries(parsed)) {
       if (title.includes(ch.title) || ch.title.includes(title) ||
@@ -749,7 +794,6 @@ function parseResponseToChapters(text) {
         break;
       }
     }
-    // 매칭 안 되면 순서대로 배분
     if (!matched && Object.keys(parsed).length > 0) {
       const remaining = Object.entries(parsed);
       if (remaining.length > 0 && idx < FIXED_CHAPTERS.length) {
@@ -758,15 +802,184 @@ function parseResponseToChapters(text) {
         delete parsed[key];
       }
     }
-    return {
-      ...ch,
-      content: matched,
-      status: matched ? 'filled' : 'empty',
-    };
+    return { ...ch, content: matched, status: matched ? 'filled' : 'empty' };
   });
 }
 
-function ChapterContent({ ch, idx, highlight, onEdit, userEdits }) {
+// ─── 블록 편집 컴포넌트 ───
+
+function AddBlockButton({ onClick }) {
+  return (
+    <div className="flex justify-center py-0.5 opacity-0 hover:opacity-100 transition-opacity duration-200">
+      <button
+        type="button"
+        onClick={onClick}
+        className="text-[10px] text-gray-300 hover:text-amber-600 px-3 py-0.5 rounded-full border border-transparent hover:border-amber-300 hover:bg-amber-50 transition"
+      >
+        + 문장 추가
+      </button>
+    </div>
+  );
+}
+
+function ProofreadSuggestion({ result, onApply, onDismiss }) {
+  if (!result || !result.hasChanges || result.applied) return null;
+  return (
+    <div className="mt-1.5 p-2.5 bg-green-50 border border-green-200 rounded-lg text-xs animate-in fade-in">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="font-semibold text-green-700">📝 교정 제안</span>
+        <div className="flex gap-1">
+          <button type="button" onClick={onApply} className="px-2.5 py-0.5 bg-green-500 text-white rounded text-[10px] font-medium hover:bg-green-600 transition">적용</button>
+          <button type="button" onClick={onDismiss} className="px-2.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] font-medium hover:bg-gray-300 transition">무시</button>
+        </div>
+      </div>
+      <div className="line-through text-red-400 mb-1 leading-relaxed">{result.original}</div>
+      <div className="text-green-700 leading-relaxed">{result.revised}</div>
+    </div>
+  );
+}
+
+function EditableBlock({ block, onUpdate, onDelete, onRestore, onProofread, proofreadResult, onApplyProofread, onDismissProofread, isProofreading }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(block.currentText);
+  const textareaRef = useRef(null);
+
+  const isLinked = block.type === 'linked' || block.type === 'linked-edited';
+  const isEdited = block.type === 'linked-edited';
+  const isManual = block.type === 'manual';
+
+  useEffect(() => {
+    setEditText(block.currentText);
+  }, [block.currentText]);
+
+  useEffect(() => {
+    if (isEditing && textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [isEditing]);
+
+  const handleBlur = () => {
+    setIsEditing(false);
+    if (editText.trim() !== block.currentText) {
+      onUpdate(editText.trim());
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setEditText(block.currentText);
+      setIsEditing(false);
+    }
+  };
+
+  const SOURCE_BADGE_COLORS = {
+    'ai-generated': 'bg-violet-100 text-violet-700',
+    studentRecords: 'bg-blue-100 text-blue-700',
+    lifeRecords: 'bg-emerald-100 text-emerald-700',
+    careClassroom: 'bg-amber-100 text-amber-700',
+    subjectEvaluation: 'bg-cyan-100 text-cyan-700',
+    observationJournal: 'bg-pink-100 text-pink-700',
+    schedule: 'bg-indigo-100 text-indigo-700',
+    todayMeal: 'bg-orange-100 text-orange-700',
+    radioStory: 'bg-rose-100 text-rose-700',
+  };
+
+  return (
+    <div className={`group relative rounded-lg px-2.5 py-1.5 transition-all ${
+      isEditing ? 'bg-amber-50 ring-1 ring-amber-300 shadow-sm' : 'hover:bg-amber-50/50'
+    }`}>
+      {/* 출처/상태 배지 */}
+      {(isLinked || isManual) && (
+        <div className="flex items-center gap-1 mb-0.5">
+          {block.sourceLabel && (
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${SOURCE_BADGE_COLORS[block.source] || 'bg-gray-100 text-gray-600'}`}>
+              {block.sourceLabel}
+            </span>
+          )}
+          {isManual && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium">
+              직접 입력
+            </span>
+          )}
+          {isEdited && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 font-medium">
+              ✏️ 수정됨
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* 본문 */}
+      {isEditing ? (
+        <textarea
+          ref={textareaRef}
+          value={editText}
+          onChange={(e) => {
+            setEditText(e.target.value);
+            e.target.style.height = 'auto';
+            e.target.style.height = e.target.scrollHeight + 'px';
+          }}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          className="w-full text-[13px] leading-[2] bg-transparent border-none outline-none resize-none"
+          style={{ fontFamily: "'Noto Serif KR', serif", minHeight: 40 }}
+        />
+      ) : (
+        <p
+          className="text-[13px] text-gray-800 leading-[2] text-justify indent-4 cursor-text"
+          style={{ fontFamily: "'Noto Serif KR', serif" }}
+          onClick={() => setIsEditing(true)}
+        >
+          {block.currentText || <span className="text-gray-300 italic">클릭하여 입력...</span>}
+        </p>
+      )}
+
+      {/* 호버 액션 버튼 */}
+      <div className="absolute right-1 top-1 hidden group-hover:flex items-center gap-0.5 bg-white/90 rounded shadow-sm border border-gray-100 px-1 py-0.5">
+        <button
+          type="button"
+          onClick={() => onProofread(block.id)}
+          disabled={isProofreading || !block.currentText?.trim()}
+          className="text-[10px] px-1.5 py-0.5 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
+          title="오탈자 점검"
+        >
+          ✓점검
+        </button>
+        {isEdited && (
+          <button
+            type="button"
+            onClick={onRestore}
+            className="text-[10px] px-1.5 py-0.5 text-blue-600 hover:bg-blue-50 rounded"
+            title="원문 복원"
+          >
+            ↩원문
+          </button>
+        )}
+        {isManual && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="text-[10px] px-1.5 py-0.5 text-red-500 hover:bg-red-50 rounded"
+            title="삭제"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {/* 교정 제안 */}
+      <ProofreadSuggestion
+        result={proofreadResult}
+        onApply={onApplyProofread}
+        onDismiss={onDismissProofread}
+      />
+    </div>
+  );
+}
+
+function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBlock, onRestoreBlock, onProofreadBlock, onProofreadPage, proofreadResults, isProofreading, onApplyProofread, onDismissProofread, highlight }) {
   const hl = (text) => {
     if (!highlight) return text;
     const re = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
@@ -774,48 +987,89 @@ function ChapterContent({ ch, idx, highlight, onEdit, userEdits }) {
       re.test(part) ? <mark key={i} className="bg-yellow-300 px-0.5 rounded">{part}</mark> : part
     );
   };
+
+  const hasBlocks = blocks && blocks.length > 0;
+
   return (
     <div className="h-full overflow-y-auto px-8 py-6 flex flex-col" style={{ fontFamily: "'Noto Serif KR', serif" }}>
+      {/* 챕터 헤더 */}
       <div className="text-center mb-4">
         <span className="text-[10px] text-amber-500 tracking-[0.2em] uppercase">{ch.period}</span>
         <h2 className="text-lg font-bold text-gray-900 mt-1">제{idx + 1}장</h2>
         <h3 className="text-base text-gray-700 mt-0.5">{ch.title}</h3>
         <div className="w-10 h-px bg-amber-400 mx-auto mt-3" />
       </div>
-      {ch.content ? (
-        <div className="text-[13px] text-gray-800 leading-[2] space-y-2.5">
-          {ch.content.split('\n').filter(Boolean).map((line, i) => (
-            <p key={i} className="text-justify indent-4">{hl(line)}</p>
-          ))}
+
+      {/* 블록 리스트 */}
+      <div className="flex-1">
+        <AddBlockButton onClick={() => onAddBlock(ch.id, 0)} />
+        {hasBlocks ? (
+          blocks.map((block, i) => (
+            <React.Fragment key={block.id}>
+              <EditableBlock
+                block={block}
+                onUpdate={(text) => onUpdateBlock(ch.id, i, text)}
+                onDelete={() => onDeleteBlock(ch.id, i)}
+                onRestore={() => onRestoreBlock(ch.id, i)}
+                onProofread={(blockId) => onProofreadBlock(ch.id, blockId)}
+                proofreadResult={proofreadResults?.[block.id]}
+                onApplyProofread={() => onApplyProofread(ch.id, block.id)}
+                onDismissProofread={() => onDismissProofread(block.id)}
+                isProofreading={isProofreading}
+              />
+              <AddBlockButton onClick={() => onAddBlock(ch.id, i + 1)} />
+            </React.Fragment>
+          ))
+        ) : (
+          <div className="text-center text-xs text-gray-300 py-8 italic">
+            {ch.placeholder}
+            <br /><br />
+            위의 "+" 버튼으로 문장을 추가하거나,<br />
+            자서전 생성 후 내용이 채워집니다.
+          </div>
+        )}
+      </div>
+
+      {/* 페이지 단위 오탈자 점검 */}
+      {hasBlocks && (
+        <div className="mt-2 flex justify-center">
+          <button
+            type="button"
+            onClick={() => onProofreadPage(ch.id)}
+            disabled={isProofreading}
+            className="text-[11px] px-3 py-1 text-green-600 bg-green-50 border border-green-200 rounded-full hover:bg-green-100 disabled:opacity-40 transition font-medium"
+          >
+            {isProofreading ? '점검 중...' : '📝 이 페이지 오탈자 점검'}
+          </button>
         </div>
-      ) : null}
-      {/* 직접 입력 영역 */}
-      <textarea
-        className="flex-1 mt-3 w-full text-[13px] text-gray-800 leading-[2] bg-transparent border-none outline-none resize-none placeholder-gray-300"
-        style={{ fontFamily: "'Noto Serif KR', serif", minHeight: 100 }}
-        placeholder={ch.content ? '추가 내용을 입력하세요...' : ch.placeholder + '\n\n이곳에 직접 작성할 수 있습니다.'}
-        value={(userEdits && userEdits[ch.id]) || ''}
-        onChange={(e) => onEdit && onEdit(ch.id, e.target.value)}
-      />
+      )}
+
+      {/* 페이지 번호 */}
       <div className="text-center text-[10px] text-gray-300 mt-2 flex-shrink-0">{idx + 1}</div>
     </div>
   );
 }
 
-function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder }) {
-  const [spread, setSpread] = React.useState(0);
-  const [showToc, setShowToc] = React.useState(false);
-  const [showSearch, setShowSearch] = React.useState(false);
-  const [userEdits, setUserEdits] = React.useState({});
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [searchResults, setSearchResults] = React.useState([]);
-  const [pageInput, setPageInput] = React.useState('');
-  const [highlight, setHighlight] = React.useState('');
-  const [controlsVisible, setControlsVisible] = React.useState(true);
-  const hideTimer = React.useRef(null);
+// ─── 전자북 모달 ───
 
-  const allChapters = React.useMemo(() => parseResponseToChapters(response), [response]);
-  const chapters = React.useMemo(() => {
+function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sourceData }) {
+  const [spread, setSpread] = useState(0);
+  const [showToc, setShowToc] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [pageInput, setPageInput] = useState('');
+  const [highlight, setHighlight] = useState('');
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const hideTimer = useRef(null);
+
+  // 블록 상태
+  const [chapterBlocks, setChapterBlocks] = useState({});
+  const [proofreadResults, setProofreadResults] = useState({});
+  const [isProofreading, setIsProofreading] = useState(false);
+
+  const allChapters = useMemo(() => parseResponseToChapters(response), [response]);
+  const chapters = useMemo(() => {
     if (chapterOrder && chapterOrder.length === allChapters.length) {
       return chapterOrder.map(i => allChapters[i]);
     }
@@ -830,8 +1084,24 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder }) {
   const goSpread = (s) => setSpread(Math.max(0, Math.min(maxSpread, s)));
   const goPage = (p) => goSpread(Math.floor(p / 2));
 
-  // 키보드 이벤트
-  React.useEffect(() => {
+  // 블록 초기화: AI 응답 + 연동 자료 → 블록 변환
+  useEffect(() => {
+    const parsed = parseResponseToChapters(response);
+    const sourceBlocks = importSourceBlocks(sourceData);
+    const blocks = {};
+
+    parsed.forEach((ch) => {
+      const aiBlocks = createBlocksFromAIContent(ch.content);
+      const linked = sourceBlocks[ch.id] || [];
+      blocks[ch.id] = [...aiBlocks, ...linked];
+    });
+
+    setChapterBlocks(blocks);
+    setProofreadResults({});
+  }, [response, sourceData]);
+
+  // 키보드
+  useEffect(() => {
     const handler = (e) => {
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowLeft') goSpread(spread - 1);
@@ -842,7 +1112,7 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder }) {
   }, [spread]);
 
   // 컨트롤 자동 숨김
-  React.useEffect(() => {
+  useEffect(() => {
     const show = () => { setControlsVisible(true); clearTimeout(hideTimer.current); hideTimer.current = setTimeout(() => setControlsVisible(false), 4000); };
     show();
     window.addEventListener('mousemove', show);
@@ -850,16 +1120,149 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder }) {
     return () => { window.removeEventListener('mousemove', show); window.removeEventListener('touchstart', show); clearTimeout(hideTimer.current); };
   }, []);
 
-  // 단어 검색 (본문 + 제목 + placeholder 전부 검색)
+  // ── 블록 CRUD ──
+
+  const addBlock = useCallback((chapterId, atIndex) => {
+    setChapterBlocks(prev => {
+      const arr = [...(prev[chapterId] || [])];
+      arr.splice(atIndex, 0, createBlock('manual', ''));
+      return { ...prev, [chapterId]: arr };
+    });
+  }, []);
+
+  const updateBlock = useCallback((chapterId, blockIndex, newText) => {
+    setChapterBlocks(prev => {
+      const arr = [...(prev[chapterId] || [])];
+      const block = { ...arr[blockIndex] };
+      block.currentText = newText;
+      if (block.type === 'linked' && newText !== block.originalText) {
+        block.type = 'linked-edited';
+      } else if (block.type === 'linked-edited' && newText === block.originalText) {
+        block.type = 'linked';
+      }
+      arr[blockIndex] = block;
+      return { ...prev, [chapterId]: arr };
+    });
+  }, []);
+
+  const deleteBlock = useCallback((chapterId, blockIndex) => {
+    setChapterBlocks(prev => {
+      const arr = [...(prev[chapterId] || [])];
+      arr.splice(blockIndex, 1);
+      return { ...prev, [chapterId]: arr };
+    });
+  }, []);
+
+  const restoreBlock = useCallback((chapterId, blockIndex) => {
+    setChapterBlocks(prev => {
+      const arr = [...(prev[chapterId] || [])];
+      const block = { ...arr[blockIndex] };
+      block.currentText = block.originalText;
+      block.type = 'linked';
+      arr[blockIndex] = block;
+      return { ...prev, [chapterId]: arr };
+    });
+  }, []);
+
+  // ── 교정 ──
+
+  const handleProofreadBlock = useCallback(async (chapterId, blockId) => {
+    const blocks = chapterBlocks[chapterId] || [];
+    const block = blocks.find(b => b.id === blockId);
+    if (!block || !block.currentText?.trim()) return;
+
+    setIsProofreading(true);
+    try {
+      const res = await client.post('/api/proofread', {
+        texts: [{ id: block.id, text: block.currentText }],
+        contentType: 'autobiography',
+      });
+      const results = {};
+      for (const r of (res.data?.results || [])) {
+        results[r.id] = { ...r, applied: false };
+      }
+      setProofreadResults(prev => ({ ...prev, ...results }));
+    } catch (err) {
+      console.error('Proofread failed:', err);
+    } finally {
+      setIsProofreading(false);
+    }
+  }, [chapterBlocks]);
+
+  const handleProofreadPage = useCallback(async (chapterId) => {
+    const blocks = chapterBlocks[chapterId] || [];
+    const textsToCheck = blocks
+      .filter(b => b.currentText?.trim())
+      .map(b => ({ id: b.id, text: b.currentText }));
+
+    if (textsToCheck.length === 0) return;
+
+    setIsProofreading(true);
+    try {
+      const res = await client.post('/api/proofread', {
+        texts: textsToCheck,
+        contentType: 'autobiography',
+      });
+      const results = {};
+      for (const r of (res.data?.results || [])) {
+        results[r.id] = { ...r, applied: false };
+      }
+      setProofreadResults(prev => ({ ...prev, ...results }));
+    } catch (err) {
+      console.error('Proofread failed:', err);
+    } finally {
+      setIsProofreading(false);
+    }
+  }, [chapterBlocks]);
+
+  const handleProofreadChapter = useCallback(async (chapterId) => {
+    await handleProofreadPage(chapterId);
+  }, [handleProofreadPage]);
+
+  const applyProofread = useCallback((chapterId, blockId) => {
+    const result = proofreadResults[blockId];
+    if (!result) return;
+
+    setChapterBlocks(prev => {
+      const arr = [...(prev[chapterId] || [])];
+      const idx = arr.findIndex(b => b.id === blockId);
+      if (idx < 0) return prev;
+      const block = { ...arr[idx] };
+      block.currentText = result.revised;
+      if (block.type === 'linked' && result.revised !== block.originalText) {
+        block.type = 'linked-edited';
+      }
+      arr[idx] = block;
+      return { ...prev, [chapterId]: arr };
+    });
+
+    setProofreadResults(prev => ({
+      ...prev,
+      [blockId]: { ...prev[blockId], applied: true },
+    }));
+  }, [proofreadResults]);
+
+  const dismissProofread = useCallback((blockId) => {
+    setProofreadResults(prev => {
+      const next = { ...prev };
+      delete next[blockId];
+      return next;
+    });
+  }, []);
+
+  // ── 검색 ──
+
   const doSearch = () => {
     if (!searchQuery.trim()) { setSearchResults([]); return; }
     const q = searchQuery.trim().toLowerCase();
     const results = [];
     chapters.forEach((ch, i) => {
-      const searchable = [`제${i + 1}장`, `${i + 1}`, ch.title, ch.period, ch.content || '', ch.placeholder || ''].join(' ');
+      const blocks = chapterBlocks[ch.id] || [];
+      const blockTexts = blocks.map(b => b.currentText).join(' ');
+      const searchable = [`제${i + 1}장`, `${i + 1}`, ch.title, ch.period, ch.content || '', blockTexts, ch.placeholder || ''].join(' ');
       const idx = searchable.toLowerCase().indexOf(q);
       if (idx >= 0) {
-        const textSource = ch.content || ch.placeholder || ch.title;
+        const textSource = blockTexts || ch.content || ch.placeholder || ch.title;
         const srcIdx = textSource.toLowerCase().indexOf(q);
         const start = Math.max(0, srcIdx - 20);
         const snippet = srcIdx >= 0 ? '...' + textSource.slice(start, srcIdx + q.length + 30) + '...' : ch.title;
@@ -870,15 +1273,23 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder }) {
     setHighlight(searchQuery.trim());
   };
 
-  // 페이지 이동
   const goToPage = () => {
     const n = Number(pageInput);
     if (n >= 1 && n <= chapters.length) { goPage(n - 1); setShowSearch(false); setPageInput(''); }
   };
 
+  // 블록 수 요약
+  const getBlockSummary = (chId) => {
+    const blocks = chapterBlocks[chId] || [];
+    const linked = blocks.filter(b => b.type === 'linked' || b.type === 'linked-edited').length;
+    const manual = blocks.filter(b => b.type === 'manual').length;
+    const edited = blocks.filter(b => b.type === 'linked-edited').length;
+    return { total: blocks.length, linked, manual, edited };
+  };
+
   return (
     <div className="fixed inset-0 z-[200] bg-stone-900 flex flex-col select-none">
-      {/* 상단 바 - 자동 숨김 */}
+      {/* 상단 바 */}
       <div className={`flex items-center justify-between px-4 py-2 bg-black/60 transition-opacity duration-500 ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="flex items-center gap-2">
           <button onClick={() => { setShowToc(!showToc); setShowSearch(false); }} className="text-xs text-amber-300 hover:text-white border border-amber-800 rounded px-2 py-1" aria-label="목차">☰ 목차</button>
@@ -886,24 +1297,52 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder }) {
           <span className="text-xs text-stone-400 ml-2">{leftIdx + 1}~{Math.min(rightIdx + 1, chapters.length)} / {chapters.length}장</span>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const leftBlocks = chapterBlocks[leftCh?.id] || [];
+              const rightBlocks = rightCh ? (chapterBlocks[rightCh.id] || []) : [];
+              const allIds = [...leftBlocks, ...rightBlocks].filter(b => b.currentText?.trim()).map(b => b.id);
+              if (leftCh) handleProofreadPage(leftCh.id);
+              if (rightCh) handleProofreadPage(rightCh.id);
+            }}
+            disabled={isProofreading}
+            className="text-xs text-green-300 hover:text-white border border-green-800 rounded px-2 py-1 disabled:opacity-40"
+          >
+            {isProofreading ? '점검 중...' : '📝 펼친 면 점검'}
+          </button>
           <span className="text-xs text-amber-200">{activeTab === 'student' ? '학생 자서전' : '선생님 자서전'}</span>
-          <button onClick={() => navigator.clipboard.writeText(response)} className="text-xs text-stone-400 hover:text-white border border-stone-700 rounded px-2 py-1" aria-label="전체 복사">복사</button>
+          <button onClick={() => {
+            const allText = chapters.map((ch, i) => {
+              const blocks = chapterBlocks[ch.id] || [];
+              const text = blocks.map(b => b.currentText).filter(Boolean).join('\n');
+              return `## 제${i+1}장 ${ch.title}\n\n${text || ch.content || ''}`;
+            }).join('\n\n');
+            navigator.clipboard.writeText(allText);
+          }} className="text-xs text-stone-400 hover:text-white border border-stone-700 rounded px-2 py-1" aria-label="전체 복사">복사</button>
           <button onClick={onClose} className="text-xs text-stone-400 hover:text-white border border-stone-700 rounded px-2 py-1" aria-label="닫기">✕</button>
         </div>
       </div>
 
       {/* 목차 패널 */}
       {showToc && (
-        <div className="absolute left-2 top-12 z-20 w-60 bg-white/95 rounded-lg shadow-2xl border border-amber-200 py-1 max-h-[75vh] overflow-y-auto backdrop-blur">
+        <div className="absolute left-2 top-12 z-20 w-64 bg-white/95 rounded-lg shadow-2xl border border-amber-200 py-1 max-h-[75vh] overflow-y-auto backdrop-blur">
           <div className="px-3 py-1.5 text-xs font-bold text-amber-800 border-b border-amber-100">목차</div>
-          {chapters.map((c, i) => (
-            <button key={c.id} onClick={() => { goPage(i); setShowToc(false); }}
-              className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-amber-50 ${Math.floor(i / 2) === spread ? 'bg-amber-100 font-semibold text-amber-900' : 'text-gray-700'}`}>
-              <span className="text-[10px] text-amber-500 w-4">{i + 1}</span>
-              <span className="flex-1 truncate">{c.title}</span>
-              <span className={`w-1.5 h-1.5 rounded-full ${c.status === 'filled' ? 'bg-emerald-400' : 'bg-gray-300'}`} />
-            </button>
-          ))}
+          {chapters.map((c, i) => {
+            const summary = getBlockSummary(c.id);
+            return (
+              <button key={c.id} onClick={() => { goPage(i); setShowToc(false); }}
+                className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-amber-50 ${Math.floor(i / 2) === spread ? 'bg-amber-100 font-semibold text-amber-900' : 'text-gray-700'}`}>
+                <span className="text-[10px] text-amber-500 w-4">{i + 1}</span>
+                <span className="flex-1 truncate">{c.title}</span>
+                <div className="flex items-center gap-1">
+                  {summary.total > 0 && (
+                    <span className="text-[9px] text-gray-400">{summary.total}블록</span>
+                  )}
+                  <span className={`w-1.5 h-1.5 rounded-full ${summary.total > 0 || c.status === 'filled' ? 'bg-emerald-400' : 'bg-gray-300'}`} />
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -940,38 +1379,68 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder }) {
         </div>
       )}
 
-      {/* 책 본문 + 좌우 넘김 영역 */}
+      {/* 책 본문 + 좌우 넘김 */}
       <div className="flex-1 flex items-center justify-center relative">
-        {/* 왼쪽 넘김 영역 */}
         <button onClick={() => goSpread(spread - 1)} disabled={spread === 0} aria-label="이전 페이지"
           className="absolute left-0 top-0 bottom-0 w-12 md:w-16 flex items-center justify-center z-10 group">
           <span className={`text-2xl transition-opacity ${spread === 0 ? 'opacity-0' : 'opacity-60 group-hover:opacity-100'} text-white`}>‹</span>
         </button>
 
-        {/* 책 */}
         <div className="flex shadow-[0_0_60px_rgba(0,0,0,0.5)] rounded-sm overflow-hidden" style={{ width: 'min(88vw, 1050px)', height: 'min(78vh, 620px)' }}>
           {/* 왼쪽 페이지 */}
           <div className="flex-1 bg-amber-50 relative" style={{ boxShadow: 'inset -8px 0 12px -8px rgba(0,0,0,0.08)' }}>
-            {leftCh && <ChapterContent ch={leftCh} idx={leftIdx} highlight={highlight} userEdits={userEdits} onEdit={(id, val) => setUserEdits(prev => ({...prev, [id]: val}))} />}
+            {leftCh && (
+              <ChapterContent
+                ch={leftCh}
+                idx={leftIdx}
+                blocks={chapterBlocks[leftCh.id] || []}
+                onAddBlock={addBlock}
+                onUpdateBlock={updateBlock}
+                onDeleteBlock={deleteBlock}
+                onRestoreBlock={restoreBlock}
+                onProofreadBlock={handleProofreadBlock}
+                onProofreadPage={handleProofreadPage}
+                proofreadResults={proofreadResults}
+                isProofreading={isProofreading}
+                onApplyProofread={applyProofread}
+                onDismissProofread={dismissProofread}
+                highlight={highlight}
+              />
+            )}
           </div>
-          {/* 접힘선 */}
           <div className="w-px bg-amber-300/60" />
           {/* 오른쪽 페이지 */}
           <div className="flex-1 bg-amber-50 relative hidden sm:block" style={{ boxShadow: 'inset 8px 0 12px -8px rgba(0,0,0,0.08)' }}>
-            {rightCh ? <ChapterContent ch={rightCh} idx={rightIdx} highlight={highlight} userEdits={userEdits} onEdit={(id, val) => setUserEdits(prev => ({...prev, [id]: val}))} /> : (
+            {rightCh ? (
+              <ChapterContent
+                ch={rightCh}
+                idx={rightIdx}
+                blocks={chapterBlocks[rightCh.id] || []}
+                onAddBlock={addBlock}
+                onUpdateBlock={updateBlock}
+                onDeleteBlock={deleteBlock}
+                onRestoreBlock={restoreBlock}
+                onProofreadBlock={handleProofreadBlock}
+                onProofreadPage={handleProofreadPage}
+                proofreadResults={proofreadResults}
+                isProofreading={isProofreading}
+                onApplyProofread={applyProofread}
+                onDismissProofread={dismissProofread}
+                highlight={highlight}
+              />
+            ) : (
               <div className="h-full flex items-center justify-center text-gray-300 text-xs italic">— 끝 —</div>
             )}
           </div>
         </div>
 
-        {/* 오른쪽 넘김 영역 */}
         <button onClick={() => goSpread(spread + 1)} disabled={spread === maxSpread} aria-label="다음 페이지"
           className="absolute right-0 top-0 bottom-0 w-12 md:w-16 flex items-center justify-center z-10 group">
           <span className={`text-2xl transition-opacity ${spread === maxSpread ? 'opacity-0' : 'opacity-60 group-hover:opacity-100'} text-white`}>›</span>
         </button>
       </div>
 
-      {/* 하단 페이지 인디케이터 */}
+      {/* 하단 인디케이터 */}
       <div className={`flex items-center justify-center gap-1.5 py-2 transition-opacity duration-500 ${controlsVisible ? 'opacity-100' : 'opacity-0'}`}>
         {Array.from({ length: maxSpread + 1 }).map((_, i) => (
           <button key={i} onClick={() => goSpread(i)} aria-label={`${i * 2 + 1}-${i * 2 + 2}장`}
