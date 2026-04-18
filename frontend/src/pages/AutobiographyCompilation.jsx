@@ -1175,6 +1175,23 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
 
   // ── 교정 ──
 
+  const callProofreadApi = useCallback(async (texts) => {
+    const endpoints = ['/proofread', '/api/proofread'];
+    for (const endpoint of endpoints) {
+      try {
+        const res = await client.post(endpoint, {
+          texts,
+          contentType: 'autobiography',
+        }, { timeout: 15000 });
+        return res.data?.results || [];
+      } catch (err) {
+        if (err.response?.status === 404) continue;
+        throw err;
+      }
+    }
+    throw new Error('교정 API를 찾을 수 없습니다.');
+  }, []);
+
   const handleProofreadBlock = useCallback(async (chapterId, blockId) => {
     const blocks = chapterBlocks[chapterId] || [];
     const block = blocks.find(b => b.id === blockId);
@@ -1182,21 +1199,19 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
 
     setIsProofreading(true);
     try {
-      const res = await client.post('/api/proofread', {
-        texts: [{ id: block.id, text: block.currentText }],
-        contentType: 'autobiography',
-      });
+      const apiResults = await callProofreadApi([{ id: block.id, text: block.currentText }]);
       const results = {};
-      for (const r of (res.data?.results || [])) {
+      for (const r of apiResults) {
         results[r.id] = { ...r, applied: false };
       }
       setProofreadResults(prev => ({ ...prev, ...results }));
     } catch (err) {
       console.error('Proofread failed:', err);
+      alert('오탈자 점검에 실패했습니다. 백엔드 서버를 확인해주세요.');
     } finally {
       setIsProofreading(false);
     }
-  }, [chapterBlocks]);
+  }, [chapterBlocks, callProofreadApi]);
 
   const handleProofreadPage = useCallback(async (chapterId) => {
     const blocks = chapterBlocks[chapterId] || [];
@@ -1208,21 +1223,19 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
 
     setIsProofreading(true);
     try {
-      const res = await client.post('/api/proofread', {
-        texts: textsToCheck,
-        contentType: 'autobiography',
-      });
+      const apiResults = await callProofreadApi(textsToCheck);
       const results = {};
-      for (const r of (res.data?.results || [])) {
+      for (const r of apiResults) {
         results[r.id] = { ...r, applied: false };
       }
       setProofreadResults(prev => ({ ...prev, ...results }));
     } catch (err) {
       console.error('Proofread failed:', err);
+      alert('오탈자 점검에 실패했습니다. 백엔드 서버를 확인해주세요.');
     } finally {
       setIsProofreading(false);
     }
-  }, [chapterBlocks]);
+  }, [chapterBlocks, callProofreadApi]);
 
   const handleProofreadChapter = useCallback(async (chapterId) => {
     await handleProofreadPage(chapterId);
