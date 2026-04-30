@@ -250,36 +250,32 @@ function LifeRecords() {
     setKeywordResults({});
     setFullText('');
 
-    // 즉시 로컬 fallback 표시 → 백엔드 응답 오면 덮어쓰기
+    // 즉시 로컬 fallback 표시
     const localResults = localFallbackGenerate(keywordTexts, studentName.trim());
     setKeywordResults(localResults);
     setFullText(Object.values(localResults).join(' '));
     setUsedModel('local');
+    setIsLoading(false);
 
-    try {
-      const endpoints = ['/api/liferecords?action=generate', '/life-records/generate'];
-      for (const ep of endpoints) {
-        try {
-          const res = await client.post(ep, {
-            selected_keywords: keywordTexts,
-            student_name: studentName.trim(),
-            additional_context: additionalContext.trim(),
-          }, { timeout: 12000, __retryCount: 99 });
-          const result = res.data;
-          if (result?.keyword_results && Object.keys(result.keyword_results).length > 0) {
-            setKeywordResults(result.keyword_results);
-            setFullText(result.generated_text || Object.values(result.keyword_results).join(' '));
-            setUsedModel(result.ai_model || 'server');
-          }
-          break;
-        } catch {
-          // 다음 endpoint 시도
+    // 백그라운드에서 AI 생성 시도 → 성공하면 덮어쓰기
+    const endpoints = ['/api/liferecords?action=generate', '/life-records/generate'];
+    for (const ep of endpoints) {
+      try {
+        const res = await client.post(ep, {
+          selected_keywords: keywordTexts,
+          student_name: studentName.trim(),
+          additional_context: additionalContext.trim(),
+        }, { timeout: 12000, __retryCount: 99 });
+        const result = res.data;
+        if (result?.keyword_results && Object.keys(result.keyword_results).length > 0) {
+          setKeywordResults(result.keyword_results);
+          setFullText(result.generated_text || Object.values(result.keyword_results).join(' '));
+          setUsedModel(result.ai_model || 'server');
         }
+        break;
+      } catch {
+        // 다음 endpoint 시도
       }
-    } catch {
-      // 로컬 결과 이미 표시됨
-    } finally {
-      setIsLoading(false);
     }
   };
 
