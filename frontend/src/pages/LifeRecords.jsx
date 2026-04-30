@@ -224,10 +224,23 @@ function LifeRecords() {
       상상력: ['풍부한 상상력으로 독창적인 이야기를 만들어냄.', '상상력을 활용하여 다양한 활동에서 창의적 결과를 냄.'],
     };
     const seed = (name || '').length + Date.now() % 100;
+    const getEnding = (s) => s.replace(/\.$/, '').slice(-2);
+    let prevEnding = '';
     const results = {};
     keywords.forEach(kw => {
       const opts = templates[kw];
-      results[kw] = opts ? opts[seed % opts.length] : `${name || '해당 학생'}은(는) ${kw}과(와) 관련된 활동에서 꾸준한 성장을 보이고 있음.`;
+      if (!opts) {
+        const fb = `${name || '해당 학생'}은(는) ${kw}과(와) 관련된 활동에서 꾸준한 성장을 보이고 있음.`;
+        prevEnding = getEnding(fb);
+        results[kw] = fb;
+        return;
+      }
+      let pick = opts[seed % opts.length];
+      if (opts.length > 1 && getEnding(pick) === prevEnding) {
+        pick = opts[(seed + 1) % opts.length];
+      }
+      prevEnding = getEnding(pick);
+      results[kw] = pick;
     });
     return results;
   };
