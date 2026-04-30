@@ -59,6 +59,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     { keyword_id: 38, keyword: '과학탐구', category: '학습역량' },
     { keyword_id: 39, keyword: '사회참여', category: '사회성' },
     { keyword_id: 40, keyword: '안전의식', category: '생활습관' },
+    { keyword_id: 41, keyword: '기초체력', category: '건강' },
+    { keyword_id: 42, keyword: '건강습관', category: '건강' },
+    { keyword_id: 43, keyword: '운동능력', category: '건강' },
+    { keyword_id: 44, keyword: '바른자세', category: '건강' },
+    { keyword_id: 45, keyword: '식습관', category: '건강' },
+    { keyword_id: 46, keyword: '체력향상', category: '건강' },
+    { keyword_id: 47, keyword: '안전행동', category: '건강' },
   ];
 
   try {
