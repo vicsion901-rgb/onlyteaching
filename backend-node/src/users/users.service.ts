@@ -13,7 +13,7 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { encrypt, searchHash } from '../common/crypto.util';
 
-const BCRYPT_ROUNDS = 10;
+const BCRYPT_ROUNDS = 8;
 
 @Injectable()
 export class UsersService implements OnModuleInit {

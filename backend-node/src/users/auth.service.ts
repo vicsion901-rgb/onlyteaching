@@ -38,7 +38,7 @@ export class AuthService {
     // 레거시: 평문 teacherCode 일치 시 즉시 해시로 승격
     if (!passwordOk && user.teacherCode && user.teacherCode === teacherCode) {
       passwordOk = true;
-      user.passwordHash = await bcrypt.hash(teacherCode, 10);
+      user.passwordHash = await bcrypt.hash(teacherCode, 8);
       await this.repo.save(user);
     }
 

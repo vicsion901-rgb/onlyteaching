@@ -110,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 비밀번호 해시
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 8);
 
     // 개인정보 암호화
     const nameEnc = encrypt(name);

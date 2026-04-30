@@ -89,7 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 성공 시 SHA-256 기반 bcrypt로 마이그레이션 (다음 로그인부터 SHA-256 비교)
     if (passwordOk) {
       const valueToHash = hashed ? teacherCode : sha256(teacherCode);
-      const newBcrypt = await bcrypt.hash(valueToHash, 10);
+      const newBcrypt = await bcrypt.hash(valueToHash, 8);
       await getPool().query(
         `UPDATE users SET "passwordHash" = $1, "teacherCode" = '__hashed__' WHERE id = $2`,
         [newBcrypt, user.id],

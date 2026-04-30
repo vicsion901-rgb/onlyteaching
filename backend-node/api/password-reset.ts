@@ -62,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 비밀번호 업데이트 + 토큰 삭제
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, 8);
     await db.query(
       `UPDATE users SET "passwordHash" = $1, "teacherCode" = '__hashed__', "resetToken" = NULL, "resetTokenExpiry" = NULL WHERE id = $2`,
       [passwordHash, user.id],

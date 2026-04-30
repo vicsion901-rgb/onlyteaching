@@ -100,7 +100,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         else if (rows[0].teacherCode === currentPassword) ok = true;
         if (!ok) return res.status(400).json({ message: '현재 비밀번호가 일치하지 않습니다.' });
 
-        const hash = await bcrypt.hash(newPassword, 10);
+        const hash = await bcrypt.hash(newPassword, 8);
         await db.query('UPDATE users SET "passwordHash" = $1, "teacherCode" = \'__hashed__\' WHERE id = $2', [hash, userId]);
         return res.status(200).json({ message: '비밀번호가 변경되었습니다.' });
       }
