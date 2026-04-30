@@ -18,16 +18,69 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const db = getPool();
   const action = req.query.action as string | undefined;
 
+  const RECOMMENDED_KEYWORDS = [
+    { keyword_id: 1, keyword: '성실', category: '학습태도' },
+    { keyword_id: 2, keyword: '협력', category: '사회성' },
+    { keyword_id: 3, keyword: '배려', category: '인성' },
+    { keyword_id: 4, keyword: '책임감', category: '인성' },
+    { keyword_id: 5, keyword: '창의력', category: '학습역량' },
+    { keyword_id: 6, keyword: '발표력', category: '학습역량' },
+    { keyword_id: 7, keyword: '탐구심', category: '학습역량' },
+    { keyword_id: 8, keyword: '끈기', category: '학습태도' },
+    { keyword_id: 9, keyword: '주도성', category: '학습태도' },
+    { keyword_id: 10, keyword: '정리정돈', category: '생활습관' },
+    { keyword_id: 11, keyword: '공감', category: '사회성' },
+    { keyword_id: 12, keyword: '리더십', category: '사회성' },
+    { keyword_id: 13, keyword: '경청', category: '사회성' },
+    { keyword_id: 14, keyword: '자기표현', category: '학습역량' },
+    { keyword_id: 15, keyword: '규칙준수', category: '생활습관' },
+    { keyword_id: 16, keyword: '예의바름', category: '인성' },
+    { keyword_id: 17, keyword: '자신감', category: '학습태도' },
+    { keyword_id: 18, keyword: '집중력', category: '학습태도' },
+    { keyword_id: 19, keyword: '문제해결', category: '학습역량' },
+    { keyword_id: 20, keyword: '봉사정신', category: '인성' },
+    { keyword_id: 21, keyword: '독서', category: '학습역량' },
+    { keyword_id: 22, keyword: '글쓰기', category: '학습역량' },
+    { keyword_id: 23, keyword: '수학적사고', category: '학습역량' },
+    { keyword_id: 24, keyword: '체육활동', category: '건강' },
+    { keyword_id: 25, keyword: '음악감수성', category: '예술' },
+    { keyword_id: 26, keyword: '미술표현', category: '예술' },
+    { keyword_id: 27, keyword: '친구관계', category: '사회성' },
+    { keyword_id: 28, keyword: '긍정적태도', category: '인성' },
+    { keyword_id: 29, keyword: '시간관리', category: '생활습관' },
+    { keyword_id: 30, keyword: '도전정신', category: '학습태도' },
+    { keyword_id: 31, keyword: '관찰력', category: '학습역량' },
+    { keyword_id: 32, keyword: '의사소통', category: '사회성' },
+    { keyword_id: 33, keyword: '정직', category: '인성' },
+    { keyword_id: 34, keyword: '감사', category: '인성' },
+    { keyword_id: 35, keyword: '인내심', category: '인성' },
+    { keyword_id: 36, keyword: '호기심', category: '학습태도' },
+    { keyword_id: 37, keyword: '자기관리', category: '생활습관' },
+    { keyword_id: 38, keyword: '과학탐구', category: '학습역량' },
+    { keyword_id: 39, keyword: '사회참여', category: '사회성' },
+    { keyword_id: 40, keyword: '안전의식', category: '생활습관' },
+  ];
+
   try {
     // GET /api/liferecords?action=keywords&query=...
     if (req.method === 'GET' && action === 'keywords') {
       const query = (req.query.query as string || '').trim();
-      let sql = 'SELECT DISTINCT category AS keyword, subcategory, attribute FROM student_record_comments';
-      const vals: any[] = [];
-      if (query) { sql += ' WHERE category ILIKE $1 OR subcategory ILIKE $1 OR attribute ILIKE $1'; vals.push(`%${query}%`); }
-      sql += ' ORDER BY category, subcategory LIMIT 50';
-      const { rows } = await db.query(sql, vals);
-      return res.status(200).json(rows);
+
+      // DB 조회 시도, 실패하거나 빈 결과면 추천 키워드 반환
+      try {
+        let sql = 'SELECT DISTINCT category AS keyword, subcategory, attribute FROM student_record_comments';
+        const vals: any[] = [];
+        if (query) { sql += ' WHERE category ILIKE $1 OR subcategory ILIKE $1 OR attribute ILIKE $1'; vals.push(`%${query}%`); }
+        sql += ' ORDER BY category, subcategory LIMIT 50';
+        const { rows } = await db.query(sql, vals);
+        if (rows.length > 0) return res.status(200).json(rows);
+      } catch {}
+
+      // DB 비었거나 에러 → 추천 키워드 반환
+      const filtered = query
+        ? RECOMMENDED_KEYWORDS.filter(k => k.keyword.includes(query) || k.category.includes(query))
+        : RECOMMENDED_KEYWORDS;
+      return res.status(200).json(filtered);
     }
 
     // GET /api/liferecords?action=comments&keyword=...
