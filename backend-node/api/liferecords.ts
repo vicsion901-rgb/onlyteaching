@@ -66,6 +66,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     { keyword_id: 45, keyword: '식습관', category: '건강' },
     { keyword_id: 46, keyword: '체력향상', category: '건강' },
     { keyword_id: 47, keyword: '안전행동', category: '건강' },
+    { keyword_id: 48, keyword: '창작활동', category: '예술' },
+    { keyword_id: 49, keyword: '무용표현', category: '예술' },
+    { keyword_id: 50, keyword: '감상능력', category: '예술' },
+    { keyword_id: 51, keyword: '악기연주', category: '예술' },
+    { keyword_id: 52, keyword: '연극활동', category: '예술' },
+    { keyword_id: 53, keyword: '디자인감각', category: '예술' },
+    { keyword_id: 54, keyword: '상상력', category: '예술' },
   ];
 
   try {
