@@ -400,7 +400,7 @@ function LifeRecords() {
             </div>
 
             {/* 키워드 워드클라우드 */}
-            <div className="flex flex-wrap gap-2 max-h-[220px] overflow-y-auto p-1">
+            <div className="flex flex-wrap gap-2 max-h-[130px] overflow-y-auto p-1">
               {filteredKeywords.length === 0 && (
                 <span className="text-sm text-gray-400">검색 결과가 없습니다</span>
               )}
