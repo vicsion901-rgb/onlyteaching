@@ -449,15 +449,15 @@ function LifeRecords() {
             )}
           </div>
 
-          {/* 추가 요청사항 */}
+          {/* 직접 입력 */}
           <div className="bg-white shadow rounded-lg p-5">
-            <label className="block text-sm font-semibold text-gray-700 mb-1">추가 요청사항</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">직접 입력</label>
             <textarea
               value={additionalContext}
               onChange={(e) => setAdditionalContext(e.target.value)}
               rows={3}
               className="focus:ring-primary-500 focus:border-primary-500 block w-full text-sm border-gray-300 rounded-md p-2.5 resize-none"
-              placeholder="예: 2학기에 발표를 많이 개선했음, 친구 관계가 좋아짐..."
+              placeholder="종합 문단 끝에 덧붙일 문장을 입력하세요."
               onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleGenerate(e); } }}
             />
           </div>
@@ -520,10 +520,10 @@ function LifeRecords() {
                 {/* 통합 문단 */}
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-gray-600">종합 문단</span>
+                    <span className="text-xs font-semibold text-gray-600">종합 의견</span>
                     <button
                       onClick={() => {
-                        const combined = Object.values(keywordResults).join(' ');
+                        const combined = Object.values(keywordResults).join(' ') + (additionalContext.trim() ? ' ' + additionalContext.trim() : '');
                         navigator.clipboard.writeText(combined);
                       }}
                       className="text-[10px] text-gray-400 hover:text-blue-600 px-1.5 py-0.5 border border-gray-200 rounded hover:border-blue-300 transition"
@@ -532,7 +532,7 @@ function LifeRecords() {
                     </button>
                   </div>
                   <p className="text-sm text-gray-800 leading-relaxed bg-white border border-gray-100 rounded-lg p-3">
-                    {Object.values(keywordResults).join(' ')}
+                    {Object.values(keywordResults).join(' ')}{additionalContext.trim() ? ' ' + additionalContext.trim() : ''}
                   </p>
                 </div>
               </div>
