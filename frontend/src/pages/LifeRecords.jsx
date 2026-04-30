@@ -400,7 +400,7 @@ function LifeRecords() {
             </div>
 
             {/* 키워드 워드클라우드 */}
-            <div className="flex flex-wrap gap-2 max-h-[130px] overflow-y-auto p-1">
+            <div className="flex flex-wrap gap-1.5 max-h-[90px] overflow-y-auto p-1">
               {filteredKeywords.length === 0 && (
                 <span className="text-sm text-gray-400">검색 결과가 없습니다</span>
               )}
@@ -455,9 +455,9 @@ function LifeRecords() {
             <textarea
               value={additionalContext}
               onChange={(e) => setAdditionalContext(e.target.value)}
-              rows={3}
+              rows={2}
               className="focus:ring-primary-500 focus:border-primary-500 block w-full text-sm border-gray-300 rounded-md p-2.5 resize-none"
-              placeholder="종합 문단 끝에 덧붙일 문장을 입력하세요."
+              placeholder="종합 의견 끝에 덧붙일 문장을 입력하세요."
               onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleGenerate(e); } }}
             />
           </div>
