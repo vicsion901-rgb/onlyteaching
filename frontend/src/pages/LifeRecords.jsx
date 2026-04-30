@@ -2,6 +2,49 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 
+const DEFAULT_KEYWORDS = [
+  { keyword_id: 1, keyword: '성실', category: '학습태도' },
+  { keyword_id: 2, keyword: '협력', category: '사회성' },
+  { keyword_id: 3, keyword: '배려', category: '인성' },
+  { keyword_id: 4, keyword: '책임감', category: '인성' },
+  { keyword_id: 5, keyword: '창의력', category: '학습역량' },
+  { keyword_id: 6, keyword: '발표력', category: '학습역량' },
+  { keyword_id: 7, keyword: '탐구심', category: '학습역량' },
+  { keyword_id: 8, keyword: '끈기', category: '학습태도' },
+  { keyword_id: 9, keyword: '주도성', category: '학습태도' },
+  { keyword_id: 10, keyword: '정리정돈', category: '생활습관' },
+  { keyword_id: 11, keyword: '공감', category: '사회성' },
+  { keyword_id: 12, keyword: '리더십', category: '사회성' },
+  { keyword_id: 13, keyword: '경청', category: '사회성' },
+  { keyword_id: 14, keyword: '자기표현', category: '학습역량' },
+  { keyword_id: 15, keyword: '규칙준수', category: '생활습관' },
+  { keyword_id: 16, keyword: '예의바름', category: '인성' },
+  { keyword_id: 17, keyword: '자신감', category: '학습태도' },
+  { keyword_id: 18, keyword: '집중력', category: '학습태도' },
+  { keyword_id: 19, keyword: '문제해결', category: '학습역량' },
+  { keyword_id: 20, keyword: '봉사정신', category: '인성' },
+  { keyword_id: 21, keyword: '독서', category: '학습역량' },
+  { keyword_id: 22, keyword: '글쓰기', category: '학습역량' },
+  { keyword_id: 23, keyword: '수학적사고', category: '학습역량' },
+  { keyword_id: 24, keyword: '체육활동', category: '건강' },
+  { keyword_id: 25, keyword: '음악감수성', category: '예술' },
+  { keyword_id: 26, keyword: '미술표현', category: '예술' },
+  { keyword_id: 27, keyword: '친구관계', category: '사회성' },
+  { keyword_id: 28, keyword: '긍정적태도', category: '인성' },
+  { keyword_id: 29, keyword: '시간관리', category: '생활습관' },
+  { keyword_id: 30, keyword: '도전정신', category: '학습태도' },
+  { keyword_id: 31, keyword: '관찰력', category: '학습역량' },
+  { keyword_id: 32, keyword: '의사소통', category: '사회성' },
+  { keyword_id: 33, keyword: '정직', category: '인성' },
+  { keyword_id: 34, keyword: '감사', category: '인성' },
+  { keyword_id: 35, keyword: '인내심', category: '인성' },
+  { keyword_id: 36, keyword: '호기심', category: '학습태도' },
+  { keyword_id: 37, keyword: '자기관리', category: '생활습관' },
+  { keyword_id: 38, keyword: '과학탐구', category: '학습역량' },
+  { keyword_id: 39, keyword: '사회참여', category: '사회성' },
+  { keyword_id: 40, keyword: '안전의식', category: '생활습관' },
+];
+
 const CATEGORY_COLORS = {
   학습태도: 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200',
   학습역량: 'bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200',
@@ -30,7 +73,7 @@ function LifeRecords() {
   const [usedModel, setUsedModel] = useState('');
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [allKeywords, setAllKeywords] = useState([]);
+  const [allKeywords, setAllKeywords] = useState(DEFAULT_KEYWORDS);
   const [selectedKeywords, setSelectedKeywords] = useState([]);
   const [studentName, setStudentName] = useState('');
   const [additionalContext, setAdditionalContext] = useState('');
