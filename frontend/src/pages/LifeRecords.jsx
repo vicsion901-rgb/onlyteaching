@@ -53,26 +53,24 @@ function LifeRecords() {
 
   useEffect(() => {
     const fetchKeywords = async () => {
-      try {
-        const endpoints = ['/life-records/keywords', '/api/liferecords?action=keywords&query='];
-        for (const ep of endpoints) {
-          try {
-            const res = await client.get(ep);
-            const data = Array.isArray(res.data) ? res.data : [];
+      const endpoints = ['/api/liferecords?action=keywords&query=', '/life-records/keywords'];
+      for (const ep of endpoints) {
+        try {
+          const res = await client.get(ep, { timeout: 8000, __retryCount: 99 });
+          const data = Array.isArray(res.data) ? res.data : [];
+          if (data.length > 0) {
             setAllKeywords(data.map((k, i) => ({
               keyword_id: k.keyword_id || i + 1,
               keyword: k.keyword || k.category || k,
               category: k.category || k.subcategory || '',
             })));
             return;
-          } catch (err) {
-            if (err.response?.status === 404) continue;
-            throw err;
           }
+        } catch {
+          // 다음 endpoint 시도
         }
-      } catch (error) {
-        console.error('Failed to fetch keywords', error);
       }
+      console.warn('All keyword endpoints failed');
     };
     fetchKeywords();
   }, []);
@@ -130,8 +128,9 @@ function LifeRecords() {
     setFullText('');
 
     try {
-      const endpoints = ['/life-records/generate', '/api/liferecords?action=generate'];
+      const endpoints = ['/api/liferecords?action=generate', '/life-records/generate'];
       let result = null;
+      let lastErr = null;
 
       for (const ep of endpoints) {
         try {
@@ -143,10 +142,11 @@ function LifeRecords() {
           result = res.data;
           break;
         } catch (err) {
-          if (err.response?.status === 404) continue;
-          throw err;
+          lastErr = err;
         }
       }
+
+      if (!result && lastErr) throw lastErr;
 
       if (result) {
         setKeywordResults(result.keyword_results || {});
