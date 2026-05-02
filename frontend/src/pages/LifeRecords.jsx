@@ -333,9 +333,9 @@ function LifeRecords() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 왼쪽: 입력 */}
-        <div className="space-y-5">
+        <div className="space-y-3">
           {/* 학생 이름 */}
-          <div className="bg-white shadow rounded-lg p-5">
+          <div className="bg-white shadow rounded-lg p-3">
             <div className="relative">
               <label className="block text-sm font-semibold text-gray-700 mb-1">학생 이름</label>
               <input
@@ -369,8 +369,8 @@ function LifeRecords() {
           </div>
 
           {/* 키워드 선택 영역 */}
-          <div className="bg-white shadow rounded-lg p-5">
-            <div className="flex items-center justify-between mb-3">
+          <div className="bg-white shadow rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-semibold text-gray-700">키워드 선택</label>
               {selectedKeywords.length > 0 && (
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white">
@@ -384,12 +384,12 @@ function LifeRecords() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="focus:ring-primary-500 focus:border-primary-500 block w-full text-sm border-gray-300 rounded-md p-2.5 mb-3"
+              className="focus:ring-primary-500 focus:border-primary-500 block w-full text-sm border-gray-300 rounded-md p-2 mb-2"
               placeholder="키워드 검색 (예: 성실, 협력, 배려...)"
             />
 
             {/* 카테고리 필터 */}
-            <div className="flex flex-wrap gap-1.5 mb-3">
+            <div className="flex flex-wrap gap-1 mb-2">
               <button
                 type="button"
                 onClick={() => setActiveCategory(null)}
@@ -464,13 +464,13 @@ function LifeRecords() {
           </div>
 
           {/* 직접 입력 */}
-          <div className="bg-white shadow rounded-lg p-5">
+          <div className="bg-white shadow rounded-lg p-3">
             <label className="block text-sm font-semibold text-gray-700 mb-1">직접 입력</label>
             <textarea
               value={additionalContext}
               onChange={(e) => setAdditionalContext(e.target.value)}
-              rows={2}
-              className="focus:ring-primary-500 focus:border-primary-500 block w-full text-sm border-gray-300 rounded-md p-2.5 resize-none"
+              rows={1}
+              className="focus:ring-primary-500 focus:border-primary-500 block w-full text-sm border-gray-300 rounded-md p-2 resize-none"
               placeholder="종합 의견 끝에 덧붙일 문장을 입력하세요."
               onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleGenerate(e); } }}
             />
