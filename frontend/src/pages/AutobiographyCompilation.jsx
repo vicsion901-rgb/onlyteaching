@@ -43,31 +43,71 @@ const INITIAL_TEACHER_FORM = {
   focus: '',
 };
 
-// ─── 연간 자서전 질문 ───
+// ─── 연간 자서전 질문 (장별 3개씩) ───
 const TEACHER_QUESTIONS = [
-  { id: 'tq1', chapter: 0, text: '올해 학교에서 가장 많은 에너지를 쏟은 일은 무엇이었나요?' },
-  { id: 'tq2', chapter: 1, text: '올해 가장 버겁고 지쳤던 순간은 언제였나요?' },
-  { id: 'tq3', chapter: 2, text: '그럼에도 올해를 버틸 수 있게 해준 힘은 무엇이었나요?' },
-  { id: 'tq4', chapter: 3, text: '올해 가장 외롭거나 혼자라고 느낀 순간은 언제였나요?' },
-  { id: 'tq5', chapter: 4, text: '올해 가장 위로가 되었던 사람, 말, 장면은 무엇이었나요?' },
-  { id: 'tq6', chapter: 5, text: '올해 교사로서 가장 많이 흔들렸던 지점은 무엇이었나요?' },
-  { id: 'tq7', chapter: 6, text: '올해를 지나며 내가 달라졌다고 느낀 부분은 무엇인가요?' },
-  { id: 'tq8', chapter: 7, text: '올해를 대표하는 장면 하나를 꼽는다면 무엇인가요?' },
-  { id: 'tq9', chapter: 8, text: '작년과 비교했을 때 올해의 나는 무엇이 달라졌나요?' },
-  { id: 'tq10', chapter: 9, text: '올해의 나에게, 그리고 내년의 나에게 남기고 싶은 말은 무엇인가요?' },
+  { id: 'tq1a', chapter: 0, text: '올해를 시작할 때 어떤 마음이었나요?' },
+  { id: 'tq1b', chapter: 0, text: '올해의 나는 어떤 교사가 되고 싶었나요?' },
+  { id: 'tq1c', chapter: 0, text: '올해 학교생활을 한마디로 표현하면 무엇인가요?' },
+  { id: 'tq2a', chapter: 1, text: '올해 학교에서 내가 놓인 환경은 어땠나요?' },
+  { id: 'tq2b', chapter: 1, text: '올해의 배경이 된 학교 분위기나 업무 상황은 어땠나요?' },
+  { id: 'tq2c', chapter: 1, text: '올해를 힘들게 만든 구조적 배경은 무엇이었나요?' },
+  { id: 'tq3a', chapter: 2, text: '올해 초반 가장 먼저 마주한 현실은 무엇이었나요?' },
+  { id: 'tq3b', chapter: 2, text: '올해 초반 가장 많은 에너지를 쏟은 일은 무엇이었나요?' },
+  { id: 'tq3c', chapter: 2, text: '학기 초 가장 긴장했던 일은 무엇이었나요?' },
+  { id: 'tq4a', chapter: 3, text: '시간이 지나며 어떤 업무에 익숙해졌나요?' },
+  { id: 'tq4b', chapter: 3, text: '처음엔 버거웠지만 나중엔 감당 가능해진 것은 무엇인가요?' },
+  { id: 'tq4c', chapter: 3, text: '올해 중반 이후 적응했다고 느낀 지점은 무엇인가요?' },
+  { id: 'tq5a', chapter: 4, text: '올해 나를 가장 지치게 한 관계는 무엇이었나요?' },
+  { id: 'tq5b', chapter: 4, text: '올해 가장 위로가 되었던 사람, 말, 장면은 무엇이었나요?' },
+  { id: 'tq5c', chapter: 4, text: '학교 안에서 내가 기대거나 의지했던 존재가 있었나요?' },
+  { id: 'tq6a', chapter: 5, text: '올해 내가 가장 크게 책임을 느꼈던 일은 무엇이었나요?' },
+  { id: 'tq6b', chapter: 5, text: '결국 내가 감당해야 한다고 느낀 일은 무엇이었나요?' },
+  { id: 'tq6c', chapter: 5, text: '교사로서 놓지 못했던 역할은 무엇이었나요?' },
+  { id: 'tq7a', chapter: 6, text: '올해 가장 크게 흔들렸던 순간은 언제였나요?' },
+  { id: 'tq7b', chapter: 6, text: '다시 버티게 된 전환점은 무엇이었나요?' },
+  { id: 'tq7c', chapter: 6, text: '올해 나를 바꾼 사건이나 시기는 무엇이었나요?' },
+  { id: 'tq8a', chapter: 7, text: '지금 돌아보면 올해의 나는 어떤 교사였나요?' },
+  { id: 'tq8b', chapter: 7, text: '올해를 지나며 달라진 점은 무엇인가요?' },
+  { id: 'tq8c', chapter: 7, text: '지금 내게 가장 깊게 남은 감정은 무엇인가요?' },
+  { id: 'tq9a', chapter: 8, text: '내년의 나는 어떤 모습이면 좋겠나요?' },
+  { id: 'tq9b', chapter: 8, text: '앞으로도 지키고 싶은 태도는 무엇인가요?' },
+  { id: 'tq9c', chapter: 8, text: '후배 교사에게 남기고 싶은 현실적인 말은 무엇인가요?' },
+  { id: 'tq10a', chapter: 9, text: '올해의 나에게 남기고 싶은 말은 무엇인가요?' },
+  { id: 'tq10b', chapter: 9, text: '내년의 나에게 건네고 싶은 한마디는 무엇인가요?' },
+  { id: 'tq10c', chapter: 9, text: '마지막 문장에 꼭 넣고 싶은 말은 무엇인가요?' },
 ];
 
 const STUDENT_QUESTIONS = [
-  { id: 'sq1', chapter: 0, text: '올해 학교에서 가장 기억에 남는 일은 무엇이었나요?' },
-  { id: 'sq2', chapter: 1, text: '올해 가장 어렵거나 힘들었던 순간은 언제였나요?' },
-  { id: 'sq3', chapter: 2, text: '올해 나를 도와준 사람이나 힘이 된 것은 무엇이었나요?' },
-  { id: 'sq4', chapter: 3, text: '올해 새로 사귄 친구나 더 가까워진 친구가 있나요?' },
-  { id: 'sq5', chapter: 4, text: '올해 가장 뿌듯했던 순간은 언제였나요?' },
-  { id: 'sq6', chapter: 5, text: '올해 내가 맡았던 역할 중 기억에 남는 것은 무엇인가요?' },
-  { id: 'sq7', chapter: 6, text: '올해 나에게 일어난 가장 큰 변화는 무엇인가요?' },
-  { id: 'sq8', chapter: 7, text: '올해를 떠올리면 가장 먼저 생각나는 장면은 무엇인가요?' },
-  { id: 'sq9', chapter: 8, text: '앞으로 하고 싶은 것이나 되고 싶은 모습이 있나요?' },
-  { id: 'sq10', chapter: 9, text: '올해의 나에게 해주고 싶은 말이 있다면 무엇인가요?' },
+  { id: 'sq1a', chapter: 0, text: '올해를 시작할 때 어떤 마음이었나요?' },
+  { id: 'sq1b', chapter: 0, text: '올해 학교에서 가장 기대했던 것은 무엇이었나요?' },
+  { id: 'sq1c', chapter: 0, text: '올해를 한마디로 표현하면 무엇인가요?' },
+  { id: 'sq2a', chapter: 1, text: '올해 나의 학교, 반 분위기는 어땠나요?' },
+  { id: 'sq2b', chapter: 1, text: '올해 나를 둘러싼 환경 중 기억나는 것은 무엇인가요?' },
+  { id: 'sq2c', chapter: 1, text: '올해 학교생활의 배경이 된 특별한 상황이 있었나요?' },
+  { id: 'sq3a', chapter: 2, text: '학기 초에 가장 먼저 겪은 일은 무엇이었나요?' },
+  { id: 'sq3b', chapter: 2, text: '올해 초반 가장 긴장되거나 설렜던 순간은 언제인가요?' },
+  { id: 'sq3c', chapter: 2, text: '학기 초에 가장 어려웠던 것은 무엇이었나요?' },
+  { id: 'sq4a', chapter: 3, text: '학교생활에 익숙해진 것은 언제쯤이었나요?' },
+  { id: 'sq4b', chapter: 3, text: '처음엔 어려웠지만 나중엔 잘하게 된 것이 있나요?' },
+  { id: 'sq4c', chapter: 3, text: '학교에서 편해졌다고 느낀 순간은 언제인가요?' },
+  { id: 'sq5a', chapter: 4, text: '올해 가장 좋았던 친구 관계는 무엇이었나요?' },
+  { id: 'sq5b', chapter: 4, text: '올해 함께해서 즐거웠던 활동이나 사람은 누구인가요?' },
+  { id: 'sq5c', chapter: 4, text: '친구나 선생님과의 관계에서 기억에 남는 장면은 무엇인가요?' },
+  { id: 'sq6a', chapter: 5, text: '올해 내가 맡았던 역할 중 기억에 남는 것은 무엇인가요?' },
+  { id: 'sq6b', chapter: 5, text: '내가 책임감을 느꼈던 순간은 언제인가요?' },
+  { id: 'sq6c', chapter: 5, text: '나에게 맡겨진 일 중 끝까지 해낸 것은 무엇인가요?' },
+  { id: 'sq7a', chapter: 6, text: '올해 나에게 일어난 가장 큰 변화는 무엇인가요?' },
+  { id: 'sq7b', chapter: 6, text: '힘들었지만 결국 성장하게 된 경험이 있나요?' },
+  { id: 'sq7c', chapter: 6, text: '올해 나를 바꾼 사건이나 순간은 무엇인가요?' },
+  { id: 'sq8a', chapter: 7, text: '올해를 떠올리면 가장 먼저 생각나는 장면은 무엇인가요?' },
+  { id: 'sq8b', chapter: 7, text: '지금의 나는 올해 초와 어떻게 달라졌나요?' },
+  { id: 'sq8c', chapter: 7, text: '올해 가장 뿌듯했던 순간은 언제인가요?' },
+  { id: 'sq9a', chapter: 8, text: '앞으로 하고 싶은 것이 있나요?' },
+  { id: 'sq9b', chapter: 8, text: '내년에 되고 싶은 모습은 어떤 모습인가요?' },
+  { id: 'sq9c', chapter: 8, text: '앞으로도 계속하고 싶은 것은 무엇인가요?' },
+  { id: 'sq10a', chapter: 9, text: '올해의 나에게 해주고 싶은 말이 있다면 무엇인가요?' },
+  { id: 'sq10b', chapter: 9, text: '내년의 나에게 건네고 싶은 한마디는 무엇인가요?' },
+  { id: 'sq10c', chapter: 9, text: '마지막으로 꼭 남기고 싶은 말은 무엇인가요?' },
 ];
 
 const FOLLOW_UP_RULES = [
@@ -909,6 +949,15 @@ function parseResponseToChapters(text) {
 
 function QuestionsSection({ questions, questionAnswers, setQuestionAnswers, followUps, setFollowUps, followUpAnswers, setFollowUpAnswers, expandedQ, setExpandedQ, isOpen, setIsOpen }) {
   const answeredCount = questions.filter(q => questionAnswers[q.id]?.trim()).length;
+  const chapterGroups = useMemo(() => {
+    const groups = {};
+    questions.forEach(q => {
+      if (!groups[q.chapter]) groups[q.chapter] = [];
+      groups[q.chapter].push(q);
+    });
+    return Object.entries(groups).sort(([a], [b]) => Number(a) - Number(b));
+  }, [questions]);
+
   return (
     <div className="rounded-xl border-2 border-purple-100 bg-purple-50/30 p-3">
       <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between">
@@ -919,51 +968,71 @@ function QuestionsSection({ questions, questionAnswers, setQuestionAnswers, foll
         <span className="text-xs text-gray-400">{isOpen ? '접기 ▲' : '펼치기 ▼'}</span>
       </button>
       {isOpen && (
-        <div className="mt-3 space-y-1">
-          {questions.map((q) => {
-            const isExp = expandedQ === q.id;
-            const hasAns = !!questionAnswers[q.id]?.trim();
-            const fups = followUps[q.id] || [];
+        <div className="mt-3 space-y-3">
+          {chapterGroups.map(([chIdx, qs]) => {
+            const ch = FIXED_CHAPTERS[Number(chIdx)];
+            if (!ch) return null;
+            const groupAnswered = qs.filter(q => questionAnswers[q.id]?.trim()).length;
+            const isGroupExpanded = qs.some(q => expandedQ === q.id);
             return (
-              <div key={q.id} className={`rounded-lg border transition-all ${isExp ? 'border-purple-300 bg-white' : hasAns ? 'border-green-200 bg-green-50/30' : 'border-gray-100 bg-white/50'}`}>
-                <button type="button" onClick={() => setExpandedQ(isExp ? null : q.id)} className="w-full text-left px-3 py-2 flex items-center gap-2">
-                  <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0 ${hasAns ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                    {hasAns ? '✓' : q.id.replace(/[a-z]/g, '')}
-                  </span>
-                  <span className="text-xs text-gray-700 flex-1 line-clamp-2">{q.text}</span>
+              <div key={chIdx} className="rounded-lg border border-gray-100 overflow-hidden">
+                <button type="button" onClick={() => setExpandedQ(isGroupExpanded ? null : qs[0].id)}
+                  className={`w-full text-left px-3 py-2 flex items-center gap-2 text-xs font-semibold ${isGroupExpanded ? 'bg-purple-100 text-purple-800' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>
+                  <span className="text-[10px] text-gray-400 w-4">{Number(chIdx) + 1}장</span>
+                  <span className="flex-1">{ch.title}</span>
+                  {groupAnswered > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-500 text-white">{groupAnswered}/{qs.length}</span>}
                 </button>
-                {isExp && (
-                  <div className="px-3 pb-3 space-y-2">
-                    <textarea
-                      value={questionAnswers[q.id] || ''}
-                      onChange={(e) => setQuestionAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                      onBlur={() => {
-                        const ans = questionAnswers[q.id];
-                        if (ans && ans.trim().length >= 5) {
-                          setFollowUps(prev => ({ ...prev, [q.id]: generateFollowUps(ans) }));
-                        }
-                      }}
-                      rows={3}
-                      className="w-full text-xs border border-gray-200 rounded-md p-2 resize-none focus:ring-1 focus:ring-purple-400 focus:border-purple-400"
-                      placeholder="자유롭게 답변해주세요..."
-                    />
-                    {fups.length > 0 && (
-                      <div className="space-y-1.5 pl-2 border-l-2 border-purple-200">
-                        <div className="text-[10px] font-semibold text-purple-500">심화 질문</div>
-                        {fups.map((fu, i) => (
-                          <div key={i}>
-                            <p className="text-[11px] text-gray-600 mb-1">→ {fu}</p>
-                            <textarea
-                              value={followUpAnswers[`${q.id}_${i}`] || ''}
-                              onChange={(e) => setFollowUpAnswers(prev => ({ ...prev, [`${q.id}_${i}`]: e.target.value }))}
-                              rows={2}
-                              className="w-full text-xs border border-gray-100 rounded p-1.5 resize-none focus:ring-1 focus:ring-purple-300"
-                              placeholder="답변..."
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                {isGroupExpanded && (
+                  <div className="p-2 space-y-2 bg-white">
+                    {qs.map(q => {
+                      const isExp = expandedQ === q.id;
+                      const hasAns = !!questionAnswers[q.id]?.trim();
+                      const fups = followUps[q.id] || [];
+                      return (
+                        <div key={q.id} className={`rounded border px-2 py-1.5 ${isExp ? 'border-purple-200 bg-purple-50/30' : hasAns ? 'border-green-100' : 'border-gray-50'}`}>
+                          <button type="button" onClick={() => setExpandedQ(isExp ? qs[0].id === q.id ? null : q.id : q.id)} className="w-full text-left flex items-center gap-1.5">
+                            <span className={`w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center flex-shrink-0 ${hasAns ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                              {hasAns ? '✓' : '·'}
+                            </span>
+                            <span className="text-[11px] text-gray-700 flex-1 line-clamp-1">{q.text}</span>
+                          </button>
+                          {isExp && (
+                            <div className="mt-1.5 space-y-1.5">
+                              <textarea
+                                value={questionAnswers[q.id] || ''}
+                                onChange={(e) => setQuestionAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                onBlur={() => {
+                                  const ans = questionAnswers[q.id];
+                                  if (ans && ans.trim().length >= 5) {
+                                    setFollowUps(prev => ({ ...prev, [q.id]: generateFollowUps(ans) }));
+                                  }
+                                }}
+                                rows={2}
+                                className="w-full text-xs border border-gray-200 rounded p-1.5 resize-none focus:ring-1 focus:ring-purple-400"
+                                placeholder="답변..."
+                              />
+                              {fups.length > 0 && (
+                                <div className="space-y-1 pl-2 border-l-2 border-purple-200">
+                                  <div className="text-[9px] font-semibold text-purple-500">심화</div>
+                                  {fups.map((fu, i) => (
+                                    <div key={i}>
+                                      <p className="text-[10px] text-gray-500 mb-0.5">→ {fu}</p>
+                                      <textarea
+                                        value={followUpAnswers[`${q.id}_${i}`] || ''}
+                                        onChange={(e) => setFollowUpAnswers(prev => ({ ...prev, [`${q.id}_${i}`]: e.target.value }))}
+                                        rows={1}
+                                        className="w-full text-[11px] border border-gray-100 rounded p-1 resize-none focus:ring-1 focus:ring-purple-300"
+                                        placeholder="답변..."
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -979,8 +1048,8 @@ function QuestionsSection({ questions, questionAnswers, setQuestionAnswers, foll
 
 function ChapterBadges({ chapterIdx, questionAnswers, selectedSources, activeTab, hasContent }) {
   const questions = activeTab === 'student' ? STUDENT_QUESTIONS : TEACHER_QUESTIONS;
-  const q = questions.find(qq => qq.chapter === chapterIdx);
-  const hasAnswer = q && !!questionAnswers[q.id]?.trim();
+  const chapterQs = questions.filter(qq => qq.chapter === chapterIdx);
+  const answeredCount = chapterQs.filter(qq => questionAnswers[qq.id]?.trim()).length;
 
   const linkedSources = Object.entries(selectedSources)
     .filter(([, v]) => v)
@@ -991,11 +1060,9 @@ function ChapterBadges({ chapterIdx, questionAnswers, selectedSources, activeTab
     return mapping.includes(chId);
   });
 
-  const answerLen = hasAnswer ? questionAnswers[q.id].trim().length : 0;
-
   return (
     <span className="flex items-center gap-1 flex-wrap">
-      {hasAnswer && <span className="text-[9px] px-1 py-0.5 rounded bg-purple-100 text-purple-600" title={`${answerLen}자 답변`}>✏️ 답변</span>}
+      {answeredCount > 0 && <span className="text-[9px] px-1 py-0.5 rounded bg-purple-100 text-purple-600">✏️ {answeredCount}/{chapterQs.length}</span>}
       {chapterSources.length > 0 && <span className="text-[9px] px-1 py-0.5 rounded bg-sky-100 text-sky-600">{chapterSources.length}개 연동</span>}
       {hasContent && <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-600">초안</span>}
     </span>
