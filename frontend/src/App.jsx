@@ -8,7 +8,6 @@ import Semester1Schedule from './pages/Semester1Schedule';
 import Semester2Schedule from './pages/Semester2Schedule';
 import LifeRecords from './pages/LifeRecords';
 import SubjectEvaluation from './pages/SubjectEvaluation';
-import Neis from './pages/Neis';
 import Newsletter from './pages/Newsletter';
 import Counseling from './pages/Counseling';
 import AbsenceReport from './pages/AbsenceReport';
@@ -42,7 +41,6 @@ function App() {
           <Route path="/student-records" element={<StudentRecords />} />
           <Route path="/subject-evaluation" element={<SubjectEvaluation />} />
           <Route path="/life-records" element={<LifeRecords />} />
-          <Route path="/neis" element={<Neis />} />
           <Route path="/newsletter" element={<Newsletter />} />
           <Route path="/counseling" element={<Counseling />} />
           <Route path="/absence-report" element={<AbsenceReport />} />

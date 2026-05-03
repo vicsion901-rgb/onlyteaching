@@ -23,15 +23,7 @@ export const TAB_REGISTRY = [
     section: 'admin',
     subtitle: ({ hasStudentData }) => (hasStudentData ? '명단 등록됨' : '명단 관리'),
   },
-  {
-    id: 'neis',
-    route: '/neis',
-    emoji: '💼',
-    title: 'NEIS 업무',
-    section: 'admin',
-    subtitle: () => 'NEIS 관리',
-  },
-  {
+{
     id: 'life-records',
     route: '/life-records',
     emoji: '📝',
