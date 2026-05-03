@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import client from '../api/client';
 
 const STORAGE_KEY = 'careClassroomRecords';
 
@@ -152,6 +153,8 @@ function CareClassroom() {
     observationJournal: false,
     todayMeal: false,
   });
+  const [linkedData, setLinkedData] = useState({});
+  const [isLinkingData, setIsLinkingData] = useState(false);
   const moodPickerRef = useRef(null);
   const sourcePickerRef = useRef(null);
 
@@ -272,6 +275,32 @@ function CareClassroom() {
     });
   };
 
+  const handleLinkData = async () => {
+    const selected = Object.entries(selectedSources).filter(([, v]) => v).map(([k]) => k);
+    if (selected.length === 0) { alert('연동할 항목을 선택해주세요.'); return; }
+    setIsLinkingData(true);
+    const data = {};
+    for (const key of selected) {
+      try {
+        if (key === 'schedule') {
+          const res = await client.get('/api/schedules', { timeout: 8000, __retryCount: 99 });
+          data.schedule = Array.isArray(res.data) ? res.data : [];
+        } else if (key === 'studentRecords') {
+          const res = await client.get('/api/students', { timeout: 8000, __retryCount: 99 });
+          data.studentRecords = Array.isArray(res.data) ? res.data : [];
+        } else if (key === 'todayMeal') {
+          const res = await client.get('/api/meals', { timeout: 8000, __retryCount: 99 });
+          data.todayMeal = Array.isArray(res.data?.items) ? res.data.items : [];
+        } else if (key === 'observationJournal') {
+          data.observationJournal = [];
+        }
+      } catch { data[key] = []; }
+    }
+    setLinkedData(data);
+    setIsSourcePickerOpen(false);
+    setIsLinkingData(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -316,6 +345,14 @@ function CareClassroom() {
                       <span>전부 연동</span>
                     </label>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleLinkData}
+                    disabled={isLinkingData || !Object.values(selectedSources).some(Boolean)}
+                    className="mt-3 w-full py-2 rounded-lg text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+                  >
+                    {isLinkingData ? '연동 중...' : '반영하기'}
+                  </button>
                 </div>
               )}
             </div>
@@ -432,6 +469,53 @@ function CareClassroom() {
           </div>
         </section>
       </div>
+
+      {/* 연동 데이터 표시 */}
+      {Object.keys(linkedData).length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {linkedData.schedule && linkedData.schedule.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">📅 학사일정</h3>
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {linkedData.schedule.slice(0, 15).map((item, i) => (
+                  <div key={i} className="text-xs text-gray-600 flex gap-2">
+                    <span className="text-gray-400 flex-shrink-0">{item.date || item.start_date || ''}</span>
+                    <span>{item.title || item.event || item.description || JSON.stringify(item)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {linkedData.studentRecords && linkedData.studentRecords.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">👥 학생명부</h3>
+              <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
+                {linkedData.studentRecords.map((s, i) => (
+                  <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                    {s.number ? `${s.number}번 ` : ''}{s.name || ''}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {linkedData.todayMeal && linkedData.todayMeal.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">🍽️ 오늘의 급식</h3>
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {linkedData.todayMeal.map((item, i) => (
+                  <div key={i} className="text-xs text-gray-600">{item.menu || item.name || JSON.stringify(item)}</div>
+                ))}
+              </div>
+            </div>
+          )}
+          {linkedData.observationJournal !== undefined && (
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">🔍 관찰일지</h3>
+              <p className="text-xs text-gray-400">관찰일지 연동은 준비 중입니다.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {isEditorOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4 py-6" onClick={() => setIsEditorOpen(false)}>
