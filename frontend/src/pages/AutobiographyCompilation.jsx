@@ -1246,19 +1246,18 @@ function EditableBlock({ block, onUpdate, onDelete, onRestore, onProofread, proo
   );
 }
 
-function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBlock, onRestoreBlock, onProofreadBlock, onProofreadPage, proofreadResults, isProofreading, onApplyProofread, onDismissProofread, highlight }) {
-  const hl = (text) => {
-    if (!highlight) return text;
-    const re = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    return text.split(re).map((part, i) =>
-      re.test(part) ? <mark key={i} className="bg-yellow-300 px-0.5 rounded">{part}</mark> : part
-    );
-  };
+function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBlock, onRestoreBlock, onProofreadBlock, onProofreadPage, proofreadResults, isProofreading, onApplyProofread, onDismissProofread, highlight, questionAnswers, setQuestionAnswers, activeTab }) {
+  const [showQPopup, setShowQPopup] = useState(false);
+  const [activeQIdx, setActiveQIdx] = useState(0);
+
+  const questions = (activeTab === 'student' ? STUDENT_QUESTIONS : TEACHER_QUESTIONS).filter(q => q.chapter === idx);
+  const answeredCount = questions.filter(q => questionAnswers?.[q.id]?.trim()).length;
+  const hasUnanswered = answeredCount < questions.length;
 
   const hasBlocks = blocks && blocks.length > 0;
 
   return (
-    <div className="h-full overflow-y-auto px-8 py-6 flex flex-col" style={{ fontFamily: "'Noto Serif KR', serif" }}>
+    <div className="h-full overflow-y-auto px-8 py-6 flex flex-col relative" style={{ fontFamily: "'Noto Serif KR', serif" }}>
       {/* 챕터 헤더 */}
       <div className="text-center mb-4">
         <span className="text-[10px] text-amber-500 tracking-[0.2em] uppercase">{ch.period}</span>
@@ -1266,6 +1265,18 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
         <h3 className="text-base text-gray-700 mt-0.5">{ch.title}</h3>
         <div className="w-10 h-px bg-amber-400 mx-auto mt-3" />
       </div>
+
+      {/* 질문 답변 버튼 */}
+      {questions.length > 0 && (
+        <div className="flex justify-center mb-3">
+          <button type="button" onClick={() => { setShowQPopup(true); setActiveQIdx(0); }}
+            className={`text-[11px] px-3 py-1.5 rounded-full border font-medium transition ${
+              hasUnanswered ? 'text-purple-700 bg-purple-50 border-purple-200 hover:bg-purple-100 animate-pulse' : 'text-green-700 bg-green-50 border-green-200 hover:bg-green-100'
+            }`}>
+            {hasUnanswered ? `📝 질문 답변하기 (${answeredCount}/${questions.length})` : `✅ 질문 완료 (${answeredCount}/${questions.length}) · 수정`}
+          </button>
+        </div>
+      )}
 
       {/* 블록 리스트 */}
       <div className="flex-1">
@@ -1291,13 +1302,9 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
           </>
         ) : (
           <div className="text-center py-6">
-            <p className="text-xs text-gray-300 italic mb-4">
-              {ch.placeholder}
-            </p>
+            <p className="text-xs text-gray-300 italic mb-4">{ch.placeholder}</p>
             <AddBlockButton onClick={() => onAddBlock(ch.id, 0)} alwaysVisible />
-            <p className="text-[10px] text-gray-300 mt-3">
-              직접 문장을 추가하거나, 자서전 생성 후 내용이 채워집니다.
-            </p>
+            <p className="text-[10px] text-gray-300 mt-3">직접 문장을 추가하거나, 자서전 생성 후 내용이 채워집니다.</p>
           </div>
         )}
       </div>
@@ -1305,12 +1312,8 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
       {/* 페이지 단위 오탈자 점검 */}
       {hasBlocks && (
         <div className="mt-2 flex justify-center">
-          <button
-            type="button"
-            onClick={() => onProofreadPage(ch.id)}
-            disabled={isProofreading}
-            className="text-[11px] px-3 py-1 text-green-600 bg-green-50 border border-green-200 rounded-full hover:bg-green-100 disabled:opacity-40 transition font-medium"
-          >
+          <button type="button" onClick={() => onProofreadPage(ch.id)} disabled={isProofreading}
+            className="text-[11px] px-3 py-1 text-green-600 bg-green-50 border border-green-200 rounded-full hover:bg-green-100 disabled:opacity-40 transition font-medium">
             {isProofreading ? '점검 중...' : '📝 이 페이지 오탈자 점검'}
           </button>
         </div>
@@ -1318,6 +1321,64 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
 
       {/* 페이지 번호 */}
       <div className="text-center text-[10px] text-gray-300 mt-2 flex-shrink-0">{idx + 1}</div>
+
+      {/* ─── 장별 질문 오버레이 ─── */}
+      {showQPopup && questions.length > 0 && (
+        <div className="absolute inset-0 z-30 bg-amber-50/95 backdrop-blur-sm flex flex-col px-6 py-5 overflow-y-auto" style={{ fontFamily: "'Noto Serif KR', serif" }}>
+          <div className="text-center mb-4">
+            <span className="text-[10px] text-purple-500 tracking-[0.15em]">제{idx + 1}장 질문</span>
+            <h2 className="text-base font-bold text-gray-900 mt-1">{ch.title}</h2>
+            <p className="text-[11px] text-gray-400 mt-0.5">{ch.period}</p>
+            <div className="flex justify-center gap-1.5 mt-2">
+              {questions.map((q, i) => (
+                <button key={q.id} type="button" onClick={() => setActiveQIdx(i)}
+                  className={`w-6 h-6 rounded-full text-[10px] font-bold transition ${
+                    i === activeQIdx ? 'bg-purple-600 text-white scale-110' : questionAnswers?.[q.id]?.trim() ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'
+                  }`}>
+                  {questionAnswers?.[q.id]?.trim() ? '✓' : i + 1}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col justify-center">
+            {(() => {
+              const q = questions[activeQIdx];
+              if (!q) return null;
+              const hasAns = !!questionAnswers?.[q.id]?.trim();
+              return (
+                <div className="max-w-md mx-auto w-full space-y-4">
+                  <p className="text-sm font-medium text-gray-800 leading-relaxed text-center">{q.text}</p>
+                  <textarea
+                    value={questionAnswers?.[q.id] || ''}
+                    onChange={(e) => setQuestionAnswers?.(prev => ({ ...prev, [q.id]: e.target.value }))}
+                    rows={5}
+                    className="w-full text-sm border border-gray-200 rounded-lg p-3 resize-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-white shadow-sm"
+                    placeholder="자유롭게 답변해주세요..."
+                    autoFocus
+                  />
+                  <div className="flex items-center justify-between">
+                    <button type="button" onClick={() => setActiveQIdx(Math.max(0, activeQIdx - 1))} disabled={activeQIdx === 0}
+                      className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 px-3 py-1.5">← 이전</button>
+                    <span className="text-[10px] text-gray-400">{activeQIdx + 1} / {questions.length}</span>
+                    {activeQIdx < questions.length - 1 ? (
+                      <button type="button" onClick={() => setActiveQIdx(activeQIdx + 1)}
+                        className="text-xs text-purple-600 hover:text-purple-800 font-medium px-3 py-1.5">다음 →</button>
+                    ) : (
+                      <button type="button" onClick={() => setShowQPopup(false)}
+                        className="text-xs text-white bg-purple-600 hover:bg-purple-700 font-medium px-4 py-1.5 rounded-full">완료</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          <div className="text-center mt-3">
+            <button type="button" onClick={() => setShowQPopup(false)} className="text-[11px] text-gray-400 hover:text-gray-600 underline">닫기</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1739,6 +1800,9 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
                 onApplyProofread={applyProofread}
                 onDismissProofread={dismissProofread}
                 highlight={highlight}
+                questionAnswers={questionAnswers}
+                setQuestionAnswers={setQuestionAnswers}
+                activeTab={activeTab}
               />
             )}
           </div>
@@ -1761,6 +1825,9 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
                 onApplyProofread={applyProofread}
                 onDismissProofread={dismissProofread}
                 highlight={highlight}
+                questionAnswers={questionAnswers}
+                setQuestionAnswers={setQuestionAnswers}
+                activeTab={activeTab}
               />
             ) : (
               <div className="h-full flex items-center justify-center text-gray-300 text-xs italic">— 끝 —</div>
