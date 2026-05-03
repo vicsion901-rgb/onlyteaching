@@ -1602,7 +1602,7 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
             expandedQ={expandedQ}
             setExpandedQ={setExpandedQ}
             isOpen={true}
-            setIsOpen={() => {}}
+            setIsOpen={() => setShowQuestions(false)}
           />
         </div>
       )}
