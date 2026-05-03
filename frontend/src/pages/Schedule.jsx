@@ -694,7 +694,7 @@ function Schedule() {
                     className={`flex items-center gap-2 px-4 py-2 rounded-md text-white font-medium text-sm transition-all ${
                       isAiLoading || !aiPrompt.trim()
                         ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-white hover:bg-gray-50 border-gray-300 shadow-sm hover:shadow'
+                        : 'bg-blue-600 hover:bg-blue-700 border-blue-600 shadow-sm hover:shadow'
                     }`}
                   >
                     {isAiLoading ? (
