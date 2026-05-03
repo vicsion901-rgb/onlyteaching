@@ -229,11 +229,21 @@ function AutobiographyCompilation() {
   const [dragIdx, setDragIdx] = useState(null);
   const [isSourcePickerOpen, setIsSourcePickerOpen] = useState(false);
   const [lastSourceData, setLastSourceData] = useState(null);
-  const [questionAnswers, setQuestionAnswers] = useState({});
-  const [followUpAnswers, setFollowUpAnswers] = useState({});
-  const [followUps, setFollowUps] = useState({});
+  const [questionAnswers, setQuestionAnswers] = useState(() => {
+    try { const s = localStorage.getItem('autobio_questionAnswers'); return s ? JSON.parse(s) : {}; } catch { return {}; }
+  });
+  const [followUpAnswers, setFollowUpAnswers] = useState(() => {
+    try { const s = localStorage.getItem('autobio_followUpAnswers'); return s ? JSON.parse(s) : {}; } catch { return {}; }
+  });
+  const [followUps, setFollowUps] = useState(() => {
+    try { const s = localStorage.getItem('autobio_followUps'); return s ? JSON.parse(s) : {}; } catch { return {}; }
+  });
   const [isQuestionsOpen, setIsQuestionsOpen] = useState(false);
   const [expandedQ, setExpandedQ] = useState(null);
+
+  useEffect(() => { localStorage.setItem('autobio_questionAnswers', JSON.stringify(questionAnswers)); }, [questionAnswers]);
+  useEffect(() => { localStorage.setItem('autobio_followUpAnswers', JSON.stringify(followUpAnswers)); }, [followUpAnswers]);
+  useEffect(() => { localStorage.setItem('autobio_followUps', JSON.stringify(followUps)); }, [followUps]);
   const [selectedSources, setSelectedSources] = useState({
     radioStory: false,
     careClassroom: false,
@@ -981,9 +991,11 @@ function ChapterBadges({ chapterIdx, questionAnswers, selectedSources, activeTab
     return mapping.includes(chId);
   });
 
+  const answerLen = hasAnswer ? questionAnswers[q.id].trim().length : 0;
+
   return (
     <span className="flex items-center gap-1 flex-wrap">
-      {hasAnswer && <span className="text-[9px] px-1 py-0.5 rounded bg-purple-100 text-purple-600">질문답변</span>}
+      {hasAnswer && <span className="text-[9px] px-1 py-0.5 rounded bg-purple-100 text-purple-600" title={`${answerLen}자 답변`}>✏️ 답변</span>}
       {chapterSources.length > 0 && <span className="text-[9px] px-1 py-0.5 rounded bg-sky-100 text-sky-600">{chapterSources.length}개 연동</span>}
       {hasContent && <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-600">초안</span>}
     </span>
