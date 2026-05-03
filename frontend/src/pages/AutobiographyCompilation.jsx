@@ -834,6 +834,12 @@ function AutobiographyCompilation() {
             usedModel={usedModel}
             sourceData={lastSourceData}
             onClose={() => { setResponse(''); setUsedModel(''); }}
+            questionAnswers={questionAnswers}
+            setQuestionAnswers={setQuestionAnswers}
+            followUps={followUps}
+            setFollowUps={setFollowUps}
+            followUpAnswers={followUpAnswers}
+            setFollowUpAnswers={setFollowUpAnswers}
           />
         )}
       </form>
@@ -1239,10 +1245,12 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
 
 // ─── 전자북 모달 ───
 
-function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sourceData }) {
+function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sourceData, questionAnswers, setQuestionAnswers, followUps, setFollowUps, followUpAnswers, setFollowUpAnswers }) {
   const [spread, setSpread] = useState(0);
   const [showToc, setShowToc] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showQuestions, setShowQuestions] = useState(false);
+  const [expandedQ, setExpandedQ] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [pageInput, setPageInput] = useState('');
@@ -1492,8 +1500,9 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
       {/* 상단 바 */}
       <div className={`flex items-center justify-between px-4 py-2 bg-black/60 transition-opacity duration-500 ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="flex items-center gap-2">
-          <button onClick={() => { setShowToc(!showToc); setShowSearch(false); }} className="text-xs text-amber-300 hover:text-white border border-amber-800 rounded px-2 py-1" aria-label="목차">☰ 목차</button>
-          <button onClick={() => { setShowSearch(!showSearch); setShowToc(false); }} className="text-xs text-amber-300 hover:text-white border border-amber-800 rounded px-2 py-1" aria-label="검색">🔍 검색</button>
+          <button onClick={() => { setShowToc(!showToc); setShowSearch(false); setShowQuestions(false); }} className="text-xs text-amber-300 hover:text-white border border-amber-800 rounded px-2 py-1" aria-label="목차">☰ 목차</button>
+          <button onClick={() => { setShowSearch(!showSearch); setShowToc(false); setShowQuestions(false); }} className="text-xs text-amber-300 hover:text-white border border-amber-800 rounded px-2 py-1" aria-label="검색">🔍 검색</button>
+          <button onClick={() => { setShowQuestions(!showQuestions); setShowToc(false); setShowSearch(false); }} className="text-xs text-purple-300 hover:text-white border border-purple-800 rounded px-2 py-1" aria-label="질문">📝 질문</button>
           <span className="text-xs text-stone-400 ml-2">{leftIdx + 1}~{Math.min(rightIdx + 1, chapters.length)} / {chapters.length}장</span>
         </div>
         <div className="flex items-center gap-2">
@@ -1576,6 +1585,25 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
               <span className="text-[10px] text-gray-400 self-center ml-1">1~{chapters.length}</span>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 질문 패널 */}
+      {showQuestions && (
+        <div className="absolute left-2 top-12 z-20 w-80 bg-white/95 rounded-lg shadow-2xl border border-purple-200 max-h-[75vh] overflow-y-auto backdrop-blur p-3">
+          <QuestionsSection
+            questions={activeTab === 'student' ? STUDENT_QUESTIONS : TEACHER_QUESTIONS}
+            questionAnswers={questionAnswers || {}}
+            setQuestionAnswers={setQuestionAnswers || (() => {})}
+            followUps={followUps || {}}
+            setFollowUps={setFollowUps || (() => {})}
+            followUpAnswers={followUpAnswers || {}}
+            setFollowUpAnswers={setFollowUpAnswers || (() => {})}
+            expandedQ={expandedQ}
+            setExpandedQ={setExpandedQ}
+            isOpen={true}
+            setIsOpen={() => {}}
+          />
         </div>
       )}
 
