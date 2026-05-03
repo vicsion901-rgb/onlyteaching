@@ -1279,19 +1279,21 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
   const goSpread = (s) => setSpread(Math.max(0, Math.min(maxSpread, s)));
   const goPage = (p) => goSpread(Math.floor(p / 2));
 
-  // 블록 초기화: AI 응답 + 연동 자료 → 블록 변환
+  // 블록 초기화: AI 응답 + 연동 자료 → 블록 변환 (질문 블록 보존)
   useEffect(() => {
     const parsed = parseResponseToChapters(response);
     const sourceBlocks = importSourceBlocks(sourceData);
-    const blocks = {};
 
-    parsed.forEach((ch) => {
-      const aiBlocks = createBlocksFromAIContent(ch.content);
-      const linked = sourceBlocks[ch.id] || [];
-      blocks[ch.id] = [...aiBlocks, ...linked];
+    setChapterBlocks(prev => {
+      const blocks = {};
+      parsed.forEach((ch) => {
+        const aiBlocks = createBlocksFromAIContent(ch.content);
+        const linked = sourceBlocks[ch.id] || [];
+        const existingQBlocks = (prev[ch.id] || []).filter(b => typeof b.source === 'string' && b.source.startsWith('question-'));
+        blocks[ch.id] = [...existingQBlocks, ...aiBlocks, ...linked];
+      });
+      return blocks;
     });
-
-    setChapterBlocks(blocks);
     setProofreadResults({});
   }, [response, sourceData]);
 
