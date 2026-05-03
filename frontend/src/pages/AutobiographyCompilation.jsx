@@ -140,18 +140,18 @@ const SOURCE_CHAPTER_KEYWORDS = {
   observationJournal: ['관찰', '상담'],
 };
 
-// ─── 고정 챕터 구조 (시간순 전자북) ───
+// ─── 고정 챕터 구조 (연간 자서전) ───
 const FIXED_CHAPTERS = [
-  { id: 'intro', title: '시작하는 글', period: '프롤로그', placeholder: '이 장은 자서전의 문을 여는 공간입니다. 생성 후 도입부가 채워집니다.' },
-  { id: 'background', title: '어린 시절과 배경', period: '과거', placeholder: '학생의 초기 성장 배경을 담는 영역입니다. 추가 자료가 연동되면 더 풍부해집니다.' },
-  { id: 'early', title: '학교생활의 초반', period: '입학~적응기', placeholder: '학교에 처음 적응하던 시기의 이야기가 담길 공간입니다.' },
-  { id: 'settling', title: '익숙해지는 과정', period: '적응기~안정기', placeholder: '학교생활에 익숙해지며 자리를 잡아가는 과정을 담습니다.' },
-  { id: 'relations', title: '관계와 협력', period: '성장기', placeholder: '친구, 선생님, 공동체와의 관계를 통해 성장한 경험을 담습니다.' },
-  { id: 'responsibility', title: '책임감과 역할', period: '성장기', placeholder: '맡은 역할과 책임을 통해 변화한 모습을 기록합니다.' },
-  { id: 'turning', title: '성장의 전환점', period: '전환기', placeholder: '의미 있는 변화의 순간, 전환점이 된 사건을 담습니다.' },
-  { id: 'present', title: '현재의 모습', period: '현재', placeholder: '지금의 모습과 태도, 성장한 결과를 정리합니다.' },
-  { id: 'future', title: '앞으로의 가능성', period: '미래', placeholder: '앞으로의 꿈과 가능성, 기대를 담는 공간입니다.' },
-  { id: 'closing', title: '맺는 글', period: '에필로그', placeholder: '자서전을 마무리하는 따뜻한 인사를 담습니다.' },
+  { id: 'opening', title: '시작하는 글', period: '올해를 여는 마음', placeholder: '올해의 전체 분위기와 시작점을 정리하는 프롤로그입니다.' },
+  { id: 'environment', title: '올해의 환경과 현실', period: '환경과 분위기', placeholder: '올해의 조건, 학교 분위기, 업무 현실을 설명합니다.' },
+  { id: 'early', title: '학교생활의 초반', period: '시작과 긴장', placeholder: '연초 적응기, 첫 업무, 초반의 긴장과 몰입을 담습니다.' },
+  { id: 'settling', title: '익숙해지는 과정', period: '적응과 버팀', placeholder: '적응 과정, 업무 루틴 형성, 버티는 방식이 생긴 흐름을 담습니다.' },
+  { id: 'relations', title: '관계와 사람들', period: '위로와 소모', placeholder: '사람과 관계, 소모와 회복, 학교 안의 정서적 연결을 담습니다.' },
+  { id: 'responsibility', title: '책임감과 역할', period: '끝까지 맡은 자리', placeholder: '책임, 역할 의식, 교사로서의 자리를 기록합니다.' },
+  { id: 'turning', title: '전환의 순간', period: '다시 버티게 한 계기', placeholder: '감정의 전환점, 회복 계기, 올해의 결정적 변화를 담습니다.' },
+  { id: 'present', title: '지금의 나', period: '올해를 지난 모습', placeholder: '현재 자기 인식, 올해의 나 정리, 감정의 압축을 담습니다.' },
+  { id: 'future', title: '앞으로의 마음', period: '내년을 향한 시선', placeholder: '미래 시선, 다음 해를 향한 다짐, 후배/동료에게 남기는 말을 담습니다.' },
+  { id: 'closing', title: '맺는 글', period: '올해를 닫으며', placeholder: '에필로그, 올해의 마무리, 마지막 문장을 정리합니다.' },
 ];
 
 // ─── 블록 관련 상수 ───
