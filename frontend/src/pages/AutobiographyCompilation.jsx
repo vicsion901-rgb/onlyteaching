@@ -43,6 +43,63 @@ const INITIAL_TEACHER_FORM = {
   focus: '',
 };
 
+// ─── 연간 자서전 질문 ───
+const TEACHER_QUESTIONS = [
+  { id: 'tq1', chapter: 0, text: '올해 학교에서 가장 많은 에너지를 쏟은 일은 무엇이었나요?' },
+  { id: 'tq2', chapter: 1, text: '올해 가장 버겁고 지쳤던 순간은 언제였나요?' },
+  { id: 'tq3', chapter: 2, text: '그럼에도 올해를 버틸 수 있게 해준 힘은 무엇이었나요?' },
+  { id: 'tq4', chapter: 3, text: '올해 가장 외롭거나 혼자라고 느낀 순간은 언제였나요?' },
+  { id: 'tq5', chapter: 4, text: '올해 가장 위로가 되었던 사람, 말, 장면은 무엇이었나요?' },
+  { id: 'tq6', chapter: 5, text: '올해 교사로서 가장 많이 흔들렸던 지점은 무엇이었나요?' },
+  { id: 'tq7', chapter: 6, text: '올해를 지나며 내가 달라졌다고 느낀 부분은 무엇인가요?' },
+  { id: 'tq8', chapter: 7, text: '올해를 대표하는 장면 하나를 꼽는다면 무엇인가요?' },
+  { id: 'tq9', chapter: 8, text: '작년과 비교했을 때 올해의 나는 무엇이 달라졌나요?' },
+  { id: 'tq10', chapter: 9, text: '올해의 나에게, 그리고 내년의 나에게 남기고 싶은 말은 무엇인가요?' },
+];
+
+const STUDENT_QUESTIONS = [
+  { id: 'sq1', chapter: 0, text: '올해 학교에서 가장 기억에 남는 일은 무엇이었나요?' },
+  { id: 'sq2', chapter: 1, text: '올해 가장 어렵거나 힘들었던 순간은 언제였나요?' },
+  { id: 'sq3', chapter: 2, text: '올해 나를 도와준 사람이나 힘이 된 것은 무엇이었나요?' },
+  { id: 'sq4', chapter: 3, text: '올해 새로 사귄 친구나 더 가까워진 친구가 있나요?' },
+  { id: 'sq5', chapter: 4, text: '올해 가장 뿌듯했던 순간은 언제였나요?' },
+  { id: 'sq6', chapter: 5, text: '올해 내가 맡았던 역할 중 기억에 남는 것은 무엇인가요?' },
+  { id: 'sq7', chapter: 6, text: '올해 나에게 일어난 가장 큰 변화는 무엇인가요?' },
+  { id: 'sq8', chapter: 7, text: '올해를 떠올리면 가장 먼저 생각나는 장면은 무엇인가요?' },
+  { id: 'sq9', chapter: 8, text: '앞으로 하고 싶은 것이나 되고 싶은 모습이 있나요?' },
+  { id: 'sq10', chapter: 9, text: '올해의 나에게 해주고 싶은 말이 있다면 무엇인가요?' },
+];
+
+const FOLLOW_UP_RULES = [
+  { keywords: ['힘들', '지쳤', '버거', '고됐', '벅찼', '어려'], questions: ['어떤 점이 가장 버거웠나요?', '그 시기를 버티게 한 작은 힘이 있었나요?'] },
+  { keywords: ['학생', '아이들', '반 아이', '우리 반', '친구'], questions: ['어떤 학생(친구)이 가장 기억에 남나요?', '그 관계에서 배운 점이 있나요?'] },
+  { keywords: ['생활기록부', '생기부', '기록'], questions: ['기록 과정에서 가장 어려운 부분은 무엇이었나요?'] },
+  { keywords: ['수업', '교과', '발표', '활동'], questions: ['그 활동에서 가장 보람찼던 순간은 언제였나요?'] },
+  { keywords: ['후회', '아쉬', '미안'], questions: ['그때 다시 돌아간다면 어떻게 하고 싶나요?'] },
+  { keywords: ['변화', '달라', '성장', '배웠'], questions: ['그 변화를 알아차린 순간이 있었나요?'] },
+  { keywords: ['행사', '체험', '운동회', '소풍'], questions: ['그 행사에서 가장 기억에 남는 장면은 무엇인가요?'] },
+];
+
+function generateFollowUps(answer) {
+  if (!answer || answer.trim().length < 5) return [];
+  const lower = answer.toLowerCase();
+  const matched = [];
+  for (const rule of FOLLOW_UP_RULES) {
+    if (rule.keywords.some(kw => lower.includes(kw))) matched.push(...rule.questions);
+  }
+  if (matched.length === 0) matched.push('그 상황을 조금 더 이야기해줄 수 있나요?');
+  return matched.slice(0, 2);
+}
+
+const SOURCE_CHAPTER_KEYWORDS = {
+  studentRecords: ['학생', '친구', '반', '이름'],
+  lifeRecords: ['기록', '생기부', '생활기록'],
+  careClassroom: ['돌봄', '방과후'],
+  schedule: ['일정', '행사', '체험', '운동회'],
+  subjectEvaluation: ['평가', '시험', '성적', '교과'],
+  observationJournal: ['관찰', '상담'],
+};
+
 // ─── 고정 챕터 구조 (시간순 전자북) ───
 const FIXED_CHAPTERS = [
   { id: 'intro', title: '시작하는 글', period: '프롤로그', placeholder: '이 장은 자서전의 문을 여는 공간입니다. 생성 후 도입부가 채워집니다.' },
@@ -172,6 +229,11 @@ function AutobiographyCompilation() {
   const [dragIdx, setDragIdx] = useState(null);
   const [isSourcePickerOpen, setIsSourcePickerOpen] = useState(false);
   const [lastSourceData, setLastSourceData] = useState(null);
+  const [questionAnswers, setQuestionAnswers] = useState({});
+  const [followUpAnswers, setFollowUpAnswers] = useState({});
+  const [followUps, setFollowUps] = useState({});
+  const [isQuestionsOpen, setIsQuestionsOpen] = useState(false);
+  const [expandedQ, setExpandedQ] = useState(null);
   const [selectedSources, setSelectedSources] = useState({
     radioStory: false,
     careClassroom: false,
@@ -375,10 +437,26 @@ function AutobiographyCompilation() {
       const sourceData = await collectSourceData();
       setLastSourceData(sourceData);
 
+      // 질문 답변을 프롬프트에 자동 반영
+      const questions = activeTab === 'student' ? STUDENT_QUESTIONS : TEACHER_QUESTIONS;
+      const qaText = questions
+        .filter(q => questionAnswers[q.id]?.trim())
+        .map(q => {
+          let text = `질문: ${q.text}\n답변: ${questionAnswers[q.id].trim()}`;
+          const fups = followUps[q.id] || [];
+          fups.forEach((fu, i) => {
+            const fa = followUpAnswers[`${q.id}_${i}`];
+            if (fa?.trim()) text += `\n심화: ${fu}\n답변: ${fa.trim()}`;
+          });
+          return text;
+        })
+        .join('\n\n');
+      const fullPrompt = qaText ? `${prompt}\n\n─── 질문 답변 ───\n${qaText}` : prompt;
+
       const payload = {
         tab: activeTab,
         version: activeTab,
-        prompt,
+        prompt: fullPrompt,
         student_id: selectedStudent ? Number(selectedStudent.id) : null,
         student_name: selectedStudent?.name || '',
         student_number: selectedStudent?.number || '',
@@ -581,12 +659,13 @@ function AutobiographyCompilation() {
                 <textarea
                   value={studentPrompt}
                   onChange={(e) => setStudentPrompt(e.target.value)}
-                  rows={10}
+                  rows={4}
                   className="block w-full border-gray-300 rounded-md p-3 text-sm resize-none shadow-sm"
                   placeholder="예: 1학기 동안 발표 활동과 친구 관계, 좋아하는 과목 경험을 담아 따뜻한 학생 자서전 형식으로 작성해줘."
                   onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleGenerate(e); } }}
                 />
               </div>
+              <QuestionsSection questions={STUDENT_QUESTIONS} questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} followUps={followUps} setFollowUps={setFollowUps} followUpAnswers={followUpAnswers} setFollowUpAnswers={setFollowUpAnswers} expandedQ={expandedQ} setExpandedQ={setExpandedQ} isOpen={isQuestionsOpen} setIsOpen={setIsQuestionsOpen} />
             </div>
           ) : (
             <div className="space-y-4">
@@ -679,7 +758,7 @@ function AutobiographyCompilation() {
                 <textarea
                   value={teacherPrompt}
                   onChange={(e) => setTeacherPrompt(e.target.value)}
-                  rows={8}
+                  rows={4}
                   className="block w-full border-gray-300 rounded-md p-3 text-sm resize-none shadow-sm"
                   placeholder={
                     activeTab === 'principal'
@@ -691,6 +770,7 @@ function AutobiographyCompilation() {
                   onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleGenerate(e); } }}
                 />
               </div>
+              <QuestionsSection questions={TEACHER_QUESTIONS} questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} followUps={followUps} setFollowUps={setFollowUps} followUpAnswers={followUpAnswers} setFollowUpAnswers={setFollowUpAnswers} expandedQ={expandedQ} setExpandedQ={setExpandedQ} isOpen={isQuestionsOpen} setIsOpen={setIsQuestionsOpen} />
             </div>
           )}
 
@@ -733,7 +813,10 @@ function AutobiographyCompilation() {
                   <span className="text-xs font-bold text-gray-400 w-5">{pos + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{ch.title}</p>
-                    <p className="text-xs text-gray-400">{ch.period}</p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span className="text-xs text-gray-400">{ch.period}</span>
+                      <ChapterBadges chapterIdx={origIdx} questionAnswers={questionAnswers} selectedSources={selectedSources} activeTab={activeTab} hasContent={hasContent} />
+                    </div>
                   </div>
                   <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${hasContent ? 'bg-emerald-400' : 'bg-gray-200'}`} />
                 </div>
@@ -804,6 +887,101 @@ function parseResponseToChapters(text) {
     }
     return { ...ch, content: matched, status: matched ? 'filled' : 'empty' };
   });
+}
+
+// ─── 질문 섹션 컴포넌트 ───
+
+function QuestionsSection({ questions, questionAnswers, setQuestionAnswers, followUps, setFollowUps, followUpAnswers, setFollowUpAnswers, expandedQ, setExpandedQ, isOpen, setIsOpen }) {
+  const answeredCount = questions.filter(q => questionAnswers[q.id]?.trim()).length;
+  return (
+    <div className="rounded-xl border-2 border-purple-100 bg-purple-50/30 p-3">
+      <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-700">📝 자서전 질문</span>
+          {answeredCount > 0 && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-600 text-white">{answeredCount}/{questions.length}</span>}
+        </div>
+        <span className="text-xs text-gray-400">{isOpen ? '접기 ▲' : '펼치기 ▼'}</span>
+      </button>
+      {isOpen && (
+        <div className="mt-3 space-y-1">
+          {questions.map((q) => {
+            const isExp = expandedQ === q.id;
+            const hasAns = !!questionAnswers[q.id]?.trim();
+            const fups = followUps[q.id] || [];
+            return (
+              <div key={q.id} className={`rounded-lg border transition-all ${isExp ? 'border-purple-300 bg-white' : hasAns ? 'border-green-200 bg-green-50/30' : 'border-gray-100 bg-white/50'}`}>
+                <button type="button" onClick={() => setExpandedQ(isExp ? null : q.id)} className="w-full text-left px-3 py-2 flex items-center gap-2">
+                  <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0 ${hasAns ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                    {hasAns ? '✓' : q.id.replace(/[a-z]/g, '')}
+                  </span>
+                  <span className="text-xs text-gray-700 flex-1 line-clamp-2">{q.text}</span>
+                </button>
+                {isExp && (
+                  <div className="px-3 pb-3 space-y-2">
+                    <textarea
+                      value={questionAnswers[q.id] || ''}
+                      onChange={(e) => setQuestionAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                      onBlur={() => {
+                        const ans = questionAnswers[q.id];
+                        if (ans && ans.trim().length >= 5) {
+                          setFollowUps(prev => ({ ...prev, [q.id]: generateFollowUps(ans) }));
+                        }
+                      }}
+                      rows={3}
+                      className="w-full text-xs border border-gray-200 rounded-md p-2 resize-none focus:ring-1 focus:ring-purple-400 focus:border-purple-400"
+                      placeholder="자유롭게 답변해주세요..."
+                    />
+                    {fups.length > 0 && (
+                      <div className="space-y-1.5 pl-2 border-l-2 border-purple-200">
+                        <div className="text-[10px] font-semibold text-purple-500">심화 질문</div>
+                        {fups.map((fu, i) => (
+                          <div key={i}>
+                            <p className="text-[11px] text-gray-600 mb-1">→ {fu}</p>
+                            <textarea
+                              value={followUpAnswers[`${q.id}_${i}`] || ''}
+                              onChange={(e) => setFollowUpAnswers(prev => ({ ...prev, [`${q.id}_${i}`]: e.target.value }))}
+                              rows={2}
+                              className="w-full text-xs border border-gray-100 rounded p-1.5 resize-none focus:ring-1 focus:ring-purple-300"
+                              placeholder="답변..."
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── 목차 카드 배지 컴포넌트 ───
+
+function ChapterBadges({ chapterIdx, questionAnswers, selectedSources, activeTab, hasContent }) {
+  const questions = activeTab === 'student' ? STUDENT_QUESTIONS : TEACHER_QUESTIONS;
+  const q = questions.find(qq => qq.chapter === chapterIdx);
+  const hasAnswer = q && !!questionAnswers[q.id]?.trim();
+
+  const linkedSources = Object.entries(selectedSources)
+    .filter(([, v]) => v)
+    .map(([k]) => k);
+  const chapterSources = linkedSources.filter(src => {
+    const mapping = SOURCE_TO_CHAPTERS[src] || [];
+    const chId = FIXED_CHAPTERS[chapterIdx]?.id;
+    return mapping.includes(chId);
+  });
+
+  return (
+    <span className="flex items-center gap-1 flex-wrap">
+      {hasAnswer && <span className="text-[9px] px-1 py-0.5 rounded bg-purple-100 text-purple-600">질문답변</span>}
+      {chapterSources.length > 0 && <span className="text-[9px] px-1 py-0.5 rounded bg-sky-100 text-sky-600">{chapterSources.length}개 연동</span>}
+      {hasContent && <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-600">초안</span>}
+    </span>
+  );
 }
 
 // ─── 블록 편집 컴포넌트 ───
