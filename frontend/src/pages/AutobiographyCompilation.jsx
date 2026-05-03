@@ -1295,6 +1295,31 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
     setProofreadResults({});
   }, [response, sourceData]);
 
+  // 질문 답변 → 해당 장 블록 자동 삽입
+  useEffect(() => {
+    if (!questionAnswers) return;
+    const questions = activeTab === 'student' ? STUDENT_QUESTIONS : TEACHER_QUESTIONS;
+    setChapterBlocks(prev => {
+      const next = { ...prev };
+      questions.forEach(q => {
+        const ans = questionAnswers[q.id]?.trim();
+        if (!ans) return;
+        const ch = FIXED_CHAPTERS[q.chapter];
+        if (!ch) return;
+        const arr = next[ch.id] || [];
+        const existingQBlock = arr.find(b => b.source === `question-${q.id}`);
+        if (existingQBlock) {
+          if (existingQBlock.currentText !== ans) {
+            next[ch.id] = arr.map(b => b.source === `question-${q.id}` ? { ...b, currentText: ans, originalText: ans } : b);
+          }
+        } else {
+          next[ch.id] = [...arr, createBlock('linked', ans, `question-${q.id}`, '질문 답변')];
+        }
+      });
+      return next;
+    });
+  }, [questionAnswers, activeTab]);
+
   // 키보드
   useEffect(() => {
     const handler = (e) => {
