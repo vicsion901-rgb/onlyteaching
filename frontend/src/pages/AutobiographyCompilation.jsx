@@ -43,39 +43,192 @@ const INITIAL_TEACHER_FORM = {
   focus: '',
 };
 
-// ─── 연간 자서전 질문 (장별 3개씩) ───
+// ─── 연간 자서전 질문 (장별 3개, 객관식/주관식 혼합) ───
+// type: 'objective'(객관식) | 'subjective'(주관식) | 'mixed'(객관식+주관식 보충)
 const TEACHER_QUESTIONS = [
-  { id: 'tq1a', chapter: 0, text: '올해를 시작할 때 어떤 마음이었나요?' },
-  { id: 'tq1b', chapter: 0, text: '올해의 나는 어떤 교사가 되고 싶었나요?' },
-  { id: 'tq1c', chapter: 0, text: '올해 학교생활을 한마디로 표현하면 무엇인가요?' },
-  { id: 'tq2a', chapter: 1, text: '올해 학교에서 내가 놓인 환경은 어땠나요?' },
-  { id: 'tq2b', chapter: 1, text: '올해의 배경이 된 학교 분위기나 업무 상황은 어땠나요?' },
-  { id: 'tq2c', chapter: 1, text: '올해를 힘들게 만든 구조적 배경은 무엇이었나요?' },
-  { id: 'tq3a', chapter: 2, text: '올해 초반 가장 먼저 마주한 현실은 무엇이었나요?' },
-  { id: 'tq3b', chapter: 2, text: '올해 초반 가장 많은 에너지를 쏟은 일은 무엇이었나요?' },
-  { id: 'tq3c', chapter: 2, text: '학기 초 가장 긴장했던 일은 무엇이었나요?' },
-  { id: 'tq4a', chapter: 3, text: '시간이 지나며 어떤 업무에 익숙해졌나요?' },
-  { id: 'tq4b', chapter: 3, text: '처음엔 버거웠지만 나중엔 감당 가능해진 것은 무엇인가요?' },
-  { id: 'tq4c', chapter: 3, text: '올해 중반 이후 적응했다고 느낀 지점은 무엇인가요?' },
-  { id: 'tq5a', chapter: 4, text: '올해 나를 가장 지치게 한 관계는 무엇이었나요?' },
-  { id: 'tq5b', chapter: 4, text: '올해 가장 위로가 되었던 사람, 말, 장면은 무엇이었나요?' },
-  { id: 'tq5c', chapter: 4, text: '학교 안에서 내가 기대거나 의지했던 존재가 있었나요?' },
-  { id: 'tq6a', chapter: 5, text: '올해 내가 가장 크게 책임을 느꼈던 일은 무엇이었나요?' },
-  { id: 'tq6b', chapter: 5, text: '결국 내가 감당해야 한다고 느낀 일은 무엇이었나요?' },
-  { id: 'tq6c', chapter: 5, text: '교사로서 놓지 못했던 역할은 무엇이었나요?' },
-  { id: 'tq7a', chapter: 6, text: '올해 가장 크게 흔들렸던 순간은 언제였나요?' },
-  { id: 'tq7b', chapter: 6, text: '다시 버티게 된 전환점은 무엇이었나요?' },
-  { id: 'tq7c', chapter: 6, text: '올해 나를 바꾼 사건이나 시기는 무엇이었나요?' },
-  { id: 'tq8a', chapter: 7, text: '지금 돌아보면 올해의 나는 어떤 교사였나요?' },
-  { id: 'tq8b', chapter: 7, text: '올해를 지나며 달라진 점은 무엇인가요?' },
-  { id: 'tq8c', chapter: 7, text: '지금 내게 가장 깊게 남은 감정은 무엇인가요?' },
-  { id: 'tq9a', chapter: 8, text: '내년의 나는 어떤 모습이면 좋겠나요?' },
-  { id: 'tq9b', chapter: 8, text: '앞으로도 지키고 싶은 태도는 무엇인가요?' },
-  { id: 'tq9c', chapter: 8, text: '후배 교사에게 남기고 싶은 현실적인 말은 무엇인가요?' },
-  { id: 'tq10a', chapter: 9, text: '올해의 나에게 남기고 싶은 말은 무엇인가요?' },
-  { id: 'tq10b', chapter: 9, text: '내년의 나에게 건네고 싶은 한마디는 무엇인가요?' },
-  { id: 'tq10c', chapter: 9, text: '마지막 문장에 꼭 넣고 싶은 말은 무엇인가요?' },
+  { id: 'tq1a', chapter: 0, type: 'objective', text: '올해를 시작할 때 어떤 마음이었나요?', choices: [
+    { value: 'hopeful', label: '기대와 설렘' }, { value: 'anxious', label: '걱정과 불안' }, { value: 'tired', label: '이미 지침' }, { value: 'determined', label: '다짐과 의지' }, { value: 'neutral', label: '담담함' },
+  ]},
+  { id: 'tq1b', chapter: 0, type: 'mixed', text: '올해의 나는 어떤 교사가 되고 싶었나요?', choices: [
+    { value: 'warm', label: '따뜻한 교사' }, { value: 'professional', label: '전문적인 교사' }, { value: 'balanced', label: '균형 잡힌 교사' }, { value: 'surviving', label: '버티는 교사' },
+  ]},
+  { id: 'tq1c', chapter: 0, type: 'subjective', text: '올해 학교생활을 한마디로 표현하면 무엇인가요?' },
+  { id: 'tq2a', chapter: 1, type: 'objective', text: '올해 학교에서 내가 놓인 환경은 어땠나요?', choices: [
+    { value: 'heavy', label: '업무 과중' }, { value: 'conflict', label: '갈등이 많았음' }, { value: 'supportive', label: '지지적인 환경' }, { value: 'isolated', label: '고립된 느낌' }, { value: 'chaotic', label: '혼란스러움' },
+  ]},
+  { id: 'tq2b', chapter: 1, type: 'mixed', text: '올해의 배경이 된 학교 분위기나 업무 상황은 어땠나요?', choices: [
+    { value: 'admin', label: '행정업무에 지침' }, { value: 'class', label: '학급 운영이 힘듦' }, { value: 'relation', label: '인간관계가 어려움' }, { value: 'ok', label: '나름 괜찮았음' },
+  ]},
+  { id: 'tq2c', chapter: 1, type: 'subjective', text: '올해를 힘들게 만든 구조적 배경은 무엇이었나요?' },
+  { id: 'tq3a', chapter: 2, type: 'objective', text: '올해 초반 가장 먼저 마주한 현실은 무엇이었나요?', choices: [
+    { value: 'newclass', label: '새 학급 구성' }, { value: 'curriculum', label: '교육과정 준비' }, { value: 'parents', label: '학부모 대응' }, { value: 'colleagues', label: '동료 관계' }, { value: 'paperwork', label: '서류/행정' },
+  ]},
+  { id: 'tq3b', chapter: 2, type: 'mixed', text: '올해 초반 가장 많은 에너지를 쏟은 일은 무엇이었나요?', choices: [
+    { value: 'class-mgmt', label: '학급 운영' }, { value: 'lesson-prep', label: '수업 준비' }, { value: 'student-care', label: '학생 돌봄' }, { value: 'admin-work', label: '행정 업무' },
+  ]},
+  { id: 'tq3c', chapter: 2, type: 'subjective', text: '학기 초 가장 긴장했던 일은 무엇이었나요?' },
+  { id: 'tq4a', chapter: 3, type: 'objective', text: '시간이 지나며 어떤 업무에 익숙해졌나요?', choices: [
+    { value: 'routine', label: '일상 루틴' }, { value: 'teaching', label: '수업 흐름' }, { value: 'admin-adapt', label: '행정 처리' }, { value: 'relations', label: '관계 맺기' }, { value: 'nothing', label: '아직 익숙하지 않음' },
+  ]},
+  { id: 'tq4b', chapter: 3, type: 'mixed', text: '처음엔 버거웠지만 나중엔 감당 가능해진 것은 무엇인가요?', choices: [
+    { value: 'workload', label: '업무량 조절' }, { value: 'emotion', label: '감정 조절' }, { value: 'speed', label: '업무 속도' }, { value: 'boundaries', label: '경계 설정' },
+  ]},
+  { id: 'tq4c', chapter: 3, type: 'subjective', text: '올해 중반 이후 적응했다고 느낀 지점은 무엇인가요?' },
+  { id: 'tq5a', chapter: 4, type: 'objective', text: '올해 나를 가장 지치게 한 관계는 무엇이었나요?', choices: [
+    { value: 'parents-rel', label: '학부모와의 관계' }, { value: 'colleague-rel', label: '동료 교사 관계' }, { value: 'admin-rel', label: '관리자와의 관계' }, { value: 'student-rel', label: '학생과의 관계' }, { value: 'none', label: '관계로 지치진 않았음' },
+  ]},
+  { id: 'tq5b', chapter: 4, type: 'mixed', text: '올해 가장 위로가 되었던 사람, 말, 장면은 무엇이었나요?', choices: [
+    { value: 'colleague-comfort', label: '동료에게 위로받음' }, { value: 'student-moment', label: '학생에게서 힘 얻음' }, { value: 'family', label: '가족의 지지' }, { value: 'self-care', label: '나만의 회복 시간' },
+  ]},
+  { id: 'tq5c', chapter: 4, type: 'subjective', text: '학교 안에서 내가 기대거나 의지했던 존재가 있었나요?' },
+  { id: 'tq6a', chapter: 5, type: 'objective', text: '올해 내가 가장 크게 책임을 느꼈던 일은 무엇이었나요?', choices: [
+    { value: 'class-resp', label: '학급 담임 역할' }, { value: 'student-issue', label: '특정 학생 문제' }, { value: 'school-event', label: '학교 행사 담당' }, { value: 'records', label: '기록/평가 업무' }, { value: 'everything', label: '모든 것' },
+  ]},
+  { id: 'tq6b', chapter: 5, type: 'mixed', text: '결국 내가 감당해야 한다고 느낀 일은 무엇인가요?', choices: [
+    { value: 'alone', label: '혼자 해결해야 했음' }, { value: 'role', label: '역할이 나에게 집중됨' }, { value: 'emotional', label: '감정적 부담' }, { value: 'structural', label: '구조적 한계' },
+  ]},
+  { id: 'tq6c', chapter: 5, type: 'subjective', text: '교사로서 놓지 못했던 역할은 무엇이었나요?' },
+  { id: 'tq7a', chapter: 6, type: 'objective', text: '올해 가장 크게 흔들렸던 순간은 언제였나요?', choices: [
+    { value: 'burnout', label: '번아웃이 왔을 때' }, { value: 'conflict-event', label: '갈등 상황' }, { value: 'doubt', label: '교사로서의 의문' }, { value: 'health', label: '건강/체력 한계' }, { value: 'external', label: '외부 압력' },
+  ]},
+  { id: 'tq7b', chapter: 6, type: 'mixed', text: '다시 버티게 된 전환점은 무엇이었나요?', choices: [
+    { value: 'someone', label: '누군가의 한마디' }, { value: 'student-change', label: '학생의 변화' }, { value: 'rest', label: '쉬는 시간' }, { value: 'mindset', label: '마음가짐 전환' }, { value: 'nothing-yet', label: '아직 찾지 못함' },
+  ]},
+  { id: 'tq7c', chapter: 6, type: 'subjective', text: '올해 나를 바꾼 사건이나 시기는 무엇이었나요?' },
+  { id: 'tq8a', chapter: 7, type: 'objective', text: '지금 돌아보면 올해의 나는 어떤 교사였나요?', choices: [
+    { value: 'dedicated', label: '최선을 다한 교사' }, { value: 'survivor', label: '버텨낸 교사' }, { value: 'grower', label: '성장한 교사' }, { value: 'tired-teacher', label: '지친 교사' }, { value: 'seeker', label: '답을 찾는 교사' },
+  ]},
+  { id: 'tq8b', chapter: 7, type: 'mixed', text: '올해를 지나며 달라진 점은 무엇인가요?', choices: [
+    { value: 'patience', label: '인내심이 늘었음' }, { value: 'realistic', label: '현실적이 됨' }, { value: 'soft', label: '유연해짐' }, { value: 'hard', label: '단단해짐' }, { value: 'unclear', label: '잘 모르겠음' },
+  ]},
+  { id: 'tq8c', chapter: 7, type: 'subjective', text: '지금 내게 가장 깊게 남은 감정은 무엇인가요?' },
+  { id: 'tq9a', chapter: 8, type: 'objective', text: '내년의 나는 어떤 모습이면 좋겠나요?', choices: [
+    { value: 'calmer', label: '더 여유로운 교사' }, { value: 'healthier', label: '건강을 챙기는 교사' }, { value: 'braver', label: '도전하는 교사' }, { value: 'boundaries', label: '선 긋는 교사' }, { value: 'same', label: '지금 그대로' },
+  ]},
+  { id: 'tq9b', chapter: 8, type: 'mixed', text: '앞으로도 지키고 싶은 태도는 무엇인가요?', choices: [
+    { value: 'sincerity', label: '진심을 다하는 것' }, { value: 'learning', label: '배움을 멈추지 않는 것' }, { value: 'self-first', label: '나를 먼저 챙기는 것' }, { value: 'connection', label: '사람과의 연결' },
+  ]},
+  { id: 'tq9c', chapter: 8, type: 'subjective', text: '후배 교사에게 남기고 싶은 현실적인 말은 무엇인가요?' },
+  { id: 'tq10a', chapter: 9, type: 'subjective', text: '올해의 나에게 남기고 싶은 말은 무엇인가요?' },
+  { id: 'tq10b', chapter: 9, type: 'subjective', text: '내년의 나에게 건네고 싶은 한마디는 무엇인가요?' },
+  { id: 'tq10c', chapter: 9, type: 'subjective', text: '마지막 문장에 꼭 넣고 싶은 말은 무엇인가요?' },
 ];
+
+const CHOICE_SENTENCES = {
+  tq1a: {
+    hopeful: ['새로운 학년을 맞이하며 올해는 무언가 달라지리라는 기대를 품었다.', '설레는 마음으로 교실 문을 열었던 그 첫날의 공기가 아직도 기억난다.', '올해는 좋은 일이 많을 것 같다는 막연한 희망이 발걸음을 가볍게 했다.'],
+    anxious: ['새 학년이 시작될 때마다 찾아오는 걱정은 올해도 어김없이 찾아왔다.', '아직 만나지 못한 아이들 앞에서 괜히 마음이 무거웠다.', '올해도 잘 해낼 수 있을까 하는 불안이 조용히 따라붙었다.'],
+    tired: ['올해가 시작되기도 전에 이미 에너지가 바닥난 느낌이었다.', '새 학년이라는 말이 설렘보다 피로로 먼저 다가왔다.', '시작점에서부터 지쳐 있었다는 것을 인정하는 데 시간이 걸렸다.'],
+    determined: ['올해만큼은 다르게 해보겠다는 다짐으로 새 학년을 열었다.', '작년의 후회를 반복하지 않겠다는 의지가 올해의 출발점이었다.', '스스로 세운 목표를 지키겠다는 마음으로 첫발을 내디뎠다.'],
+    neutral: ['특별한 감정 없이, 해야 할 일을 하겠다는 마음으로 시작했다.', '담담하게 새 학년을 맞이했고, 그것이 오히려 편안했다.', '큰 기대도 걱정도 없이 일상의 연장처럼 시작된 한 해였다.'],
+  },
+  tq1b: {
+    warm: ['아이들에게 따뜻한 한마디를 건네는 교사가 되고 싶었다.', '교실에서 아이들이 안심할 수 있는 존재가 되고 싶었다.'],
+    professional: ['수업의 전문성을 높이고 싶다는 마음이 올해의 시작이었다.', '교사로서 역량을 키우는 데 집중하고 싶었다.'],
+    balanced: ['일과 삶 사이에서 균형을 잡는 교사가 되고 싶었다.', '무리하지 않으면서도 최선을 다하는 교사가 되고 싶었다.'],
+    surviving: ['올해는 버티는 것만으로도 충분하다고 스스로에게 말했다.', '무사히 한 해를 마치는 것이 올해의 가장 큰 목표였다.'],
+  },
+  tq2a: {
+    heavy: ['올해는 업무의 무게가 유독 크게 느껴지는 한 해였다.', '끝없이 쌓이는 업무 앞에서 하루하루가 빠듯했다.'],
+    conflict: ['학교 안 곳곳에서 크고 작은 갈등이 끊이지 않았다.', '서로 다른 입장이 부딪히는 일이 올해 유독 잦았다.'],
+    supportive: ['동료와 관리자의 지지 속에서 올해를 보낼 수 있었다.', '서로 도우며 일할 수 있는 환경이 올해의 큰 힘이었다.'],
+    isolated: ['주변에 기댈 곳 없이 혼자라는 느낌이 올해를 관통했다.', '같은 학교에 있으면서도 외로운 순간이 많았다.'],
+    chaotic: ['예측할 수 없는 상황이 반복되며 혼란 속에 한 해가 흘렀다.', '계획대로 되는 일이 거의 없었던 정신없는 한 해였다.'],
+  },
+  tq2b: {
+    admin: ['반복되는 행정업무 속에서 하루의 에너지가 빠르게 소진되곤 했다.', '수업보다 행정이 더 크게 느껴지는 날에는 마음의 여유를 잃기 쉬웠다.', '끝없이 이어지는 서류와 기록 앞에서 스스로 메말라간다고 느낀 날도 있었다.'],
+    class: ['학급 운영의 무게가 어깨를 짓누르는 한 해였다.', '30명의 아이들 각자의 이야기를 담아내기엔 하루가 너무 짧았다.'],
+    relation: ['사람과의 관계에서 오는 피로가 업무보다 더 큰 무게로 다가왔다.', '말 한마디에 상처받고, 또 말 한마디에 회복하는 하루가 반복됐다.'],
+    ok: ['올해는 나름 감당할 만한 환경 속에서 일할 수 있었다.', '큰 어려움 없이 한 해를 보낼 수 있었던 것에 감사한다.'],
+  },
+  tq3a: {
+    newclass: ['새 반 아이들의 얼굴을 하나씩 익히는 것이 올해 첫 번째 과제였다.', '낯선 이름들을 부르며 서로를 알아가는 시간이 올해의 시작이었다.'],
+    curriculum: ['교육과정을 새로 짜는 일이 학기 초의 대부분을 차지했다.', '수업 준비와 계획 수립에 첫 달을 온전히 쏟았다.'],
+    parents: ['학기 초부터 학부모 상담과 소통이 큰 비중을 차지했다.', '학부모의 기대와 우려를 마주하는 일이 올해 초반의 현실이었다.'],
+    colleagues: ['새로운 동료들과의 관계를 형성하는 것이 올해 초반의 과제였다.', '함께 일할 사람들과의 호흡을 맞추는 데 시간이 필요했다.'],
+    paperwork: ['학기 초부터 쏟아지는 서류 처리가 올해의 첫 관문이었다.', '행정 서류 더미 속에서 올해가 시작되었다.'],
+  },
+  tq3b: {
+    'class-mgmt': ['학급을 안정시키는 데 올해 초반의 모든 에너지를 쏟았다.', '아이들과 함께 만드는 교실 문화에 정성을 다했다.'],
+    'lesson-prep': ['수업 하나를 준비하는 데 들이는 시간과 노력이 올해는 유독 컸다.', '아이들 앞에서 좋은 수업을 하겠다는 마음이 매일의 동력이었다.'],
+    'student-care': ['한 명 한 명의 학생을 세심하게 살피는 데 가장 많은 마음을 썼다.', '수업 못지않게 아이들의 마음을 돌보는 일에 에너지를 쏟았다.'],
+    'admin-work': ['수업 외 업무에 쏟는 시간이 올해 초반의 대부분이었다.', '행정 업무에 밀려 수업 준비가 뒷전이 되는 날이 잦았다.'],
+  },
+  tq4a: {
+    routine: ['반복되는 일상 속에서 나만의 루틴이 생기기 시작했다.', '매일의 흐름이 익숙해지면서 마음에도 여유가 찾아왔다.'],
+    teaching: ['수업의 흐름을 잡는 데 자신감이 붙기 시작했다.', '아이들의 반응을 읽고 수업을 조절하는 감각이 생겼다.'],
+    'admin-adapt': ['반복되는 행정 처리에 손이 빨라지기 시작했다.', '서류 앞에서 당황하지 않게 된 것이 올해의 작은 성장이었다.'],
+    relations: ['사람들과의 거리감을 조절하는 법을 조금씩 배워갔다.', '관계에서 오는 에너지 소모를 줄이는 방법을 찾기 시작했다.'],
+    nothing: ['시간이 흘러도 쉽게 익숙해지지 않는 것들이 있었다.', '적응이라는 말이 아직은 먼 이야기처럼 느껴졌다.'],
+  },
+  tq4b: {
+    workload: ['한때 감당할 수 없었던 업무량을 어느새 소화하고 있는 나를 발견했다.', '일의 우선순위를 정하는 법을 배우면서 숨통이 트이기 시작했다.'],
+    emotion: ['감정의 파도를 다스리는 법을 조금씩 익혀갔다.', '마음이 흔들릴 때 스스로를 잡는 방법을 찾은 것이 올해의 성과였다.'],
+    speed: ['처음에는 한참 걸리던 일들이 점점 빠르게 처리되기 시작했다.', '속도가 붙으면서 여유가 생기고, 그 여유가 다시 힘이 되었다.'],
+    boundaries: ['나를 지키기 위한 선을 긋는 법을 배워가고 있다.', '모든 것을 떠안지 않아도 된다는 것을 올해 비로소 알게 되었다.'],
+  },
+  tq5a: {
+    'parents-rel': ['학부모와의 관계에서 오는 긴장이 올해 가장 큰 감정적 소모였다.', '서로 다른 기대 사이에서 중심을 잡는 일이 힘겨웠다.'],
+    'colleague-rel': ['동료 교사와의 관계가 올해 예상 외로 큰 에너지를 소모시켰다.', '함께 일해야 하는 사람과의 온도 차이가 피로감을 키웠다.'],
+    'admin-rel': ['관리자와의 관계에서 오는 압박이 올해의 가장 큰 스트레스였다.', '위에서 내려오는 요구와 현실 사이에서 끊임없이 조율해야 했다.'],
+    'student-rel': ['한 학생과의 관계가 올해의 가장 큰 감정적 짐이 되었다.', '아이를 이해하고 싶으면서도 지치는 날이 반복됐다.'],
+    none: ['올해는 관계로 인한 소모가 비교적 적은 편이었다.', '사람과의 관계에서 큰 어려움 없이 한 해를 보낼 수 있었다.'],
+  },
+  tq5b: {
+    'colleague-comfort': ['바쁜 일상 속에서도 동료의 짧은 한마디가 오래 버틸 힘이 되어주었다.', '같은 자리에 선 동료의 이해는 올해를 버텨내는 데 큰 위로가 되었다.', '힘든 날마다 건네받은 작은 공감이 다시 마음을 추슬러 세우게 했다.'],
+    'student-moment': ['아이들의 순수한 한마디가 지친 마음을 다시 일으켜 세웠다.', '교실에서 마주한 작은 변화가 올해의 가장 큰 보상이었다.'],
+    family: ['학교 밖에서 가족이 건네는 일상적 위로가 하루를 마감하는 힘이었다.', '가족의 존재가 흔들리는 나를 잡아주는 닻이 되어주었다.'],
+    'self-care': ['나만의 회복 시간을 지키는 것이 올해를 버티는 방법이었다.', '잠깐이라도 나를 위한 시간을 만드는 것이 가장 큰 위로였다.'],
+  },
+  tq6a: {
+    'class-resp': ['담임으로서 30명의 한 해를 책임져야 한다는 무게는 올해도 가볍지 않았다.', '학급의 모든 일이 결국 나의 책임이라는 사실이 올해를 무겁게 만들었다.'],
+    'student-issue': ['특정 학생의 문제를 끝까지 안고 간 것이 올해의 가장 큰 책임이었다.', '한 아이를 놓지 않기 위해 모든 에너지를 쏟아야 했던 시간이 있었다.'],
+    'school-event': ['학교 행사의 기획과 진행이 올해 가장 크게 느낀 책임이었다.', '행사 뒤에 남는 피로보다 무사히 마쳤다는 안도가 더 컸다.'],
+    records: ['기록과 평가에 대한 책임이 올해 가장 큰 부담이었다.', '한 줄의 기록이 아이의 미래에 영향을 줄 수 있다는 사실이 무거웠다.'],
+    everything: ['학급의 모든 것이 나의 책임처럼 느껴진 한 해였다.', '교실 안팎의 모든 일이 결국 나에게 돌아온다는 감각이 올해를 관통했다.'],
+  },
+  tq7a: {
+    burnout: ['몸도 마음도 더 이상 움직이지 않는 날이 찾아왔다.', '번아웃이라는 단어가 남의 이야기가 아닌 내 이야기가 된 순간이었다.'],
+    'conflict-event': ['예기치 못한 갈등이 올해의 가장 큰 전환점이 되었다.', '부딪힘 속에서 내가 무엇을 지키고 싶은지 처음으로 선명해졌다.'],
+    doubt: ['교사라는 자리에 대한 근본적 의문이 찾아온 시기가 있었다.', '이 일을 계속해도 되는 걸까 하는 물음이 깊어진 순간이 있었다.'],
+    health: ['몸이 먼저 한계를 알려왔을 때 비로소 멈추어야 한다는 걸 알았다.', '건강이 흔들리면서 일의 의미보다 삶의 의미를 다시 생각하게 되었다.'],
+    external: ['외부에서 오는 압력이 내면의 균형을 무너뜨린 시기가 있었다.', '통제할 수 없는 상황 앞에서 무력감을 느낀 것이 올해의 가장 큰 흔들림이었다.'],
+  },
+  tq7b: {
+    someone: ['누군가의 진심 어린 한마디가 다시 일어설 힘이 되었다.', '잊힐 법한 짧은 말 한마디가 올해를 버티게 한 전환점이었다.'],
+    'student-change': ['아이의 작은 변화를 목격한 순간, 포기하지 않길 잘했다는 생각이 들었다.', '한 학생의 성장이 지쳐있던 나에게 다시 의미를 찾게 해주었다.'],
+    rest: ['쉬는 시간을 허락한 것이 올해의 가장 중요한 전환이었다.', '멈추어도 괜찮다는 것을 배운 후 다시 걸을 수 있었다.'],
+    mindset: ['생각을 바꾸는 것만으로도 하루의 무게가 달라질 수 있었다.', '완벽하지 않아도 된다는 마음이 나를 다시 세워주었다.'],
+    'nothing-yet': ['아직 명확한 전환점을 찾지 못한 채 올해를 보내고 있다.', '버팀의 이유를 아직 찾는 중이고, 그 과정도 기록으로 남기고 싶다.'],
+  },
+  tq8a: {
+    dedicated: ['돌아보면 올해의 나는 최선을 다한 교사였다고 믿고 싶다.', '부족함이 있었지만, 그 안에서 할 수 있는 최선을 놓지 않았다.'],
+    survivor: ['올해의 나는 버텨낸 교사였다. 그것만으로도 충분히 의미 있었다.', '화려하지 않았지만, 끝까지 자리를 지킨 것이 올해의 나였다.'],
+    grower: ['올해의 나는 조금씩 성장한 교사였다고 말할 수 있다.', '작은 변화들이 모여 올해의 나를 한 뼘 더 키워주었다.'],
+    'tired-teacher': ['솔직히 올해의 나는 지친 교사였다. 그리고 그것을 인정한다.', '지쳐 있었지만 교실을 떠나지 않은 것도 하나의 용기였다.'],
+    seeker: ['올해의 나는 답을 찾는 중인 교사였다.', '정답은 없었지만 질문을 멈추지 않은 것이 올해의 나였다.'],
+  },
+  tq8b: {
+    patience: ['올해를 지나며 기다리는 법을 조금 더 배웠다.', '참는 것이 아니라 기다리는 것이라는 차이를 알게 된 한 해였다.'],
+    realistic: ['이상보다 현실을 먼저 보게 된 것이 올해의 가장 큰 변화였다.', '할 수 있는 것과 할 수 없는 것의 경계를 알게 되었다.'],
+    soft: ['날카로웠던 마음이 조금 둥글어진 것을 느낀다.', '유연하게 대처하는 법을 올해 비로소 배워가고 있다.'],
+    hard: ['흔들리지 않기 위해 마음을 단단하게 만드는 법을 배웠다.', '올해의 경험이 나를 더 강하게 만들었다고 믿는다.'],
+    unclear: ['달라진 것이 무엇인지 아직 선명하지 않지만, 무언가 달라졌다는 감각은 있다.', '변화의 윤곽이 서서히 드러나고 있는 중이다.'],
+  },
+  tq9a: {
+    calmer: ['내년에는 조금 더 여유로운 마음으로 교실에 서고 싶다.', '급하지 않게, 나의 속도로 가는 교사가 되고 싶다.'],
+    healthier: ['내년에는 나의 건강을 먼저 챙기는 교사가 되고 싶다.', '몸과 마음이 건강해야 아이들도 돌볼 수 있다는 것을 올해 배웠다.'],
+    braver: ['내년에는 더 과감하게 도전하는 교사가 되고 싶다.', '올해 움츠렸던 만큼 내년에는 한 발 더 나아가고 싶다.'],
+    boundaries: ['내년에는 나를 지키는 선을 더 분명히 긋고 싶다.', '모든 것을 떠안지 않는 용기를 내년에는 더 키우고 싶다.'],
+    same: ['내년에도 지금의 나처럼, 묵묵히 자리를 지키는 교사이고 싶다.', '특별히 달라지지 않아도, 오늘의 나를 이어가는 것으로 충분하다.'],
+  },
+  tq9b: {
+    sincerity: ['진심을 다해 마주하는 태도를 앞으로도 놓지 않고 싶다.', '진정성은 가장 느리지만 가장 깊은 힘이라는 것을 올해 배웠다.'],
+    learning: ['배움을 멈추지 않는 교사로 남고 싶다.', '새로운 것을 배우는 즐거움이 교사로서의 활력을 유지해준다.'],
+    'self-first': ['나를 먼저 돌보는 것이 이기적인 것이 아님을 앞으로도 기억하고 싶다.', '스스로를 챙기는 것이 결국 교실을 지키는 일이라는 것을 잊지 않겠다.'],
+    connection: ['사람과의 연결을 소중히 여기는 태도를 앞으로도 지키고 싶다.', '혼자가 아니라는 감각을 잃지 않는 것이 앞으로의 목표이다.'],
+  },
+};
 
 const STUDENT_QUESTIONS = [
   { id: 'sq1a', chapter: 0, text: '올해를 시작할 때 어떤 마음이었나요?' },
@@ -1325,7 +1478,7 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
       {/* ─── 장별 질문 오버레이 ─── */}
       {showQPopup && questions.length > 0 && (
         <div className="absolute inset-0 z-30 bg-amber-50/95 backdrop-blur-sm flex flex-col px-6 py-5 overflow-y-auto" style={{ fontFamily: "'Noto Serif KR', serif" }}>
-          <div className="text-center mb-4">
+          <div className="text-center mb-3">
             <span className="text-[10px] text-purple-500 tracking-[0.15em]">제{idx + 1}장 질문</span>
             <h2 className="text-base font-bold text-gray-900 mt-1">{ch.title}</h2>
             <p className="text-[11px] text-gray-400 mt-0.5">{ch.period}</p>
@@ -1339,25 +1492,81 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
                 </button>
               ))}
             </div>
+            <div className="text-[9px] text-gray-300 mt-1">자동 저장됨</div>
           </div>
 
           <div className="flex-1 flex flex-col justify-center">
             {(() => {
               const q = questions[activeQIdx];
               if (!q) return null;
-              const hasAns = !!questionAnswers?.[q.id]?.trim();
+              const isObj = q.type === 'objective' || q.type === 'mixed';
+              const choices = q.choices || [];
+              const sentences = CHOICE_SENTENCES[q.id] || {};
+              const currentAns = questionAnswers?.[q.id] || '';
+              const selectedChoice = choices.find(c => currentAns.startsWith(`[${c.label}]`));
+
+              const selectChoice = (choice) => {
+                const templates = sentences[choice.value] || [];
+                const seed = Date.now() % (templates.length || 1);
+                const suggested = templates[seed] || '';
+                setQuestionAnswers?.(prev => ({ ...prev, [q.id]: `[${choice.label}] ${suggested}` }));
+              };
+
+              const refreshSuggestion = () => {
+                if (!selectedChoice) return;
+                const templates = sentences[selectedChoice.value] || [];
+                if (templates.length <= 1) return;
+                const current = currentAns.replace(`[${selectedChoice.label}] `, '');
+                const others = templates.filter(t => t !== current);
+                const next = others[Date.now() % others.length] || templates[0];
+                setQuestionAnswers?.(prev => ({ ...prev, [q.id]: `[${selectedChoice.label}] ${next}` }));
+              };
+
               return (
-                <div className="max-w-md mx-auto w-full space-y-4">
+                <div className="max-w-md mx-auto w-full space-y-3">
                   <p className="text-sm font-medium text-gray-800 leading-relaxed text-center">{q.text}</p>
+
+                  {/* 객관식 선택지 */}
+                  {isObj && choices.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-1.5">
+                      {choices.map(c => {
+                        const isSel = selectedChoice?.value === c.value;
+                        return (
+                          <button key={c.value} type="button" onClick={() => selectChoice(c)}
+                            className={`text-xs px-3 py-1.5 rounded-full border transition font-medium ${
+                              isSel ? 'bg-purple-600 text-white border-purple-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                            }`}>
+                            {c.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* 문장 제안 (객관식 선택 시) */}
+                  {isObj && selectedChoice && (
+                    <div className="bg-white border border-purple-100 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-purple-500 font-medium">📝 제안 문장</span>
+                        <button type="button" onClick={refreshSuggestion} className="text-[10px] text-purple-400 hover:text-purple-600">🔄 다른 표현</button>
+                      </div>
+                      <p className="text-xs text-gray-700 leading-relaxed italic">
+                        {currentAns.replace(`[${selectedChoice.label}] `, '')}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 주관식 입력 */}
                   <textarea
-                    value={questionAnswers?.[q.id] || ''}
+                    value={currentAns}
                     onChange={(e) => setQuestionAnswers?.(prev => ({ ...prev, [q.id]: e.target.value }))}
-                    rows={5}
+                    rows={q.type === 'subjective' ? 5 : 3}
                     className="w-full text-sm border border-gray-200 rounded-lg p-3 resize-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-white shadow-sm"
-                    placeholder="자유롭게 답변해주세요..."
-                    autoFocus
+                    placeholder={isObj ? '선택지를 누르면 제안 문장이 채워집니다. 직접 수정도 가능합니다.' : '자유롭게 답변해주세요...'}
                   />
-                  <div className="flex items-center justify-between">
+
+                  {/* 이전/다음 */}
+                  <div className="flex items-center justify-between pt-1">
                     <button type="button" onClick={() => setActiveQIdx(Math.max(0, activeQIdx - 1))} disabled={activeQIdx === 0}
                       className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 px-3 py-1.5">← 이전</button>
                     <span className="text-[10px] text-gray-400">{activeQIdx + 1} / {questions.length}</span>
@@ -1374,7 +1583,7 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
             })()}
           </div>
 
-          <div className="text-center mt-3">
+          <div className="text-center mt-2">
             <button type="button" onClick={() => setShowQPopup(false)} className="text-[11px] text-gray-400 hover:text-gray-600 underline">닫기</button>
           </div>
         </div>
