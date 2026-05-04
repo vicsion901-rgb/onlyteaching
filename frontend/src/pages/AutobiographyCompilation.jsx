@@ -1477,16 +1477,16 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
 
       {/* ─── 장별 질문 오버레이 ─── */}
       {showQPopup && questions.length > 0 && (
-        <div className="absolute inset-0 z-30 bg-amber-50/95 backdrop-blur-sm flex flex-col px-6 py-5 overflow-y-auto" style={{ fontFamily: "'Noto Serif KR', serif" }}>
-          <div className="text-center mb-3">
-            <span className="text-[10px] text-purple-500 tracking-[0.15em]">제{idx + 1}장 질문</span>
-            <h2 className="text-base font-bold text-gray-900 mt-1">{ch.title}</h2>
-            <p className="text-[11px] text-gray-400 mt-0.5">{ch.period}</p>
-            <div className="flex justify-center gap-1.5 mt-2">
+        <div className="absolute inset-0 z-30 bg-amber-50/95 backdrop-blur-sm flex flex-col px-10 py-6 overflow-y-auto" style={{ fontFamily: "'Noto Serif KR', serif" }}>
+          <div className="text-center mb-4">
+            <span className="text-xs text-purple-500 tracking-[0.15em] font-medium">제{idx + 1}장 질문</span>
+            <h2 className="text-xl font-bold text-gray-900 mt-1">{ch.title}</h2>
+            <p className="text-sm text-gray-400 mt-0.5">{ch.period}</p>
+            <div className="flex justify-center gap-2 mt-3">
               {questions.map((q, i) => (
                 <button key={q.id} type="button" onClick={() => setActiveQIdx(i)}
-                  className={`w-6 h-6 rounded-full text-[10px] font-bold transition ${
-                    i === activeQIdx ? 'bg-purple-600 text-white scale-110' : questionAnswers?.[q.id]?.trim() ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'
+                  className={`w-8 h-8 rounded-full text-xs font-bold transition ${
+                    i === activeQIdx ? 'bg-purple-600 text-white scale-110 shadow-md' : questionAnswers?.[q.id]?.trim() ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'
                   }`}>
                   {questionAnswers?.[q.id]?.trim() ? '✓' : i + 1}
                 </button>
@@ -1523,18 +1523,18 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
               };
 
               return (
-                <div className="max-w-lg mx-auto w-full space-y-4 px-2">
-                  <p className="text-base font-medium text-gray-800 leading-relaxed text-center">{q.text}</p>
+                <div className="max-w-2xl mx-auto w-full space-y-5 px-4">
+                  <p className="text-lg font-medium text-gray-800 leading-relaxed text-center">{q.text}</p>
 
                   {/* 객관식 선택지 */}
                   {isObj && choices.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-2">
+                    <div className="flex flex-wrap justify-center gap-3">
                       {choices.map(c => {
                         const isSel = selectedChoice?.value === c.value;
                         return (
                           <button key={c.value} type="button" onClick={() => selectChoice(c)}
-                            className={`text-sm px-4 py-2 rounded-full border transition font-medium ${
-                              isSel ? 'bg-purple-600 text-white border-purple-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                            className={`text-base px-5 py-2.5 rounded-full border-2 transition font-medium ${
+                              isSel ? 'bg-purple-600 text-white border-purple-600 shadow-md scale-105' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
                             }`}>
                             {c.label}
                           </button>
@@ -1545,12 +1545,12 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
 
                   {/* 문장 제안 (객관식 선택 시) */}
                   {isObj && selectedChoice && (
-                    <div className="bg-white border border-purple-100 rounded-lg p-4 space-y-2">
+                    <div className="bg-white border border-purple-100 rounded-xl p-5 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-purple-500 font-medium">📝 제안 문장</span>
-                        <button type="button" onClick={refreshSuggestion} className="text-xs text-purple-400 hover:text-purple-600 font-medium">🔄 다른 표현</button>
+                        <span className="text-sm text-purple-500 font-semibold">📝 제안 문장</span>
+                        <button type="button" onClick={refreshSuggestion} className="text-sm text-purple-400 hover:text-purple-600 font-medium px-3 py-1 rounded-full border border-purple-200 hover:bg-purple-50">🔄 다른 표현</button>
                       </div>
-                      <p className="text-sm text-gray-700 leading-relaxed italic">
+                      <p className="text-base text-gray-700 leading-relaxed italic">
                         {currentAns.replace(`[${selectedChoice.label}] `, '')}
                       </p>
                     </div>
@@ -1560,22 +1560,22 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
                   <textarea
                     value={currentAns}
                     onChange={(e) => setQuestionAnswers?.(prev => ({ ...prev, [q.id]: e.target.value }))}
-                    rows={q.type === 'subjective' ? 6 : 4}
-                    className="w-full text-sm border border-gray-200 rounded-lg p-3 resize-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-white shadow-sm"
+                    rows={q.type === 'subjective' ? 8 : 5}
+                    className="w-full text-base border border-gray-200 rounded-xl p-4 resize-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-white shadow-sm leading-relaxed"
                     placeholder={isObj ? '선택지를 누르면 제안 문장이 채워집니다. 직접 수정도 가능합니다.' : '자유롭게 답변해주세요...'}
                   />
 
                   {/* 이전/다음 */}
-                  <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center justify-between pt-3">
                     <button type="button" onClick={() => setActiveQIdx(Math.max(0, activeQIdx - 1))} disabled={activeQIdx === 0}
-                      className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 px-3 py-1.5">← 이전</button>
-                    <span className="text-[10px] text-gray-400">{activeQIdx + 1} / {questions.length}</span>
+                      className="text-sm text-gray-400 hover:text-gray-600 disabled:opacity-30 px-4 py-2">← 이전</button>
+                    <span className="text-sm text-gray-400">{activeQIdx + 1} / {questions.length}</span>
                     {activeQIdx < questions.length - 1 ? (
                       <button type="button" onClick={() => setActiveQIdx(activeQIdx + 1)}
-                        className="text-xs text-purple-600 hover:text-purple-800 font-medium px-3 py-1.5">다음 →</button>
+                        className="text-sm text-purple-600 hover:text-purple-800 font-semibold px-5 py-2">다음 →</button>
                     ) : (
                       <button type="button" onClick={() => setShowQPopup(false)}
-                        className="text-xs text-white bg-purple-600 hover:bg-purple-700 font-medium px-4 py-1.5 rounded-full">완료</button>
+                        className="text-sm text-white bg-purple-600 hover:bg-purple-700 font-semibold px-6 py-2 rounded-full">완료</button>
                     )}
                   </div>
                 </div>
@@ -1986,11 +1986,11 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
       {/* 책 본문 + 좌우 넘김 */}
       <div className="flex-1 flex items-center justify-center relative">
         <button onClick={() => goSpread(spread - 1)} disabled={spread === 0} aria-label="이전 페이지"
-          className="absolute left-0 top-0 bottom-0 w-8 md:w-10 flex items-center justify-center z-10 group">
+          className="absolute left-0 top-0 bottom-0 w-6 flex items-center justify-center z-10 group">
           <span className={`text-2xl transition-opacity ${spread === 0 ? 'opacity-0' : 'opacity-60 group-hover:opacity-100'} text-white`}>‹</span>
         </button>
 
-        <div className="flex shadow-[0_0_60px_rgba(0,0,0,0.5)] rounded-sm overflow-hidden" style={{ width: 'min(96vw, 1400px)', height: 'min(88vh, 820px)' }}>
+        <div className="flex shadow-[0_0_40px_rgba(0,0,0,0.4)] rounded-sm overflow-hidden" style={{ width: 'calc(100vw - 40px)', maxWidth: '1800px', height: 'calc(100vh - 100px)' }}>
           {/* 왼쪽 페이지 */}
           <div className="flex-1 bg-amber-50 relative" style={{ boxShadow: 'inset -8px 0 12px -8px rgba(0,0,0,0.08)' }}>
             {leftCh && (
@@ -2045,7 +2045,7 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
         </div>
 
         <button onClick={() => goSpread(spread + 1)} disabled={spread === maxSpread} aria-label="다음 페이지"
-          className="absolute right-0 top-0 bottom-0 w-8 md:w-10 flex items-center justify-center z-10 group">
+          className="absolute right-0 top-0 bottom-0 w-6 flex items-center justify-center z-10 group">
           <span className={`text-2xl transition-opacity ${spread === maxSpread ? 'opacity-0' : 'opacity-60 group-hover:opacity-100'} text-white`}>›</span>
         </button>
       </div>
