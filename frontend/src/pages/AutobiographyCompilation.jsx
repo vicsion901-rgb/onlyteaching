@@ -284,6 +284,49 @@ function generateFollowUps(answer) {
   return matched.slice(0, 2);
 }
 
+// ─── 빠른 생성 모드 핵심 질문 ───
+const QUICK_QUESTIONS = [
+  { id: 'qq1', text: '올해 가장 버거웠던 일은 무엇이었나요?',
+    chapters: [1, 2, 3, 5, 6],
+    choices: [
+      { value: 'admin', label: '행정업무' }, { value: 'records', label: '생활기록부' },
+      { value: 'counseling', label: '상담' }, { value: 'parents', label: '학부모 응대' },
+      { value: 'lesson', label: '수업 준비' }, { value: 'relations', label: '관계 조율' },
+    ],
+  },
+  { id: 'qq2', text: '그럼에도 올해를 버티게 한 힘은 무엇이었나요?',
+    chapters: [3, 4, 6, 7, 8],
+    choices: [
+      { value: 'students', label: '학생' }, { value: 'colleagues', label: '동료 교사' },
+      { value: 'duty', label: '책임감' }, { value: 'family', label: '가족' },
+      { value: 'routine', label: '익숙한 루틴' }, { value: 'achievement', label: '성취감' },
+    ],
+  },
+  { id: 'qq3', text: '올해를 가장 잘 보여주는 장면 하나를 적어주세요.',
+    chapters: [0, 7, 8, 9],
+    choices: [],
+  },
+];
+
+const QUICK_SENTENCES = {
+  qq1: {
+    admin: ['반복되는 행정업무에 하루의 에너지가 빠르게 소진되곤 했다.', '수업보다 행정이 더 크게 느껴지는 날이 잦았다.'],
+    records: ['생활기록부 시즌이 다가올수록 마음이 무거워졌다.', '기록의 무게가 올해 가장 큰 부담이었다.'],
+    counseling: ['상담 과정에서 오는 감정 소모가 올해 가장 컸다.', '아이들의 이야기를 들으며 내 마음도 함께 흔들렸다.'],
+    parents: ['학부모와의 소통에서 오는 긴장이 올해 큰 짐이었다.', '서로 다른 기대 사이에서 균형을 잡기가 쉽지 않았다.'],
+    lesson: ['매일의 수업을 준비하는 데 올해는 유독 많은 에너지가 필요했다.', '수업 하나를 만드는 데 들이는 시간이 올해는 더 길게 느껴졌다.'],
+    relations: ['학교 안 관계 조율에 올해 가장 많은 에너지를 썼다.', '사람 사이에서 중심을 잡는 일이 올해 가장 힘겨운 과제였다.'],
+  },
+  qq2: {
+    students: ['아이들의 순수한 한마디가 지친 마음을 다시 일으켜 세웠다.', '교실에서 마주한 작은 변화가 올해의 가장 큰 보상이었다.'],
+    colleagues: ['동료의 짧은 한마디가 오래 버틸 힘이 되어주었다.', '같은 자리에 선 동료의 이해가 올해를 버텨내는 큰 위로가 되었다.'],
+    duty: ['교사라는 책임감이 흔들리는 나를 잡아주는 닻이었다.', '아이들 앞에 서야 한다는 사실이 매일 나를 일으켜 세웠다.'],
+    family: ['학교 밖 가족의 일상적 위로가 하루를 마감하는 힘이었다.', '가족의 존재가 흔들리는 나를 지탱해주는 버팀목이었다.'],
+    routine: ['매일 반복되는 익숙한 흐름 속에서 안정을 찾았다.', '루틴이 주는 예측 가능함이 올해 나를 지킨 방식이었다.'],
+    achievement: ['작은 성취가 쌓이며 포기하지 않을 이유가 만들어졌다.', '무언가를 해냈다는 감각이 다음 날을 시작하게 만들었다.'],
+  },
+};
+
 const SOURCE_CHAPTER_KEYWORDS = {
   studentRecords: ['학생', '친구', '반', '이름'],
   lifeRecords: ['기록', '생기부', '생활기록'],
@@ -433,10 +476,19 @@ function AutobiographyCompilation() {
   });
   const [isQuestionsOpen, setIsQuestionsOpen] = useState(false);
   const [expandedQ, setExpandedQ] = useState(null);
+  const [genMode, setGenMode] = useState('quick'); // 'quick' | 'detailed'
+  const [quickAnswers, setQuickAnswers] = useState(() => {
+    try { const s = localStorage.getItem('autobio_quickAnswers'); return s ? JSON.parse(s) : {}; } catch { return {}; }
+  });
+  const [quickChoices, setQuickChoices] = useState(() => {
+    try { const s = localStorage.getItem('autobio_quickChoices'); return s ? JSON.parse(s) : {}; } catch { return {}; }
+  });
 
   useEffect(() => { localStorage.setItem('autobio_questionAnswers', JSON.stringify(questionAnswers)); }, [questionAnswers]);
   useEffect(() => { localStorage.setItem('autobio_followUpAnswers', JSON.stringify(followUpAnswers)); }, [followUpAnswers]);
   useEffect(() => { localStorage.setItem('autobio_followUps', JSON.stringify(followUps)); }, [followUps]);
+  useEffect(() => { localStorage.setItem('autobio_quickAnswers', JSON.stringify(quickAnswers)); }, [quickAnswers]);
+  useEffect(() => { localStorage.setItem('autobio_quickChoices', JSON.stringify(quickChoices)); }, [quickChoices]);
   const [selectedSources, setSelectedSources] = useState({
     radioStory: false,
     careClassroom: false,
@@ -628,8 +680,10 @@ function AutobiographyCompilation() {
       return;
     }
 
-    if (!prompt) {
-      setErrorMsg('생성에 필요한 요청 내용을 입력해주세요.');
+    // 빠른 모드: 핵심 질문 답변만으로도 생성 가능
+    const hasQuickAnswers = QUICK_QUESTIONS.some(q => quickAnswers[q.id]?.trim() || quickChoices[q.id]);
+    if (!prompt && !hasQuickAnswers) {
+      setErrorMsg('요청 내용을 입력하거나 핵심 질문에 답변해주세요.');
       return;
     }
 
@@ -640,7 +694,22 @@ function AutobiographyCompilation() {
       const sourceData = await collectSourceData();
       setLastSourceData(sourceData);
 
-      // 질문 답변을 프롬프트에 자동 반영
+      // 빠른 모드 답변 반영
+      let quickText = '';
+      if (genMode === 'quick' || hasQuickAnswers) {
+        const parts = QUICK_QUESTIONS.map(q => {
+          const choice = quickChoices[q.id];
+          const ans = quickAnswers[q.id]?.trim();
+          const choiceLabel = choice ? q.choices.find(c => c.value === choice)?.label : '';
+          const sentences = QUICK_SENTENCES[q.id]?.[choice] || [];
+          const sentence = sentences.length > 0 ? sentences[Date.now() % sentences.length] : '';
+          if (!choice && !ans) return '';
+          return `질문: ${q.text}\n${choiceLabel ? `선택: ${choiceLabel}\n` : ''}${sentence ? `제안: ${sentence}\n` : ''}${ans ? `답변: ${ans}` : ''}`;
+        }).filter(Boolean);
+        if (parts.length > 0) quickText = '\n\n─── 핵심 질문 답변 ───\n' + parts.join('\n\n');
+      }
+
+      // 정밀 모드 질문 답변 반영
       const questions = activeTab === 'student' ? STUDENT_QUESTIONS : TEACHER_QUESTIONS;
       const qaText = questions
         .filter(q => questionAnswers[q.id]?.trim())
@@ -654,7 +723,8 @@ function AutobiographyCompilation() {
           return text;
         })
         .join('\n\n');
-      const fullPrompt = qaText ? `${prompt}\n\n─── 질문 답변 ───\n${qaText}` : prompt;
+      const detailedText = qaText ? '\n\n─── 장별 질문 답변 ───\n' + qaText : '';
+      const fullPrompt = (prompt || '올해의 교사 자서전을 작성해주세요.') + quickText + detailedText;
 
       const payload = {
         tab: activeTab,
@@ -868,7 +938,12 @@ function AutobiographyCompilation() {
                   onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleGenerate(e); } }}
                 />
               </div>
-              <QuestionsSection questions={STUDENT_QUESTIONS} questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} followUps={followUps} setFollowUps={setFollowUps} followUpAnswers={followUpAnswers} setFollowUpAnswers={setFollowUpAnswers} expandedQ={expandedQ} setExpandedQ={setExpandedQ} isOpen={isQuestionsOpen} setIsOpen={setIsQuestionsOpen} />
+              <QuickDetailToggle genMode={genMode} setGenMode={setGenMode} />
+              {genMode === 'quick' ? (
+                <QuickModePanel quickAnswers={quickAnswers} setQuickAnswers={setQuickAnswers} quickChoices={quickChoices} setQuickChoices={setQuickChoices} />
+              ) : (
+                <QuestionsSection questions={STUDENT_QUESTIONS} questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} followUps={followUps} setFollowUps={setFollowUps} followUpAnswers={followUpAnswers} setFollowUpAnswers={setFollowUpAnswers} expandedQ={expandedQ} setExpandedQ={setExpandedQ} isOpen={isQuestionsOpen} setIsOpen={setIsQuestionsOpen} />
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -973,7 +1048,12 @@ function AutobiographyCompilation() {
                   onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleGenerate(e); } }}
                 />
               </div>
-              <QuestionsSection questions={TEACHER_QUESTIONS} questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} followUps={followUps} setFollowUps={setFollowUps} followUpAnswers={followUpAnswers} setFollowUpAnswers={setFollowUpAnswers} expandedQ={expandedQ} setExpandedQ={setExpandedQ} isOpen={isQuestionsOpen} setIsOpen={setIsQuestionsOpen} />
+              <QuickDetailToggle genMode={genMode} setGenMode={setGenMode} />
+              {genMode === 'quick' ? (
+                <QuickModePanel quickAnswers={quickAnswers} setQuickAnswers={setQuickAnswers} quickChoices={quickChoices} setQuickChoices={setQuickChoices} />
+              ) : (
+                <QuestionsSection questions={TEACHER_QUESTIONS} questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} followUps={followUps} setFollowUps={setFollowUps} followUpAnswers={followUpAnswers} setFollowUpAnswers={setFollowUpAnswers} expandedQ={expandedQ} setExpandedQ={setExpandedQ} isOpen={isQuestionsOpen} setIsOpen={setIsQuestionsOpen} />
+              )}
             </div>
           )}
 
@@ -1098,7 +1178,90 @@ function parseResponseToChapters(text) {
   });
 }
 
-// ─── 질문 섹션 컴포넌트 ───
+// ─── 빠른/정밀 모드 토글 ───
+
+function QuickDetailToggle({ genMode, setGenMode }) {
+  return (
+    <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+      <button type="button" onClick={() => setGenMode('quick')}
+        className={`flex-1 py-2 text-xs font-semibold transition ${genMode === 'quick' ? 'bg-purple-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+        ⚡ 빠른 생성
+      </button>
+      <button type="button" onClick={() => setGenMode('detailed')}
+        className={`flex-1 py-2 text-xs font-semibold transition ${genMode === 'detailed' ? 'bg-purple-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+        📋 정밀 생성
+      </button>
+    </div>
+  );
+}
+
+// ─── 빠른 생성 모드 패널 ───
+
+function QuickModePanel({ quickAnswers, setQuickAnswers, quickChoices, setQuickChoices }) {
+  const answeredCount = QUICK_QUESTIONS.filter(q => quickAnswers[q.id]?.trim() || quickChoices[q.id]).length;
+
+  return (
+    <div className="rounded-xl border-2 border-purple-100 bg-purple-50/30 p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-gray-700">⚡ 핵심 질문 3개</span>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-600 text-white">{answeredCount}/3</span>
+      </div>
+      <p className="text-[11px] text-gray-400">3개만 답하면 10장 자서전 초안이 바로 생성됩니다</p>
+
+      {QUICK_QUESTIONS.map((q, qi) => {
+        const hasChoice = !!quickChoices[q.id];
+        const hasAns = !!quickAnswers[q.id]?.trim();
+        const isDone = hasChoice || hasAns;
+        const sentences = QUICK_SENTENCES[q.id]?.[quickChoices[q.id]] || [];
+
+        return (
+          <div key={q.id} className={`rounded-lg border p-3 space-y-2 ${isDone ? 'border-green-200 bg-green-50/30' : 'border-gray-100 bg-white'}`}>
+            <div className="flex items-start gap-2">
+              <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5 ${isDone ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                {isDone ? '✓' : qi + 1}
+              </span>
+              <p className="text-sm font-medium text-gray-800 leading-snug">{q.text}</p>
+            </div>
+
+            {q.choices.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pl-7">
+                {q.choices.map(c => (
+                  <button key={c.value} type="button"
+                    onClick={() => {
+                      setQuickChoices(prev => ({ ...prev, [q.id]: prev[q.id] === c.value ? '' : c.value }));
+                      if (!quickAnswers[q.id]?.trim() && sentences.length === 0) {
+                        const s = QUICK_SENTENCES[q.id]?.[c.value] || [];
+                        if (s.length > 0) setQuickAnswers(prev => ({ ...prev, [q.id]: s[Date.now() % s.length] }));
+                      }
+                    }}
+                    className={`text-[11px] px-2.5 py-1 rounded-full border transition font-medium ${
+                      quickChoices[q.id] === c.value ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300'
+                    }`}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="pl-7">
+              <textarea
+                value={quickAnswers[q.id] || ''}
+                onChange={(e) => setQuickAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                rows={q.choices.length > 0 ? 1 : 2}
+                className="w-full text-xs border border-gray-200 rounded p-2 resize-none focus:ring-1 focus:ring-purple-400"
+                placeholder={q.choices.length > 0 ? '선택 후 한 줄 보충 (선택 사항)' : '자유롭게 적어주세요...'}
+              />
+            </div>
+          </div>
+        );
+      })}
+
+      <p className="text-[10px] text-center text-gray-300">답변 후 "생성하기" 버튼을 누르면 10장 자서전 초안이 생성됩니다</p>
+    </div>
+  );
+}
+
+// ─── 질문 섹션 컴포넌트 (정밀 모드) ───
 
 function QuestionsSection({ questions, questionAnswers, setQuestionAnswers, followUps, setFollowUps, followUpAnswers, setFollowUpAnswers, expandedQ, setExpandedQ, isOpen, setIsOpen }) {
   const answeredCount = questions.filter(q => questionAnswers[q.id]?.trim()).length;
