@@ -1569,8 +1569,16 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
   const questions = (activeTab === 'student' ? STUDENT_QUESTIONS : TEACHER_QUESTIONS).filter(q => q.chapter === idx);
   const answeredCount = questions.filter(q => questionAnswers?.[q.id]?.trim()).length;
   const hasUnanswered = answeredCount < questions.length;
-
   const hasBlocks = blocks && blocks.length > 0;
+
+  // 미답변 장 첫 진입 시 자동 팝업
+  const autoShownRef = useRef(false);
+  useEffect(() => {
+    if (answeredCount === 0 && questions.length > 0 && !hasBlocks && !autoShownRef.current) {
+      autoShownRef.current = true;
+      setShowQPopup(true);
+    }
+  }, []);
 
   return (
     <div className="h-full overflow-y-auto px-8 py-6 flex flex-col relative" style={{ fontFamily: "'Noto Serif KR', serif" }}>
@@ -1582,19 +1590,42 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
         <div className="w-10 h-px bg-amber-400 mx-auto mt-3" />
       </div>
 
-      {/* 질문 답변 버튼 */}
+      {/* ─── 질문 상태 카드 ─── */}
       {questions.length > 0 && (
-        <div className="flex justify-center mb-3">
-          <button type="button" onClick={() => { setShowQPopup(true); setActiveQIdx(0); }}
-            className={`text-[11px] px-3 py-1.5 rounded-full border font-medium transition ${
-              hasUnanswered ? 'text-purple-700 bg-purple-50 border-purple-200 hover:bg-purple-100 animate-pulse' : 'text-green-700 bg-green-50 border-green-200 hover:bg-green-100'
-            }`}>
-            {hasUnanswered ? `📝 질문 답변하기 (${answeredCount}/${questions.length})` : `✅ 질문 완료 (${answeredCount}/${questions.length}) · 수정`}
-          </button>
+        <div className={`rounded-xl p-3 mb-3 ${
+          answeredCount === 0 ? 'bg-purple-50 border-2 border-purple-200 border-dashed' :
+          hasUnanswered ? 'bg-amber-50 border border-amber-200' :
+          'bg-green-50 border border-green-200'
+        }`}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className={`text-lg ${answeredCount === 0 ? '' : hasUnanswered ? '' : ''}`}>
+                {answeredCount === 0 ? '📝' : hasUnanswered ? '✍️' : '✅'}
+              </span>
+              <div>
+                <p className={`text-xs font-semibold ${answeredCount === 0 ? 'text-purple-700' : hasUnanswered ? 'text-amber-700' : 'text-green-700'}`}>
+                  {answeredCount === 0 ? '질문에 답하면 이 장이 채워집니다' : hasUnanswered ? `${questions.length - answeredCount}개 질문 남음` : '질문 답변 완료'}
+                </p>
+                <div className="flex gap-1 mt-1">
+                  {questions.map((q, i) => (
+                    <div key={q.id} className={`w-3 h-3 rounded-full ${questionAnswers?.[q.id]?.trim() ? 'bg-green-500' : 'bg-gray-200'}`} />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <button type="button" onClick={() => { setShowQPopup(true); setActiveQIdx(answeredCount === questions.length ? 0 : questions.findIndex(q => !questionAnswers?.[q.id]?.trim())); }}
+              className={`text-xs px-3 py-1.5 rounded-full font-semibold transition ${
+                answeredCount === 0 ? 'bg-purple-600 text-white hover:bg-purple-700 shadow-sm' :
+                hasUnanswered ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm' :
+                'bg-green-100 text-green-700 hover:bg-green-200'
+              }`}>
+              {answeredCount === 0 ? '시작하기' : hasUnanswered ? '이어서 쓰기' : '수정하기'}
+            </button>
+          </div>
         </div>
       )}
 
-      {/* 블록 리스트 */}
+      {/* ─── 블록 리스트 ─── */}
       <div className="flex-1">
         {hasBlocks ? (
           <>
@@ -1617,10 +1648,15 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
             ))}
           </>
         ) : (
-          <div className="text-center py-6">
-            <p className="text-xs text-gray-300 italic mb-4">{ch.placeholder}</p>
+          <div className="flex-1 flex flex-col items-center justify-center text-center py-8">
+            <div className="text-4xl mb-3">📖</div>
+            <p className="text-sm text-gray-500 font-medium mb-1">이 장은 아직 비어 있습니다</p>
+            <p className="text-xs text-gray-400 mb-4">
+              {answeredCount === 0 ? '위 "시작하기" 버튼을 눌러 질문에 답하면 초안이 생성됩니다' :
+               hasUnanswered ? `${questions.length - answeredCount}개 질문을 더 답하면 더 풍부한 초안이 생성됩니다` :
+               '질문 답변 완료! "생성하기"로 초안을 만들어보세요'}
+            </p>
             <AddBlockButton onClick={() => onAddBlock(ch.id, 0)} alwaysVisible />
-            <p className="text-[10px] text-gray-300 mt-3">직접 문장을 추가하거나, 자서전 생성 후 내용이 채워집니다.</p>
           </div>
         )}
       </div>
