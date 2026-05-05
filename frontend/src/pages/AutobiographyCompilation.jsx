@@ -1704,25 +1704,17 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
               const currentAns = questionAnswers?.[q.id] || '';
               const selectedChoice = choices.find(c => currentAns.startsWith(`[${c.label}]`));
 
-              const selectChoice = (choice) => {
-                const templates = sentences[choice.value] || [];
-                const seed = Date.now() % (templates.length || 1);
-                const suggested = templates[seed] || '';
-                setQuestionAnswers?.(prev => ({ ...prev, [q.id]: `[${choice.label}] ${suggested}` }));
+              const selectKeyword = (choice) => {
+                if (selectedChoice?.value === choice.value) return;
+                setQuestionAnswers?.(prev => ({ ...prev, [q.id]: `[${choice.label}] ` }));
               };
 
-              const refreshSuggestion = () => {
-                if (!selectedChoice) return;
-                const templates = sentences[selectedChoice.value] || [];
-                if (templates.length <= 1) return;
-                const current = currentAns.replace(`[${selectedChoice.label}] `, '');
-                const others = templates.filter(t => t !== current);
-                const next = others[Date.now() % others.length] || templates[0];
-                setQuestionAnswers?.(prev => ({ ...prev, [q.id]: `[${selectedChoice.label}] ${next}` }));
+              const useSentence = (sentence) => {
+                setQuestionAnswers?.(prev => ({ ...prev, [q.id]: `[${selectedChoice.label}] ${sentence}` }));
               };
 
               return (
-                <div className="max-w-2xl mx-auto w-full space-y-5 px-4">
+                <div className="max-w-2xl mx-auto w-full space-y-4 px-4">
                   <p className="text-lg font-medium text-gray-800 leading-relaxed text-center">{q.text}</p>
 
                   {/* 객관식 선택지 */}
@@ -1731,7 +1723,7 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
                       {choices.map(c => {
                         const isSel = selectedChoice?.value === c.value;
                         return (
-                          <button key={c.value} type="button" onClick={() => selectChoice(c)}
+                          <button key={c.value} type="button" onClick={() => selectKeyword(c)}
                             className={`text-base px-5 py-2.5 rounded-full border-2 transition font-medium ${
                               isSel ? 'bg-purple-600 text-white border-purple-600 shadow-md scale-105' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
                             }`}>
@@ -1742,40 +1734,62 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
                     </div>
                   )}
 
-                  {/* 추천 문장 리스트 (객관식 선택 시) */}
+                  {/* 추천 문장 리스트 (키워드 선택 시) */}
                   {isObj && selectedChoice && (() => {
                     const allSentences = sentences[selectedChoice.value] || [];
-                    const currentText = currentAns.replace(`[${selectedChoice.label}] `, '');
+                    const currentText = currentAns.replace(`[${selectedChoice.label}] `, '').trim();
                     return (
-                      <div className="bg-white border border-purple-100 rounded-xl p-4 space-y-2 max-h-[200px] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-purple-500 font-semibold">📝 추천 문장 ({allSentences.length}개)</span>
+                      <div className="bg-white border-2 border-purple-200 rounded-xl overflow-hidden">
+                        <div className="flex items-center justify-between px-4 py-2 bg-purple-50 border-b border-purple-100">
+                          <span className="text-sm text-purple-700 font-semibold">📝 추천 문장 {allSentences.length}개</span>
+                          <span className="text-xs text-purple-400">마음에 드는 문장을 선택하세요</span>
                         </div>
-                        {allSentences.map((s, si) => {
-                          const isActive = currentText === s;
-                          return (
-                            <div key={si} className={`flex items-start gap-2 p-2 rounded-lg border transition cursor-pointer ${isActive ? 'border-purple-400 bg-purple-50' : 'border-gray-100 hover:border-purple-200 hover:bg-purple-50/30'}`}
-                              onClick={() => setQuestionAnswers?.(prev => ({ ...prev, [q.id]: `[${selectedChoice.label}] ${s}` }))}>
-                              <span className={`mt-0.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                                {isActive ? '✓' : si + 1}
-                              </span>
-                              <p className="text-sm text-gray-700 leading-relaxed flex-1">{s}</p>
-                            </div>
-                          );
-                        })}
-                        {allSentences.length === 0 && <p className="text-xs text-gray-400">이 선택지에 대한 추천 문장이 없습니다.</p>}
+                        <div className="max-h-[280px] overflow-y-auto divide-y divide-gray-50">
+                          {allSentences.map((s, si) => {
+                            const isUsed = currentText === s;
+                            return (
+                              <div key={si} className={`px-4 py-3 transition ${isUsed ? 'bg-purple-50' : 'hover:bg-gray-50'}`}>
+                                <div className="flex items-start gap-3">
+                                  <span className={`mt-1 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0 ${isUsed ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                    {isUsed ? '✓' : si + 1}
+                                  </span>
+                                  <p className={`text-sm leading-relaxed flex-1 ${isUsed ? 'text-purple-800 font-medium' : 'text-gray-700'}`}>{s}</p>
+                                </div>
+                                <div className="flex gap-2 mt-2 pl-9">
+                                  <button type="button" onClick={() => useSentence(s)}
+                                    className={`text-[11px] px-3 py-1 rounded-full border font-medium transition ${isUsed ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50'}`}>
+                                    {isUsed ? '✓ 선택됨' : '그대로 사용'}
+                                  </button>
+                                  <button type="button" onClick={() => { useSentence(s); setTimeout(() => document.querySelector('[data-qa-textarea]')?.focus(), 100); }}
+                                    className="text-[11px] px-3 py-1 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium transition">
+                                    수정해서 사용
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {allSentences.length === 0 && (
+                            <div className="px-4 py-6 text-center text-sm text-gray-400">이 선택지에 대한 추천 문장이 없습니다</div>
+                          )}
+                        </div>
                       </div>
                     );
                   })()}
 
-                  {/* 주관식 입력 */}
-                  <textarea
-                    value={currentAns}
-                    onChange={(e) => setQuestionAnswers?.(prev => ({ ...prev, [q.id]: e.target.value }))}
-                    rows={q.type === 'subjective' ? 8 : 3}
-                    className="w-full text-sm border border-gray-200 rounded-xl p-3 resize-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-white shadow-sm leading-relaxed"
-                    placeholder={isObj ? '위에서 문장을 선택하거나 직접 수정하세요' : '자유롭게 답변해주세요...'}
-                  />
+                  {/* 선택/직접 입력 영역 */}
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1 font-medium">
+                      {isObj ? (currentAns.trim() ? '선택된 문장 (직접 수정 가능)' : '위에서 문장을 선택하거나 직접 작성하세요') : '자유롭게 답변해주세요'}
+                    </div>
+                    <textarea
+                      data-qa-textarea
+                      value={currentAns}
+                      onChange={(e) => setQuestionAnswers?.(prev => ({ ...prev, [q.id]: e.target.value }))}
+                      rows={q.type === 'subjective' ? 8 : 3}
+                      className="w-full text-sm border border-gray-200 rounded-xl p-3 resize-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-white shadow-sm leading-relaxed"
+                      placeholder={isObj ? '위에서 문장을 선택하거나 여기에 직접 작성하세요' : '자유롭게 답변해주세요...'}
+                    />
+                  </div>
 
                   {/* 이전/다음 */}
                   <div className="flex items-center justify-between pt-3">
