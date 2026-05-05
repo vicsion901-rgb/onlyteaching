@@ -1704,94 +1704,117 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
               const currentAns = questionAnswers?.[q.id] || '';
               const selectedChoice = choices.find(c => currentAns.startsWith(`[${c.label}]`));
 
-              const selectKeyword = (choice) => {
-                if (selectedChoice?.value === choice.value) return;
-                setQuestionAnswers?.(prev => ({ ...prev, [q.id]: `[${choice.label}]\n` }));
+              // 멀티 선택된 키워드 파싱
+              const selectedKeys = currentAns.match(/\[(.+?)\]/g)?.map(m => m.slice(1, -1)) || [];
+              const toggleKeyword = (choice) => {
+                const label = choice.label;
+                if (selectedKeys.includes(label)) {
+                  // 해제: 해당 키워드 태그 + 소속 문장 제거
+                  setQuestionAnswers?.(prev => {
+                    const lines = (prev[q.id] || '').split('\n');
+                    const filtered = lines.filter(l => !l.startsWith(`[${label}]`) && !(l.trim() && lines[lines.indexOf(l) - 1]?.startsWith?.(`[${label}]`)));
+                    // 간단하게: 태그 행 제거
+                    const cleaned = (prev[q.id] || '').split('\n').filter(l => l.trim() !== `[${label}]`);
+                    return { ...prev, [q.id]: cleaned.join('\n') };
+                  });
+                } else {
+                  // 선택: 태그 추가
+                  setQuestionAnswers?.(prev => {
+                    const cur = (prev[q.id] || '').trim();
+                    return { ...prev, [q.id]: cur ? `${cur}\n[${label}]` : `[${label}]` };
+                  });
+                }
               };
 
               const addSentence = (sentence) => {
                 setQuestionAnswers?.(prev => {
                   const cur = prev[q.id] || '';
                   if (cur.includes(sentence)) return prev;
-                  const prefix = selectedChoice ? `[${selectedChoice.label}]\n` : '';
-                  const body = cur.replace(/^\[.+?\]\n?/, '').trim();
-                  const next = body ? `${prefix}${body}\n${sentence}` : `${prefix}${sentence}`;
-                  return { ...prev, [q.id]: next };
+                  return { ...prev, [q.id]: cur.trim() ? `${cur.trim()}\n${sentence}` : sentence };
                 });
               };
 
               const removeSentence = (sentence) => {
                 setQuestionAnswers?.(prev => {
-                  const cur = prev[q.id] || '';
-                  const lines = cur.split('\n').filter(l => l.trim() !== sentence.trim());
+                  const lines = (prev[q.id] || '').split('\n').filter(l => l.trim() !== sentence.trim());
                   return { ...prev, [q.id]: lines.join('\n') };
                 });
               };
 
-              const addedSentences = currentAns.split('\n').map(l => l.trim()).filter(Boolean);
+              const addedLines = currentAns.split('\n').map(l => l.trim()).filter(l => l && !l.match(/^\[.+?\]$/));
 
               return (
-                <div className="max-w-2xl mx-auto w-full space-y-4 px-4 overflow-y-auto" style={{ maxHeight: 'calc(100% - 120px)' }}>
+                <div className="max-w-2xl mx-auto w-full space-y-3 px-4 overflow-y-auto" style={{ maxHeight: 'calc(100% - 120px)' }}>
                   <p className="text-lg font-medium text-gray-800 leading-relaxed text-center">{q.text}</p>
 
-                  {/* 객관식 선택지 */}
+                  {/* 키워드 멀티 선택 태그 */}
                   {isObj && choices.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {choices.map(c => {
-                        const isSel = selectedChoice?.value === c.value;
+                    <div>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {choices.map(c => {
+                          const isSel = selectedKeys.includes(c.label);
+                          return (
+                            <button key={c.value} type="button" onClick={() => toggleKeyword(c)}
+                              className={`text-sm px-4 py-1.5 rounded-full border-2 transition font-medium ${
+                                isSel ? 'bg-purple-600 text-white border-purple-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                              }`}>
+                              {c.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {selectedKeys.length > 0 && (
+                        <p className="text-center text-[10px] text-purple-400 mt-1">{selectedKeys.length}개 키워드 선택됨 · 여러 섹션에서 문장을 골라 아래에 담으세요</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 키워드별 추천 문장 뱅크 섹션 (선택된 키워드마다 개별 표시) */}
+                  {isObj && selectedKeys.length > 0 && (
+                    <div className="space-y-2">
+                      {selectedKeys.map(label => {
+                        const choice = choices.find(c => c.label === label);
+                        if (!choice) return null;
+                        const sents = sentences[choice.value] || [];
+                        if (sents.length === 0) return null;
                         return (
-                          <button key={c.value} type="button" onClick={() => selectKeyword(c)}
-                            className={`text-sm px-4 py-2 rounded-full border-2 transition font-medium ${
-                              isSel ? 'bg-purple-600 text-white border-purple-600 shadow-md scale-105' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
-                            }`}>
-                            {c.label}
-                          </button>
+                          <div key={choice.value} className="bg-white border border-purple-100 rounded-lg overflow-hidden">
+                            <div className="px-3 py-1.5 bg-purple-50 border-b border-purple-100 flex items-center gap-2">
+                              <span className="text-[11px] font-semibold text-purple-700">{label}</span>
+                              <span className="text-[10px] text-purple-400">{sents.length}개</span>
+                            </div>
+                            <div className="max-h-[140px] overflow-y-auto">
+                              {sents.map((s, si) => {
+                                const isAdded = addedLines.includes(s);
+                                return (
+                                  <div key={si} className={`px-3 py-1.5 flex items-start gap-2 border-b border-gray-50 last:border-0 ${isAdded ? 'bg-green-50' : 'hover:bg-gray-50'}`}>
+                                    <span className={`mt-0.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center flex-shrink-0 ${isAdded ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                      {isAdded ? '✓' : si + 1}
+                                    </span>
+                                    <p className={`text-[11px] leading-relaxed flex-1 ${isAdded ? 'text-green-800' : 'text-gray-700'}`}>{s}</p>
+                                    <button type="button" onClick={() => isAdded ? removeSentence(s) : addSentence(s)}
+                                      className={`flex-shrink-0 text-[9px] px-2 py-0.5 rounded-full border font-medium ${
+                                        isAdded ? 'text-red-500 border-red-200 hover:bg-red-50' : 'text-purple-600 border-purple-200 hover:bg-purple-50'
+                                      }`}>
+                                      {isAdded ? '제거' : '+ 추가'}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
                         );
                       })}
                     </div>
                   )}
 
-                  {/* 추천 문장 뱅크 (키워드 선택 시) */}
-                  {isObj && selectedChoice && (() => {
-                    const allSentences = sentences[selectedChoice.value] || [];
-                    return (
-                      <div className="bg-white border-2 border-purple-200 rounded-xl overflow-hidden">
-                        <div className="flex items-center justify-between px-3 py-1.5 bg-purple-50 border-b border-purple-100">
-                          <span className="text-xs text-purple-700 font-semibold">📝 추천 문장 뱅크 ({allSentences.length}개)</span>
-                          <span className="text-[10px] text-purple-400">여러 개를 골라 아래에 담을 수 있어요</span>
-                        </div>
-                        <div className="max-h-[180px] overflow-y-auto divide-y divide-gray-50">
-                          {allSentences.map((s, si) => {
-                            const isAdded = addedSentences.includes(s);
-                            return (
-                              <div key={si} className={`px-3 py-2 transition ${isAdded ? 'bg-green-50' : 'hover:bg-gray-50'}`}>
-                                <div className="flex items-start gap-2">
-                                  <span className={`mt-0.5 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0 ${isAdded ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                                    {isAdded ? '✓' : si + 1}
-                                  </span>
-                                  <p className={`text-xs leading-relaxed flex-1 ${isAdded ? 'text-green-800' : 'text-gray-700'}`}>{s}</p>
-                                  <button type="button" onClick={() => isAdded ? removeSentence(s) : addSentence(s)}
-                                    className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full border font-medium transition ${
-                                      isAdded ? 'bg-red-50 text-red-500 border-red-200 hover:bg-red-100' : 'bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100'
-                                    }`}>
-                                    {isAdded ? '제거' : '+ 추가'}
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })()}
-
                   {/* 누적 편집 영역 */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs text-gray-500 font-medium">
-                        {isObj ? `담긴 문장 ${addedSentences.filter(l => !l.startsWith('[')).length}개 · 직접 수정 가능` : '자유롭게 답변해주세요'}
+                        {isObj ? `담긴 문장 ${addedLines.length}개 · 직접 수정 가능` : '자유롭게 답변해주세요'}
                       </span>
-                      {isObj && addedSentences.length > 1 && (
+                      {addedLines.length > 0 && (
                         <button type="button" onClick={() => setQuestionAnswers?.(prev => ({ ...prev, [q.id]: '' }))}
                           className="text-[10px] text-red-400 hover:text-red-600">전체 지우기</button>
                       )}
