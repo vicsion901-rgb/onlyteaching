@@ -1814,9 +1814,28 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
                       <span className="text-xs text-gray-500 font-medium">
                         {isObj ? `담긴 문장 ${addedLines.length}개 · 직접 수정 가능` : '자유롭게 답변해주세요'}
                       </span>
-                      {addedLines.length > 0 && (
-                        <button type="button" onClick={() => setQuestionAnswers?.(prev => ({ ...prev, [q.id]: '' }))}
-                          className="text-[10px] text-red-400 hover:text-red-600">전체 지우기</button>
+                      {isObj && (
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => {
+                            const allSents = selectedKeys.flatMap(label => {
+                              const c = choices.find(ch => ch.label === label);
+                              return c ? (sentences[c.value] || []) : [];
+                            });
+                            setQuestionAnswers?.(prev => {
+                              const cur = (prev[q.id] || '').trim();
+                              const existing = cur.split('\n').map(l => l.trim());
+                              const toAdd = allSents.filter(s => !existing.includes(s));
+                              if (toAdd.length === 0) return prev;
+                              return { ...prev, [q.id]: cur ? `${cur}\n${toAdd.join('\n')}` : toAdd.join('\n') };
+                            });
+                          }} className="text-[10px] text-purple-500 hover:text-purple-700 font-medium">전체 선택</button>
+                          {addedLines.length > 0 && (
+                            <button type="button" onClick={() => {
+                              const tags = selectedKeys.map(k => `[${k}]`).join('\n');
+                              setQuestionAnswers?.(prev => ({ ...prev, [q.id]: tags }));
+                            }} className="text-[10px] text-red-400 hover:text-red-600 font-medium">전체 지우기</button>
+                          )}
+                        </div>
                       )}
                     </div>
                     <textarea
