@@ -144,6 +144,11 @@ function CareClassroom() {
   const [customMood, setCustomMood] = useState('');
   const [todoItems, setTodoItems] = useState(() => ensureTodoRows([]));
   const [importantEvents, setImportantEvents] = useState('');
+  const [moodIntensity, setMoodIntensity] = useState(3);
+  const [moodReasonTags, setMoodReasonTags] = useState([]);
+  const [keyScene, setKeyScene] = useState('');
+  const [supportSource, setSupportSource] = useState('');
+  const [supportMemo, setSupportMemo] = useState('');
   const [isMoodPickerOpen, setIsMoodPickerOpen] = useState(false);
   const [isSourcePickerOpen, setIsSourcePickerOpen] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -175,6 +180,11 @@ function CareClassroom() {
     setCustomMood(current?.customMood || '');
     setTodoItems(normalizeTodoItems(current?.todos));
     setImportantEvents(current?.importantEvents || '');
+    setMoodIntensity(current?.moodIntensity || 3);
+    setMoodReasonTags(current?.moodReasonTags || []);
+    setKeyScene(current?.keyScene || '');
+    setSupportSource(current?.supportSource || '');
+    setSupportMemo(current?.supportMemo || '');
   }, [records, selectedDate]);
 
   useEffect(() => {
@@ -222,8 +232,14 @@ function CareClassroom() {
         [selectedDate]: {
         mood,
         customMood,
+        moodIntensity,
+        moodReasonTags,
         todos: todoItems,
         importantEvents,
+        keyScene,
+        supportSource,
+        supportMemo,
+        sourceType: 'care-classroom-log',
         updatedAt: new Date().toISOString(),
       },
     };
@@ -599,6 +615,60 @@ function CareClassroom() {
                 <p className="mt-3 text-sm text-gray-400">직접 입력하면 저장 시 해당 감정이 우선 기록됩니다.</p>
               </div>
 
+              {/* 감정 강도 + 이유 태그 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-700">감정 강도</label>
+                  <div className="flex gap-1">
+                    {[1,2,3,4,5].map(n => (
+                      <button key={n} type="button" onClick={() => setMoodIntensity(n)}
+                        className={`w-10 h-10 rounded-lg text-sm font-bold transition ${moodIntensity >= n ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">1=약함 · 5=매우 강함</p>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-700">감정 이유</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['행정','생활기록부','상담','관계','학생','학부모','수업','회의','피로','안도','성취','답답함','위로','버팀'].map(tag => {
+                      const isSel = moodReasonTags.includes(tag);
+                      return (
+                        <button key={tag} type="button" onClick={() => setMoodReasonTags(prev => isSel ? prev.filter(t => t !== tag) : [...prev, tag])}
+                          className={`text-xs px-2.5 py-1 rounded-full border transition font-medium ${isSel ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300'}`}>
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* 오늘의 한 장면 + 버티게 한 것 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-gray-700">📸 오늘의 한 장면</label>
+                  <textarea value={keyScene} onChange={(e) => setKeyScene(e.target.value)} rows={2}
+                    className="block w-full rounded-xl border border-gray-300 p-3 text-sm resize-none focus:border-primary-500 focus:ring-primary-500"
+                    placeholder="오늘 가장 오래 남은 장면은?" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-gray-700">💪 오늘 나를 버티게 한 것</label>
+                  <div className="flex flex-wrap gap-1 mb-1.5">
+                    {['동료','학생','책임감','가족','휴식','작은 성취','루틴','음악/취미'].map(src => (
+                      <button key={src} type="button" onClick={() => setSupportSource(supportSource === src ? '' : src)}
+                        className={`text-[11px] px-2 py-0.5 rounded-full border transition ${supportSource === src ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-500 border-gray-200 hover:border-amber-300'}`}>
+                        {src}
+                      </button>
+                    ))}
+                  </div>
+                  <input type="text" value={supportMemo} onChange={(e) => setSupportMemo(e.target.value)}
+                    className="block w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-primary-500 focus:ring-primary-500"
+                    placeholder="한 줄 보충 (선택사항)" />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 <div>
                   <div className="mb-3 flex items-center gap-3">
@@ -673,7 +743,7 @@ function CareClassroom() {
                     rows={5}
                     value={importantEvents}
                     onChange={(e) => setImportantEvents(e.target.value)}
-                    placeholder="자유 입력"
+                    placeholder="오늘 나를 가장 지치게 한 일은? / 오늘의 나를 한 문장으로 적는다면?"
                     className="block w-full rounded-2xl border border-gray-300 p-5 text-base focus:border-primary-500 focus:ring-primary-500"
                   />
                 </div>
