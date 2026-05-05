@@ -59,6 +59,10 @@ function Schedule() {
   const [selectedDate, setSelectedDate] = useState(new Date().getDate());
   const [events, setEvents] = useState({});
   const [newEventTitle, setNewEventTitle] = useState('');
+  const [scheduleReflections, setScheduleReflections] = useState(() => {
+    try { const s = localStorage.getItem('schedule_reflections'); return s ? JSON.parse(s) : {}; } catch { return {}; }
+  });
+  const [reflectionPopup, setReflectionPopup] = useState(null);
   const [selectedGrade, setSelectedGrade] = useState('1');
   const [personalColor, setPersonalColor] = useState('#2563eb');
   const [dragStartDay, setDragStartDay] = useState(null);
@@ -200,6 +204,12 @@ function Schedule() {
     } catch (error) {
       console.error("Failed to fetch events", error);
     }
+  };
+
+  useEffect(() => { localStorage.setItem('schedule_reflections', JSON.stringify(scheduleReflections)); }, [scheduleReflections]);
+
+  const saveReflection = (eventId, data) => {
+    setScheduleReflections(prev => ({ ...prev, [eventId]: { ...prev[eventId], ...data, updatedAt: new Date().toISOString() } }));
   };
 
   useEffect(() => {
@@ -863,6 +873,13 @@ function Schedule() {
                             </span>
                           </div>
                           <button
+                            onClick={() => setReflectionPopup(reflectionPopup === event.id ? null : event.id)}
+                            className={`p-0.5 flex-shrink-0 transition-opacity ${scheduleReflections[event.id] ? 'text-purple-500 opacity-100' : 'text-gray-400 hover:text-purple-500 opacity-0 group-hover:opacity-100'}`}
+                            title="회고 메모"
+                          >
+                            <span className="text-xs">📝</span>
+                          </button>
+                          <button
                             onClick={() => handleDeleteEvent(event.id, event.dateStr)}
                             className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 flex-shrink-0"
                             title="삭제"
@@ -871,6 +888,28 @@ function Schedule() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                           </button>
+                        {/* 회고 팝업 */}
+                        {reflectionPopup === event.id && (
+                          <div className="mt-1 ml-5 p-2 bg-purple-50 border border-purple-200 rounded-lg space-y-1.5" onClick={e => e.stopPropagation()}>
+                            <div className="text-[10px] text-purple-600 font-semibold">📝 이 일정 회고</div>
+                            <div className="flex flex-wrap gap-1">
+                              {['기대','긴장','버거움','보람','안도','아쉬움'].map(tag => {
+                                const ref = scheduleReflections[event.id];
+                                const isSel = ref?.emotionTag === tag;
+                                return (
+                                  <button key={tag} type="button" onClick={() => saveReflection(event.id, { emotionTag: isSel ? '' : tag, eventTitle: event.title, date: event.dateStr })}
+                                    className={`text-[9px] px-1.5 py-0.5 rounded-full border ${isSel ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200'}`}>
+                                    {tag}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <input type="text" value={scheduleReflections[event.id]?.memo || ''} onChange={(e) => saveReflection(event.id, { memo: e.target.value, eventTitle: event.title, date: event.dateStr })}
+                              className="w-full text-[11px] border border-gray-200 rounded p-1.5 focus:ring-1 focus:ring-purple-400"
+                              placeholder="이 일정과 관련해 기억에 남는 한 줄은?" />
+                            <button type="button" onClick={() => setReflectionPopup(null)} className="text-[9px] text-gray-400 hover:text-gray-600">닫기</button>
+                          </div>
+                        )}
                         </div>
                       );
                     })}
