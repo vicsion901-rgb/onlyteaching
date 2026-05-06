@@ -56,6 +56,23 @@ const LINKAGE_OPTIONS = [
   { key: 'todayMeal', label: '오늘의 급식' },
 ];
 
+function computeEmotionLabel(pos, neg) {
+  if (pos == null || neg == null) return null;
+  const p = Number(pos) || 0;
+  const n = Number(neg) || 0;
+  if (p <= 2 && n <= 2) return { label: '잔잔한 날', emoji: '😌', summary: '감정의 파도 없이 조용히 흘러간 하루', chapters: [4, 8] };
+  if (n >= 8 && p <= 3) return { label: '많이 지친 날', emoji: '😮‍💨', summary: '마음의 피로가 크게 남은 하루', chapters: [2, 6, 7] };
+  if (n >= 7 && p <= 3) return { label: '마음이 무거운 날', emoji: '😞', summary: '부담이 크게 느껴진 하루', chapters: [2, 6] };
+  if (n >= 7 && p >= 4) return { label: '힘들었지만 버틴 날', emoji: '💪', summary: '지쳤지만 끝까지 견딘 감각이 남아 있었다', chapters: [6, 7] };
+  if (p >= 8 && n >= 8) return { label: '감정이 크게 오간 날', emoji: '🎢', summary: '소모도 컸지만 보람도 함께 남은 날', chapters: [5, 7] };
+  if (p >= 7 && n <= 3) return { label: '보람이 남은 날', emoji: '😊', summary: '안정된 마음으로 하루를 마무리할 수 있었다', chapters: [8, 10] };
+  if (p >= 7 && n <= 5) return { label: '비교적 안정된 날', emoji: '🙂', summary: '마음이 조금 풀린 하루', chapters: [8] };
+  if (n > p + 2) return { label: '조금 지친 날', emoji: '😪', summary: '에너지가 부족했던 하루', chapters: [2, 4] };
+  if (p > n + 2) return { label: '마음이 조금 풀린 날', emoji: '🌤️', summary: '작은 안도감이 남은 하루', chapters: [5, 8] };
+  if (p >= 5 && n >= 5) return { label: '힘들었지만 의미도 컸던 날', emoji: '⚖️', summary: '감정의 진폭이 큰 하루였다', chapters: [5, 7] };
+  return { label: '무덤덤한 날', emoji: '😶', summary: '특별한 감정 없이 지나간 하루', chapters: [4] };
+}
+
 const MIN_TODO_ROWS = 3;
 
 function createTodoItem(index = 0) {
@@ -505,6 +522,7 @@ function CareClassroom() {
               const todoStats = getTodoStats(record?.todos);
               const firstFreeInput = previewText(record?.importantEvents, 14);
               const previewMoodText = previewText(moodText, 10);
+              const emotionResult = record ? computeEmotionLabel(record.positiveEmotionScore, record.negativeEmotionScore) : null;
 
               return (
                 <button
@@ -551,8 +569,8 @@ function CareClassroom() {
                   {record ? (
                     <div className="mt-1 sm:mt-6 space-y-0.5 sm:space-y-1">
                       <div className="flex items-center gap-0.5 sm:gap-1 overflow-hidden text-[9px] sm:text-[11px] leading-tight text-gray-600">
-                        <span className="shrink-0 text-xs sm:text-base leading-none">{moodOption?.emoji || '📝'}</span>
-                        <span className="truncate hidden sm:inline">{previewMoodText || '기록 있음'}</span>
+                        <span className="shrink-0 text-xs sm:text-base leading-none">{emotionResult?.emoji || moodOption?.emoji || '📝'}</span>
+                        <span className="truncate hidden sm:inline">{emotionResult?.label || previewMoodText || '기록 있음'}</span>
                       </div>
                       {(record.positiveEmotionScore != null || record.negativeEmotionScore != null) && (
                         <div className="hidden sm:flex gap-1 text-[9px] font-medium">
@@ -560,8 +578,8 @@ function CareClassroom() {
                           <span className="text-rose-500">-{record.negativeEmotionScore ?? '-'}</span>
                         </div>
                       )}
-                      <div className="hidden sm:block line-clamp-1 text-[11px] leading-3.5 text-gray-400">
-                        {firstFreeInput || '자유 입력 없음'}
+                      <div className="hidden sm:block line-clamp-1 text-[10px] leading-3.5 text-gray-400 italic">
+                        {emotionResult?.summary || firstFreeInput || ''}
                       </div>
                     </div>
                   ) : (
