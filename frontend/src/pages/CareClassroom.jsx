@@ -647,38 +647,20 @@ function CareClassroom() {
             </div>
 
             <div className="space-y-6">
-              {/* 오늘의 배경 (연동 시) */}
-              {linkedContext && linkedContext.date === selectedDate && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-2">
-                  {linkedContext.backgroundSummary.length > 0 && (
-                    <div>
-                      <div className="text-sm font-semibold text-amber-800 mb-1">📅 오늘의 배경</div>
-                      {linkedContext.backgroundSummary.map((s, i) => (
-                        <p key={i} className="text-xs text-amber-700">{s}</p>
-                      ))}
-                    </div>
-                  )}
-                  {linkedContext.autoDraftHints.length > 0 && (
-                    <p className="text-[10px] text-amber-500 italic">{linkedContext.autoDraftHints[0]}</p>
-                  )}
-                  {linkedContext.suggestedStudents.length > 0 && (
-                    <div>
-                      <div className="text-[11px] font-medium text-amber-700 mb-1">👤 오늘 떠오르는 학생</div>
-                      <div className="flex flex-wrap gap-1">
-                        {linkedContext.suggestedStudents.map(s => (
-                          <span key={s.id} className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                            {s.number ? `${s.number}번 ` : ''}{s.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+              {/* 오늘의 배경 (연동 시 — 간결하게) */}
+              {linkedContext && linkedContext.date === selectedDate && linkedContext.backgroundSummary.length > 0 && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/50 px-4 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs">📅</span>
+                    <p className="text-xs text-amber-700">{linkedContext.backgroundSummary.slice(0, 2).join(' · ')}</p>
+                  </div>
                 </div>
               )}
 
+              {/* ① 오늘 기분 한 줄 */}
               <div>
                 <div className="mb-2">
-                  <label className="block pl-10 text-[22px] font-semibold text-gray-700">내 감정 확인하기</label>
+                  <label className="block text-lg font-semibold text-gray-700">오늘 기분 한 줄</label>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
                   <div ref={moodPickerRef} className="relative min-h-[48px] rounded-2xl border border-gray-300 bg-white px-4 py-2 transition focus-within:border-primary-300 focus-within:bg-primary-50">
@@ -729,7 +711,7 @@ function CareClassroom() {
                     )}
                   </div>
                 </div>
-                <p className="mt-3 text-sm text-gray-400">직접 입력하면 저장 시 해당 감정이 우선 기록됩니다.</p>
+                <p className="mt-1 text-[10px] text-gray-300">이모지를 고르고 한 줄로 적어주세요</p>
               </div>
 
               {/* 긍정/부정 감정 지수 + 이유 태그 */}
@@ -759,46 +741,32 @@ function CareClassroom() {
                   <p className="text-[10px] text-gray-400 mt-1">오늘 부정적인 감정은 얼마나 컸나요?</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-gray-700">감정 이유 {linkedContext?.suggestedEmotionTags?.length > 0 && <span className="text-[10px] text-amber-500 font-normal ml-1">· 추천 태그 포함</span>}</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {['행정','생활기록부','상담','관계','학생','학부모','수업','회의','피로','안도','성취','답답함','위로','버팀'].map(tag => {
-                      const isSel = moodReasonTags.includes(tag);
-                      const isSuggested = linkedContext?.suggestedEmotionTags?.includes(tag);
-                      return (
-                        <button key={tag} type="button" onClick={() => setMoodReasonTags(prev => isSel ? prev.filter(t => t !== tag) : [...prev, tag])}
-                          className={`text-xs px-2.5 py-1 rounded-full border transition font-medium ${isSel ? 'bg-purple-600 text-white border-purple-600' : isSuggested ? 'bg-amber-50 text-amber-700 border-amber-300 ring-1 ring-amber-200' : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300'}`}>
-                          {tag}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+              {/* ③ 감정 이유 태그 */}
+              <EmotionReasonTags moodReasonTags={moodReasonTags} setMoodReasonTags={setMoodReasonTags} suggestedTags={linkedContext?.suggestedEmotionTags} />
+
+              {/* ④ 오늘의 한 장면 */}
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-gray-700">📸 오늘의 한 장면</label>
+                <textarea value={keyScene} onChange={(e) => setKeyScene(e.target.value)} rows={2}
+                  className="block w-full rounded-xl border border-gray-300 p-3 text-sm resize-none focus:border-primary-500 focus:ring-primary-500"
+                  placeholder={linkedContext?.suggestedScenePrompts?.[0] || '오늘 가장 오래 남은 장면은 무엇인가요?'} />
+                <p className="text-[10px] text-gray-300 mt-1">짧게 적어도 나중에 자서전 장면 재료로 활용됩니다</p>
               </div>
 
-              {/* 오늘의 한 장면 + 버티게 한 것 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">📸 오늘의 한 장면</label>
-                  <textarea value={keyScene} onChange={(e) => setKeyScene(e.target.value)} rows={2}
-                    className="block w-full rounded-xl border border-gray-300 p-3 text-sm resize-none focus:border-primary-500 focus:ring-primary-500"
-                    placeholder={linkedContext?.suggestedScenePrompts?.[0] || '오늘 가장 오래 남은 장면은?'} />
+              {/* ⑤ 오늘 나를 버티게 한 것 */}
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-gray-700">💪 오늘 나를 버티게 한 것</label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {['동료','학생','책임감','가족','휴식','작은 성취','루틴','음악/취미'].map(src => (
+                    <button key={src} type="button" onClick={() => setSupportSource(supportSource === src ? '' : src)}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition font-medium ${supportSource === src ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-500 border-gray-200 hover:border-amber-300'}`}>
+                      {src}
+                    </button>
+                  ))}
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">💪 오늘 나를 버티게 한 것</label>
-                  <div className="flex flex-wrap gap-1 mb-1.5">
-                    {['동료','학생','책임감','가족','휴식','작은 성취','루틴','음악/취미'].map(src => (
-                      <button key={src} type="button" onClick={() => setSupportSource(supportSource === src ? '' : src)}
-                        className={`text-[11px] px-2 py-0.5 rounded-full border transition ${supportSource === src ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-500 border-gray-200 hover:border-amber-300'}`}>
-                        {src}
-                      </button>
-                    ))}
-                  </div>
-                  <input type="text" value={supportMemo} onChange={(e) => setSupportMemo(e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-primary-500 focus:ring-primary-500"
-                    placeholder="한 줄 보충 (선택사항)" />
-                </div>
+                <input type="text" value={supportMemo} onChange={(e) => setSupportMemo(e.target.value)}
+                  className="block w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-primary-500 focus:ring-primary-500"
+                  placeholder="오늘 나를 버티게 해준 것을 짧게 적어주세요" />
               </div>
 
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -869,15 +837,17 @@ function CareClassroom() {
                   </div>
                 </div>
 
+                {/* ⑦ 자유 메모 */}
                 <div>
-                  <label className="mb-3 block text-xl font-semibold text-gray-700">자유 입력</label>
+                  <label className="mb-2 block text-sm font-semibold text-gray-700">✏️ 자유 메모</label>
                   <textarea
-                    rows={5}
+                    rows={3}
                     value={importantEvents}
                     onChange={(e) => setImportantEvents(e.target.value)}
-                    placeholder="오늘 나를 가장 지치게 한 일은? / 오늘의 나를 한 문장으로 적는다면?"
-                    className="block w-full rounded-2xl border border-gray-300 p-5 text-base focus:border-primary-500 focus:ring-primary-500"
+                    placeholder="오늘 하루를 마무리하며 남기고 싶은 말이 있다면 적어주세요"
+                    className="block w-full rounded-xl border border-gray-300 p-3 text-sm resize-none focus:border-primary-500 focus:ring-primary-500"
                   />
+                  <p className="text-[10px] text-gray-300 mt-1">자유롭게 무엇이든 적어도 됩니다</p>
                 </div>
               </div>
 
@@ -902,6 +872,43 @@ function CareClassroom() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+const ALL_EMOTION_TAGS = ['행정','생활기록부','상담','관계','학생','학부모','수업','회의','피로','안도','성취','답답함','위로','버팀'];
+
+function EmotionReasonTags({ moodReasonTags, setMoodReasonTags, suggestedTags }) {
+  const [showAll, setShowAll] = useState(false);
+  const suggested = suggestedTags || [];
+  const priorityTags = [...new Set([...suggested, ...ALL_EMOTION_TAGS.slice(0, 6)])].slice(0, 6);
+  const visibleTags = showAll ? ALL_EMOTION_TAGS : priorityTags;
+
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+        감정 이유 {suggested.length > 0 && <span className="text-[10px] text-amber-500 font-normal ml-1">· 추천 포함</span>}
+      </label>
+      <div className="flex flex-wrap gap-1.5">
+        {visibleTags.map(tag => {
+          const isSel = moodReasonTags.includes(tag);
+          const isSugg = suggested.includes(tag);
+          return (
+            <button key={tag} type="button" onClick={() => setMoodReasonTags(prev => isSel ? prev.filter(t => t !== tag) : [...prev, tag])}
+              className={`text-xs px-2.5 py-1 rounded-full border transition font-medium ${isSel ? 'bg-purple-600 text-white border-purple-600' : isSugg ? 'bg-amber-50 text-amber-700 border-amber-300' : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300'}`}>
+              {tag}
+            </button>
+          );
+        })}
+        {!showAll && ALL_EMOTION_TAGS.length > priorityTags.length && (
+          <button type="button" onClick={() => setShowAll(true)} className="text-[10px] text-purple-400 hover:text-purple-600 px-2 py-1">
+            +{ALL_EMOTION_TAGS.length - priorityTags.length}개 더 보기
+          </button>
+        )}
+        {showAll && (
+          <button type="button" onClick={() => setShowAll(false)} className="text-[10px] text-gray-400 hover:text-gray-600 px-2 py-1">접기</button>
+        )}
+      </div>
     </div>
   );
 }
