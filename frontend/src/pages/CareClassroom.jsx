@@ -654,19 +654,7 @@ function CareClassroom() {
                   <p className="text-[10px] text-gray-400 mt-1">오늘 부정적인 감정은 얼마나 컸나요?</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-gray-700">감정 강도 (전체)</label>
-                  <div className="flex gap-1">
-                    {[1,2,3,4,5].map(n => (
-                      <button key={n} type="button" onClick={() => setMoodIntensity(n)}
-                        className={`w-10 h-10 rounded-lg text-sm font-bold transition ${moodIntensity >= n ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-[10px] text-gray-400 mt-1">1=약함 · 5=매우 강함</p>
-                </div>
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-gray-700">감정 이유</label>
                   <div className="flex flex-wrap gap-1.5">
