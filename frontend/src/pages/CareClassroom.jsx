@@ -149,6 +149,8 @@ function CareClassroom() {
   const [keyScene, setKeyScene] = useState('');
   const [supportSource, setSupportSource] = useState('');
   const [supportMemo, setSupportMemo] = useState('');
+  const [positiveScore, setPositiveScore] = useState(5);
+  const [negativeScore, setNegativeScore] = useState(5);
   const [isMoodPickerOpen, setIsMoodPickerOpen] = useState(false);
   const [isSourcePickerOpen, setIsSourcePickerOpen] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -185,6 +187,8 @@ function CareClassroom() {
     setKeyScene(current?.keyScene || '');
     setSupportSource(current?.supportSource || '');
     setSupportMemo(current?.supportMemo || '');
+    setPositiveScore(current?.positiveEmotionScore ?? 5);
+    setNegativeScore(current?.negativeEmotionScore ?? 5);
   }, [records, selectedDate]);
 
   useEffect(() => {
@@ -239,6 +243,8 @@ function CareClassroom() {
         keyScene,
         supportSource,
         supportMemo,
+        positiveEmotionScore: positiveScore,
+        negativeEmotionScore: negativeScore,
         sourceType: 'care-classroom-log',
         updatedAt: new Date().toISOString(),
       },
@@ -472,6 +478,12 @@ function CareClassroom() {
                         <span className="shrink-0 text-xs sm:text-base leading-none">{moodOption?.emoji || '📝'}</span>
                         <span className="truncate hidden sm:inline">{previewMoodText || '기록 있음'}</span>
                       </div>
+                      {(record.positiveEmotionScore != null || record.negativeEmotionScore != null) && (
+                        <div className="hidden sm:flex gap-1 text-[9px] font-medium">
+                          <span className="text-emerald-600">+{record.positiveEmotionScore ?? '-'}</span>
+                          <span className="text-rose-500">-{record.negativeEmotionScore ?? '-'}</span>
+                        </div>
+                      )}
                       <div className="hidden sm:block line-clamp-1 text-[11px] leading-3.5 text-gray-400">
                         {firstFreeInput || '자유 입력 없음'}
                       </div>
@@ -615,10 +627,36 @@ function CareClassroom() {
                 <p className="mt-3 text-sm text-gray-400">직접 입력하면 저장 시 해당 감정이 우선 기록됩니다.</p>
               </div>
 
-              {/* 감정 강도 + 이유 태그 */}
+              {/* 긍정/부정 감정 지수 + 이유 태그 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-gray-700">감정 강도</label>
+                  <label className="mb-2 block text-sm font-semibold text-emerald-700">😊 긍정 감정 지수</label>
+                  <div className="flex gap-0.5">
+                    {[0,1,2,3,4,5,6,7,8,9,10].map(n => (
+                      <button key={n} type="button" onClick={() => setPositiveScore(n)}
+                        className={`w-7 h-8 rounded text-[10px] font-bold transition ${positiveScore >= n && n > 0 ? 'bg-emerald-500 text-white' : n === 0 && positiveScore === 0 ? 'bg-gray-300 text-white' : 'bg-gray-100 text-gray-400 hover:bg-emerald-100'}`}>
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">오늘 긍정적인 감정은 얼마나 컸나요?</p>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-rose-600">😞 부정 감정 지수</label>
+                  <div className="flex gap-0.5">
+                    {[0,1,2,3,4,5,6,7,8,9,10].map(n => (
+                      <button key={n} type="button" onClick={() => setNegativeScore(n)}
+                        className={`w-7 h-8 rounded text-[10px] font-bold transition ${negativeScore >= n && n > 0 ? 'bg-rose-500 text-white' : n === 0 && negativeScore === 0 ? 'bg-gray-300 text-white' : 'bg-gray-100 text-gray-400 hover:bg-rose-100'}`}>
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">오늘 부정적인 감정은 얼마나 컸나요?</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-700">감정 강도 (전체)</label>
                   <div className="flex gap-1">
                     {[1,2,3,4,5].map(n => (
                       <button key={n} type="button" onClick={() => setMoodIntensity(n)}
