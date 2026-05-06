@@ -162,6 +162,9 @@ function CareClassroom() {
   });
   const [linkedData, setLinkedData] = useState({});
   const [isLinkingData, setIsLinkingData] = useState(false);
+  const [linkStatus, setLinkStatus] = useState({});
+  const [linkedContext, setLinkedContext] = useState(null);
+  const digestCacheRef = useRef({});
   const moodPickerRef = useRef(null);
   const sourcePickerRef = useRef(null);
 
@@ -245,6 +248,7 @@ function CareClassroom() {
         supportMemo,
         positiveEmotionScore: positiveScore,
         negativeEmotionScore: negativeScore,
+        linkedContext: linkedContext?.date === selectedDate ? linkedContext : undefined,
         sourceType: 'care-classroom-log',
         updatedAt: new Date().toISOString(),
       },
@@ -300,25 +304,86 @@ function CareClassroom() {
   const handleLinkData = async () => {
     const selected = Object.entries(selectedSources).filter(([, v]) => v).map(([k]) => k);
     if (selected.length === 0) { alert('연동할 항목을 선택해주세요.'); return; }
+
+    const cacheKey = `${selectedDate}:${selected.sort().join(',')}`;
+    if (digestCacheRef.current[cacheKey]) {
+      setLinkedContext(digestCacheRef.current[cacheKey]);
+      setIsSourcePickerOpen(false);
+      return;
+    }
+
     setIsLinkingData(true);
-    const data = {};
-    for (const key of selected) {
+    const status = {};
+    selected.forEach(k => { status[k] = 'loading'; });
+    setLinkStatus({ ...status });
+
+    const digestResults = {};
+    const fetchers = selected.map(async (key) => {
       try {
         if (key === 'schedule') {
-          const res = await client.get('/api/schedules', { timeout: 8000, __retryCount: 99 });
-          data.schedule = Array.isArray(res.data) ? res.data : [];
+          const res = await client.get('/api/schedules', { timeout: 6000, __retryCount: 99 });
+          const all = Array.isArray(res.data) ? res.data : [];
+          const todayEvents = all.filter(e => e.date === selectedDate);
+          const weekStart = selectedDate.slice(0, 8);
+          const weekEvents = all.filter(e => e.date?.startsWith(weekStart)).slice(0, 5);
+          const summary = todayEvents.length > 0 ? todayEvents.map(e => e.title || e.event || '').filter(Boolean) : weekEvents.map(e => `${e.date?.slice(8)}일: ${e.title || ''}`);
+          digestResults.schedule = { summary: summary.slice(0, 3), tags: todayEvents.length > 2 ? ['바쁜 일정'] : todayEvents.length > 0 ? ['일정 있음'] : ['여유로운 날'] };
         } else if (key === 'studentRecords') {
-          const res = await client.get('/api/students', { timeout: 8000, __retryCount: 99 });
-          data.studentRecords = Array.isArray(res.data) ? res.data : [];
+          const res = await client.get('/api/students', { timeout: 6000, __retryCount: 99 });
+          const students = Array.isArray(res.data) ? res.data.slice(0, 5) : [];
+          digestResults.studentRecords = { students: students.map(s => ({ id: String(s.student_id || s.id), name: s.name, number: s.number })), summary: `학생 ${students.length}명` };
         } else if (key === 'todayMeal') {
-          const res = await client.get('/api/meals', { timeout: 8000, __retryCount: 99 });
-          data.todayMeal = Array.isArray(res.data?.items) ? res.data.items : [];
+          const res = await client.get('/api/meals', { timeout: 6000, __retryCount: 99 });
+          const items = Array.isArray(res.data?.items) ? res.data.items : [];
+          digestResults.todayMeal = { summary: items.slice(0, 3).map(i => i.menu || i.name || '').filter(Boolean).join(', ') || '급식 정보 없음', tags: ['생활장면'] };
         } else if (key === 'observationJournal') {
-          data.observationJournal = [];
+          digestResults.observationJournal = { highlights: [], tags: ['관찰'], emotionHints: ['관계', '관찰대상'] };
         }
-      } catch { data[key] = []; }
+        status[key] = 'done';
+      } catch {
+        status[key] = 'error';
+        digestResults[key] = null;
+      }
+      setLinkStatus({ ...status });
+    });
+
+    await Promise.all(fetchers);
+
+    const bgSummary = [];
+    const emotionTags = new Set();
+    const scenePrompts = [];
+    const suggestedStudents = [];
+
+    if (digestResults.schedule) {
+      bgSummary.push(...digestResults.schedule.summary);
+      digestResults.schedule.tags.forEach(t => emotionTags.add(t));
     }
-    setLinkedData(data);
+    if (digestResults.studentRecords) {
+      suggestedStudents.push(...digestResults.studentRecords.students);
+      emotionTags.add('학생');
+    }
+    if (digestResults.observationJournal) {
+      digestResults.observationJournal.emotionHints?.forEach(t => emotionTags.add(t));
+      scenePrompts.push('오늘 가장 오래 남은 장면은 무엇이었나요?');
+    }
+    if (digestResults.todayMeal) {
+      bgSummary.push(`급식: ${digestResults.todayMeal.summary}`);
+    }
+    if (scenePrompts.length === 0) scenePrompts.push('오늘 마음에 남은 순간이 있나요?');
+
+    const ctx = {
+      date: selectedDate,
+      backgroundSummary: bgSummary,
+      suggestedEmotionTags: Array.from(emotionTags),
+      suggestedScenePrompts: scenePrompts,
+      suggestedStudents,
+      autoDraftHints: ['짧게 적어도 자서전 장면 재료로 활용됩니다.'],
+      rawDigests: digestResults,
+    };
+
+    digestCacheRef.current[cacheKey] = ctx;
+    setLinkedContext(ctx);
+    setLinkedData(digestResults);
     setIsSourcePickerOpen(false);
     setIsLinkingData(false);
   };
@@ -375,6 +440,17 @@ function CareClassroom() {
                   >
                     {isLinkingData ? '연동 중...' : '반영하기'}
                   </button>
+                  {Object.keys(linkStatus).length > 0 && (
+                    <div className="mt-2 space-y-0.5">
+                      {Object.entries(linkStatus).map(([k, s]) => (
+                        <div key={k} className="flex items-center gap-1.5 text-[10px]">
+                          <span className={`w-1.5 h-1.5 rounded-full ${s === 'done' ? 'bg-green-500' : s === 'loading' ? 'bg-amber-400 animate-pulse' : 'bg-red-400'}`} />
+                          <span className="text-gray-600">{k === 'schedule' ? '학사일정' : k === 'studentRecords' ? '학생명부' : k === 'observationJournal' ? '관찰일지' : '급식'}</span>
+                          <span className={s === 'done' ? 'text-green-600' : s === 'loading' ? 'text-amber-600' : 'text-red-500'}>{s === 'done' ? '완료' : s === 'loading' ? '반영 중...' : '오류'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -571,6 +647,35 @@ function CareClassroom() {
             </div>
 
             <div className="space-y-6">
+              {/* 오늘의 배경 (연동 시) */}
+              {linkedContext && linkedContext.date === selectedDate && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-2">
+                  {linkedContext.backgroundSummary.length > 0 && (
+                    <div>
+                      <div className="text-sm font-semibold text-amber-800 mb-1">📅 오늘의 배경</div>
+                      {linkedContext.backgroundSummary.map((s, i) => (
+                        <p key={i} className="text-xs text-amber-700">{s}</p>
+                      ))}
+                    </div>
+                  )}
+                  {linkedContext.autoDraftHints.length > 0 && (
+                    <p className="text-[10px] text-amber-500 italic">{linkedContext.autoDraftHints[0]}</p>
+                  )}
+                  {linkedContext.suggestedStudents.length > 0 && (
+                    <div>
+                      <div className="text-[11px] font-medium text-amber-700 mb-1">👤 오늘 떠오르는 학생</div>
+                      <div className="flex flex-wrap gap-1">
+                        {linkedContext.suggestedStudents.map(s => (
+                          <span key={s.id} className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                            {s.number ? `${s.number}번 ` : ''}{s.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <div className="mb-2">
                   <label className="block pl-10 text-[22px] font-semibold text-gray-700">내 감정 확인하기</label>
@@ -656,13 +761,14 @@ function CareClassroom() {
               </div>
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-gray-700">감정 이유</label>
+                  <label className="mb-2 block text-sm font-semibold text-gray-700">감정 이유 {linkedContext?.suggestedEmotionTags?.length > 0 && <span className="text-[10px] text-amber-500 font-normal ml-1">· 추천 태그 포함</span>}</label>
                   <div className="flex flex-wrap gap-1.5">
                     {['행정','생활기록부','상담','관계','학생','학부모','수업','회의','피로','안도','성취','답답함','위로','버팀'].map(tag => {
                       const isSel = moodReasonTags.includes(tag);
+                      const isSuggested = linkedContext?.suggestedEmotionTags?.includes(tag);
                       return (
                         <button key={tag} type="button" onClick={() => setMoodReasonTags(prev => isSel ? prev.filter(t => t !== tag) : [...prev, tag])}
-                          className={`text-xs px-2.5 py-1 rounded-full border transition font-medium ${isSel ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300'}`}>
+                          className={`text-xs px-2.5 py-1 rounded-full border transition font-medium ${isSel ? 'bg-purple-600 text-white border-purple-600' : isSuggested ? 'bg-amber-50 text-amber-700 border-amber-300 ring-1 ring-amber-200' : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300'}`}>
                           {tag}
                         </button>
                       );
@@ -677,7 +783,7 @@ function CareClassroom() {
                   <label className="mb-1 block text-sm font-semibold text-gray-700">📸 오늘의 한 장면</label>
                   <textarea value={keyScene} onChange={(e) => setKeyScene(e.target.value)} rows={2}
                     className="block w-full rounded-xl border border-gray-300 p-3 text-sm resize-none focus:border-primary-500 focus:ring-primary-500"
-                    placeholder="오늘 가장 오래 남은 장면은?" />
+                    placeholder={linkedContext?.suggestedScenePrompts?.[0] || '오늘 가장 오래 남은 장면은?'} />
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-gray-700">💪 오늘 나를 버티게 한 것</label>
