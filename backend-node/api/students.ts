@@ -24,9 +24,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const db = getPool();
 
-  // userId 컬럼 없으면 추가 (마이그레이션)
+  // userId 컬럼 없으면 추가 + 인덱스 (마이그레이션)
   try {
     await db.query('ALTER TABLE student_records ADD COLUMN IF NOT EXISTS "userId" VARCHAR');
+    await db.query('CREATE INDEX IF NOT EXISTS idx_student_records_user ON student_records("userId")');
+    await db.query('CREATE INDEX IF NOT EXISTS idx_student_records_user_name ON student_records("userId", name)');
   } catch { /* 이미 있으면 무시 */ }
 
   // GET - 학생 목록 조회 (userId 격리)

@@ -207,6 +207,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ saved: results.length });
     }
 
+    // POST ?action=patch-entry — 단일 entry 수정
+    if (req.method === 'POST' && action === 'patch-entry') {
+      let body: any = req.body;
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+      const { entryId, currentText, displayOrder } = body;
+      if (!entryId) return res.status(400).json({ message: 'entryId 필요' });
+
+      const sets: string[] = ['updated_at=NOW()'];
+      const vals: any[] = [];
+      let idx = 1;
+      if (currentText !== undefined) { sets.push(`current_text=$${idx}, is_edited=TRUE`); vals.push(currentText); idx++; }
+      if (displayOrder !== undefined) { sets.push(`display_order=$${idx}`); vals.push(displayOrder); idx++; }
+      vals.push(entryId);
+
+      const { rows } = await db.query(`UPDATE autobiography_chapter_entries SET ${sets.join(', ')} WHERE id=$${idx} RETURNING *`, vals);
+      return res.status(200).json(rows[0] || null);
+    }
+
+    // POST ?action=delete-entry
+    if (req.method === 'POST' && action === 'delete-entry') {
+      let body: any = req.body;
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+      const { entryId } = body;
+      if (!entryId) return res.status(400).json({ message: 'entryId 필요' });
+      await db.query('DELETE FROM autobiography_chapter_entries WHERE id=$1', [entryId]);
+      return res.status(200).json({ deleted: true });
+    }
+
+    // POST ?action=reorder — display_order 일괄 업데이트
+    if (req.method === 'POST' && action === 'reorder') {
+      let body: any = req.body;
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+      const { chapterId, entryIds } = body;
+      if (!chapterId || !Array.isArray(entryIds)) return res.status(400).json({ message: 'chapterId, entryIds[] 필요' });
+
+      for (let i = 0; i < entryIds.length; i++) {
+        await db.query('UPDATE autobiography_chapter_entries SET display_order=$1, updated_at=NOW() WHERE id=$2 AND chapter_id=$3', [i, entryIds[i], chapterId]);
+      }
+      return res.status(200).json({ reordered: entryIds.length });
+    }
+
+    // GET ?action=load-chapter-entries&chapterId=X — 장 entries + metadata 로드
+    if (req.method === 'GET' && action === 'load-chapter-entries') {
+      const chapterId = req.query.chapterId as string;
+      if (!chapterId) return res.status(400).json({ message: 'chapterId 필요' });
+      const { rows } = await db.query(
+        'SELECT id, source_type, source_id, original_text, current_text, is_edited, display_order, metadata, updated_at FROM autobiography_chapter_entries WHERE chapter_id=$1 ORDER BY display_order',
+        [chapterId],
+      );
+      return res.status(200).json({ chapterId: Number(chapterId), entries: rows });
+    }
+
     return res.status(405).json({ message: 'Method not allowed or invalid action' });
   } catch (err: any) {
     console.error('autobiography-projects error:', err);

@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS daily_digests (
   emotion_hints TEXT[] DEFAULT '{}',
   related_chapter_hints SMALLINT[] DEFAULT '{}',
   metadata JSONB,
+  digest_status VARCHAR(15) DEFAULT 'fresh',
+  source_updated_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, digest_date, source_type)

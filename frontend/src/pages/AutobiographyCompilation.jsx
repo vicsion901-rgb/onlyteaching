@@ -1974,13 +1974,34 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
     if (!userId) return;
     const projectType = activeTab === 'student' ? 'student' : 'teacher';
     client.post('/api/autobiography-projects?action=create-project', { userId, projectType }, { timeout: 8000, __retryCount: 99 })
-      .then(res => {
+      .then(async (res) => {
         if (!res.data?.project) return;
         projectRef.current = res.data.project;
         const serverChapters = res.data.chapters || [];
         const idMap = {};
         serverChapters.forEach(ch => { idMap[ch.chapter_order] = ch.id; });
         chapterIdsRef.current = idMap;
+
+        // 서버 entries 로드 → 로컬 블록보다 서버 우선
+        for (const ch of serverChapters) {
+          try {
+            const entryRes = await client.get(`/api/autobiography-projects?action=load-chapter-entries&chapterId=${ch.id}`, { timeout: 6000, __retryCount: 99 });
+            const entries = entryRes.data?.entries || [];
+            if (entries.length > 0) {
+              const fixedCh = FIXED_CHAPTERS[ch.chapter_order];
+              if (fixedCh) {
+                const blocks = entries.map(e => createBlock(
+                  e.is_edited ? 'linked-edited' : e.source_type === 'manual' ? 'manual' : 'linked',
+                  e.current_text,
+                  e.source_type,
+                  e.metadata?.sourceLabel || e.source_type,
+                ));
+                blocks.forEach((b, i) => { b.originalText = entries[i].original_text; b._serverId = entries[i].id; });
+                setChapterBlocks(prev => ({ ...prev, [fixedCh.id]: blocks }));
+              }
+            }
+          } catch {}
+        }
       })
       .catch(() => {});
   }, [activeTab]);
