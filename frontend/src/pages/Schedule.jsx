@@ -78,57 +78,34 @@ function Schedule() {
   const [semester2Days, setSemester2Days] = useState('');
   const [showLawInfo, setShowLawInfo] = useState(false);
 
+  const [saveStatus, setSaveStatus] = useState('');
+
   const handleAiGenerate = async () => {
     if (!aiPrompt.trim()) return;
     setIsAiLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
       const generatedEvents = [];
       const prompt = aiPrompt.toLowerCase();
-      
+
       const addMockEvent = (title, month, day, color = '#2563eb') => {
         const dateStr = `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const dateObj = new Date(currentYear, month - 1, day);
-        const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-        if (isWeekend) return;
-
-        generatedEvents.push({
-          title,
-          date: dateStr,
-          memo: color
-        });
+        if (dateObj.getDay() === 0 || dateObj.getDay() === 6) return;
+        generatedEvents.push({ title, date: dateStr, memo: color });
       };
 
-      if (prompt.includes('현장체험') && prompt.includes('5월')) {
-         addMockEvent('봄 현장체험학습', 5, 14, '#16a34a');
-      }
-      if (prompt.includes('현장체험') && prompt.includes('10월')) {
-         addMockEvent('가을 현장체험학습', 10, 16, '#ea580c');
-      }
-      if (prompt.includes('수학여행') && prompt.includes('11월')) {
-         addMockEvent('수학여행 Day 1', 11, 4, '#6d28d9');
-         addMockEvent('수학여행 Day 2', 11, 5, '#6d28d9');
-      }
-      if (prompt.includes('방학') && prompt.includes('7월')) {
-         addMockEvent('여름방학식', 7, 24, '#e11d48');
-      }
+      if (prompt.includes('현장체험') && prompt.includes('5월')) addMockEvent('봄 현장체험학습', 5, 14, '#16a34a');
+      if (prompt.includes('현장체험') && prompt.includes('10월')) addMockEvent('가을 현장체험학습', 10, 16, '#ea580c');
+      if (prompt.includes('수학여행') && prompt.includes('11월')) { addMockEvent('수학여행 Day 1', 11, 4, '#6d28d9'); addMockEvent('수학여행 Day 2', 11, 5, '#6d28d9'); }
+      if (prompt.includes('방학') && prompt.includes('7월')) addMockEvent('여름방학식', 7, 24, '#e11d48');
 
-      const existingTitles = new Set(
-        Object.values(events).flat().map(e => e.title)
-      );
-      
+      const existingTitles = new Set(Object.values(events).flat().map(e => e.title));
       const generatedTitles = new Set(generatedEvents.map(e => e.title));
-
       DEFAULT_ACADEMIC_EVENTS_2026.forEach(defEvent => {
         if (!existingTitles.has(defEvent.title) && !generatedTitles.has(defEvent.title)) {
-           generatedEvents.push({
-             title: defEvent.title,
-             date: defEvent.date,
-             memo: defEvent.memo
-           });
-           generatedTitles.add(defEvent.title);
+          generatedEvents.push({ title: defEvent.title, date: defEvent.date, memo: defEvent.memo });
+          generatedTitles.add(defEvent.title);
         }
       });
 
@@ -138,35 +115,32 @@ function Schedule() {
         addMockEvent('과학의 날 행사', 4, 21, '#16a34a');
       }
 
-      if (generatedEvents.length === 0) {
-        alert('일정을 생성하지 못했습니다. 더 구체적으로 입력해주세요.');
-      } else {
-        // 화면에 먼저 반영 (optimistic)
-        setEvents(prev => {
-          const next = { ...prev };
-          generatedEvents.forEach(ev => { next[ev.date] = [...(next[ev.date] || []), { ...ev, id: `temp-${Date.now()}-${Math.random()}` }]; });
-          return next;
+      // ① 즉시 화면 반영 (체감 0초)
+      setEvents(prev => {
+        const next = { ...prev };
+        generatedEvents.forEach(ev => { next[ev.date] = [...(next[ev.date] || []), { ...ev, id: `temp-${Date.now()}-${Math.random()}` }]; });
+        return next;
+      });
+      setIsAiLoading(false);
+      setAiPrompt('');
+      setSaveStatus(`${generatedEvents.length}개 일정 저장 중...`);
+
+      // ② 백그라운드 bulk 저장 (fire-and-forget)
+      const userId = localStorage.getItem('userId');
+      client.post('/api/schedules', { userId, events: generatedEvents }, { timeout: 15000, __retryCount: 99 })
+        .then(res => {
+          const { inserted = 0 } = res.data || {};
+          setSaveStatus(`${inserted}개 일정 저장 완료`);
+          fetchEvents();
+          setTimeout(() => setSaveStatus(''), 3000);
+        })
+        .catch(() => {
+          setSaveStatus('저장 실패 — 다시 시도해주세요');
+          setTimeout(() => setSaveStatus(''), 5000);
         });
 
-        // bulk 저장 1회 호출
-        try {
-          const userId = localStorage.getItem('userId');
-          const res = await client.post('/api/schedules', { userId, events: generatedEvents }, { timeout: 15000, __retryCount: 99 });
-          const { inserted = 0, skipped = 0 } = res.data || {};
-          await fetchEvents();
-          alert(`${inserted}개의 일정이 생성되었습니다!${skipped > 0 ? ` (${skipped}개 건너뜀)` : ''}`);
-          setAiPrompt('');
-        } catch (e) {
-          console.error('Bulk save failed', e);
-          alert('일정 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
-          await fetchEvents();
-        }
-      }
-
     } catch (error) {
-      console.error("AI generation failed", error);
-      alert('오류가 발생했습니다.');
-    } finally {
+      console.error('AI generation failed', error);
       setIsAiLoading(false);
     }
   };
@@ -747,6 +721,11 @@ function Schedule() {
                     )}
                   </button>
                 </div>
+                {saveStatus && (
+                  <p className={`mt-2 text-xs font-medium ${saveStatus.includes('완료') ? 'text-green-600' : saveStatus.includes('실패') ? 'text-red-500' : 'text-amber-600 animate-pulse'}`}>
+                    {saveStatus}
+                  </p>
+                )}
               </div>
             </div>
           </div>
