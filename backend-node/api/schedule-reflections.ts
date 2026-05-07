@@ -64,15 +64,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         RETURNING *
       `, [userId, scheduleId, eventTitle || '', eventDate || null, emotionTag || null, memo || null]);
 
-      // digest 갱신
+      // digest job enqueue (비동기)
       if (eventDate) {
         try {
           await db.query(`
-            INSERT INTO daily_digests (user_id, digest_date, source_type, summary_lines, tags, updated_at)
-            VALUES ($1, $2, 'schedule', $3, $4, NOW())
-            ON CONFLICT (user_id, digest_date, source_type)
-            DO UPDATE SET summary_lines=$3, tags=$4, updated_at=NOW()
-          `, [userId, eventDate, [eventTitle].filter(Boolean), [emotionTag].filter(Boolean)]);
+            INSERT INTO digest_jobs (user_id, source_type, target_date, status) VALUES ($1, 'schedule', $2, 'pending')
+          `, [userId, eventDate]);
         } catch {}
       }
 
