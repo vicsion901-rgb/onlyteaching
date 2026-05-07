@@ -186,15 +186,39 @@ function CareClassroom() {
   const sourcePickerRef = useRef(null);
 
   useEffect(() => {
+    // localStorage fallback 먼저 로드
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        setRecords(JSON.parse(saved));
-      }
-    } catch (error) {
-      console.error('Failed to load care classroom records', error);
+      if (saved) setRecords(JSON.parse(saved));
+    } catch {}
+
+    // 서버에서 월별 데이터 로드 시도
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      const month = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
+      client.get(`/api/care-classroom?userId=${userId}&month=${month}`, { timeout: 8000, __retryCount: 99 })
+        .then(res => {
+          if (Array.isArray(res.data) && res.data.length > 0) {
+            const serverRecords = {};
+            res.data.forEach(r => {
+              serverRecords[r.record_date] = {
+                mood: r.mood, customMood: r.custom_mood, todos: r.todo_items,
+                importantEvents: r.free_memo, moodIntensity: 3,
+                moodReasonTags: r.emotion_reason_tags || [],
+                keyScene: r.key_scene, supportSource: r.support_source,
+                supportMemo: r.support_memo,
+                positiveEmotionScore: r.positive_emotion_score,
+                negativeEmotionScore: r.negative_emotion_score,
+                linkedContext: r.linked_context_summary,
+                updatedAt: r.updated_at,
+              };
+            });
+            setRecords(prev => ({ ...prev, ...serverRecords }));
+          }
+        })
+        .catch(() => {});
     }
-  }, []);
+  }, [currentMonth]);
 
   useEffect(() => {
     const current = records[selectedDate];
@@ -273,6 +297,21 @@ function CareClassroom() {
 
     setRecords(nextRecords);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nextRecords));
+
+    // 서버 저장 (백그라운드)
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      const emotionResult = computeEmotionLabel(positiveScore, negativeScore);
+      client.post('/api/care-classroom', {
+        userId, recordDate: selectedDate, mood, customMood,
+        positiveEmotionScore: positiveScore, negativeEmotionScore: negativeScore,
+        emotionReasonTags: moodReasonTags, todoItems, keyScene,
+        supportSource, supportMemo, freeMemo: importantEvents,
+        linkedStudentIds: [], linkedContextSummary: linkedContext?.date === selectedDate ? linkedContext : null,
+        computedEmotionLabel: emotionResult?.label, computedEmotionSummary: emotionResult?.summary,
+      }, { timeout: 10000, __retryCount: 99 }).catch(() => {});
+    }
+
     alert('돌봄교실 기록이 저장되었습니다.');
     setIsEditorOpen(false);
   };
