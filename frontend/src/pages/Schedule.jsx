@@ -130,9 +130,15 @@ function Schedule() {
       const saveBulk = () => {
         client.post('/api/schedules', { userId, events: generatedEvents }, { timeout: 20000, __retryCount: 99 })
           .then(res => {
-            const { inserted = 0, skipped = 0 } = res.data || {};
+            const { inserted = 0, skipped = 0, errors = [] } = res.data || {};
             if (inserted > 0) {
-              setSaveStatus(`${inserted}개 저장 완료${skipped > 0 ? ` · ${skipped}개 건너뜀` : ''}`);
+              let msg = `${inserted}개 저장 완료`;
+              if (skipped > 0) msg += ` · ${skipped}개 건너뜀`;
+              if (errors.length > 0) {
+                const dupes = errors.filter(e => e.reason === 'duplicate').length;
+                if (dupes > 0) msg += ` (중복 ${dupes}개)`;
+              }
+              setSaveStatus(msg);
               fetchEvents();
             } else {
               setSaveStatus('저장된 일정 없음 (중복이거나 오류)');

@@ -26,9 +26,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const userId = req.query.userId as string;
       const month = req.query.month as string;
 
-      // 인덱스 생성 (1회)
-      try { await db.query('CREATE INDEX IF NOT EXISTS idx_schedules_user_date ON schedules("userId", date)'); } catch {}
-
       if (userId && month) {
         const { rows } = await db.query(
           'SELECT * FROM schedules WHERE "userId" = $1 AND date BETWEEN $2 AND $3 ORDER BY date ASC, id ASC',
@@ -48,8 +45,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-      // userId 컬럼 없으면 추가
-      try { await db.query('ALTER TABLE schedules ADD COLUMN IF NOT EXISTS "userId" VARCHAR'); } catch {}
 
       // bulk insert
       if (Array.isArray(body?.events)) {
@@ -76,9 +71,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           );
           return res.status(201).json({ inserted: rows.length, skipped, total: body.events.length, results: rows });
         } catch (bulkErr: any) {
-          // multi-row 실패 시 개별 fallback
+          // multi-row 실패 시 개별 fallback + 에러 이유 수집
           let inserted = 0;
           const results: any[] = [];
+          const errors: any[] = [];
           for (const ev of valid) {
             try {
               const { rows } = await db.query(
@@ -87,9 +83,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               );
               results.push(rows[0]);
               inserted++;
-            } catch { /* skip */ }
+            } catch (e: any) {
+              const reason = e.code === '23505' ? 'duplicate' : e.code === '23502' ? 'null_field' : 'db_error';
+              errors.push({ title: ev.title, date: ev.date, reason, detail: e.message?.slice(0, 80) });
+            }
           }
-          return res.status(201).json({ inserted, skipped: skipped + (valid.length - inserted), total: body.events.length, results, fallback: true });
+          return res.status(201).json({ inserted, skipped: skipped + errors.length, total: body.events.length, results, errors, fallback: true });
         }
       }
 
