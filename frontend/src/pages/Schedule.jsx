@@ -145,8 +145,17 @@ function Schedule() {
             }
             setTimeout(() => setSaveStatus(''), 4000);
           })
-          .catch(() => {
-            setSaveStatus('저장 실패 — 탭하여 재시도');
+          .catch((err) => {
+            const serverErrors = err.response?.data?.errors || [];
+            const isSchema = serverErrors.some(e => e.reason === 'schema_not_migrated');
+            const isMissing = serverErrors.some(e => e.reason === 'missing_user');
+            if (isSchema) {
+              setSaveStatus('서버 구조 업데이트 필요 — 관리자에게 문의');
+            } else if (isMissing) {
+              setSaveStatus('로그인 필요 — 계정 정보를 확인해주세요');
+            } else {
+              setSaveStatus('저장 실패 — 탭하여 재시도');
+            }
           });
       };
       saveBulk();

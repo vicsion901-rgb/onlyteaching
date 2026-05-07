@@ -45,20 +45,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-
-      // userId 컬럼 존재 여부 감지 (1회)
-      let hasUserIdCol = true;
-      try {
-        const colCheck = await db.query("SELECT column_name FROM information_schema.columns WHERE table_name='schedules' AND column_name='userId'");
-        hasUserIdCol = colCheck.rows.length > 0;
-        if (!hasUserIdCol) {
-          try { await db.query('ALTER TABLE schedules ADD COLUMN "userId" VARCHAR'); hasUserIdCol = true; } catch {}
-        }
-      } catch {}
-
       // bulk insert
       if (Array.isArray(body?.events)) {
-        const userId = body.userId || null;
+        const userId = body.userId;
+        if (!userId) return res.status(400).json({ success: false, message: '계정 정보가 누락되었습니다.', errors: [{ reason: 'missing_user' }] });
+
         const valid = body.events.filter((ev: any) => ev.title && ev.date);
         const skipped = body.events.length - valid.length;
 
@@ -66,37 +57,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(200).json({ success: true, inserted: 0, skipped, total: body.events.length, results: [], errors: [] });
         }
 
-        // userId 컬럼 여부에 따라 INSERT 구조 분기
-        const cols = hasUserIdCol ? 'title, date, memo, "userId", "createdAt", "updatedAt"' : 'title, date, memo, "createdAt", "updatedAt"';
-        const colCount = hasUserIdCol ? 4 : 3;
-
         try {
           const values: any[] = [];
           const placeholders: string[] = [];
           valid.forEach((ev: any, i: number) => {
-            const offset = i * colCount;
-            if (hasUserIdCol) {
-              placeholders.push(`($${offset+1}, $${offset+2}, $${offset+3}, $${offset+4}, NOW(), NOW())`);
-              values.push(ev.title, ev.date, ev.memo || null, userId);
-            } else {
-              placeholders.push(`($${offset+1}, $${offset+2}, $${offset+3}, NOW(), NOW())`);
-              values.push(ev.title, ev.date, ev.memo || null);
-            }
+            const offset = i * 4;
+            placeholders.push(`($${offset+1}, $${offset+2}, $${offset+3}, $${offset+4}, NOW(), NOW())`);
+            values.push(ev.title, ev.date, ev.memo || null, userId);
           });
-          const { rows } = await db.query(`INSERT INTO schedules (${cols}) VALUES ${placeholders.join(', ')} RETURNING *`, values);
+          const { rows } = await db.query(
+            `INSERT INTO schedules (title, date, memo, "userId", "createdAt", "updatedAt") VALUES ${placeholders.join(', ')} RETURNING *`,
+            values,
+          );
           return res.status(201).json({ success: true, inserted: rows.length, skipped, total: body.events.length, results: rows, errors: [] });
         } catch (bulkErr: any) {
+          // schema 문제인지 확인
+          if (bulkErr.message?.includes('"userId"') && bulkErr.message?.includes('does not exist')) {
+            return res.status(500).json({ success: false, message: 'DB migration이 필요합니다. 관리자에게 문의해주세요.', errors: [{ reason: 'schema_not_migrated', detail: 'schedules.userId column missing' }] });
+          }
           // 개별 fallback
           let inserted = 0;
           const results: any[] = [];
           const errors: any[] = [];
           for (const ev of valid) {
             try {
-              const insertSql = hasUserIdCol
-                ? 'INSERT INTO schedules (title, date, memo, "userId", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *'
-                : 'INSERT INTO schedules (title, date, memo, "createdAt", "updatedAt") VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *';
-              const insertVals = hasUserIdCol ? [ev.title, ev.date, ev.memo || null, userId] : [ev.title, ev.date, ev.memo || null];
-              const { rows } = await db.query(insertSql, insertVals);
+              const { rows } = await db.query(
+                'INSERT INTO schedules (title, date, memo, "userId", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *',
+                [ev.title, ev.date, ev.memo || null, userId],
+              );
               results.push(rows[0]);
               inserted++;
             } catch (e: any) {
@@ -108,13 +96,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      // 단일 insert (하위호환)
-      const { title, date, memo } = body || {};
-      const result = await db.query(
-        'INSERT INTO schedules (title, date, memo, "createdAt", "updatedAt") VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *',
-        [title || '', date || '', memo || null],
-      );
-      return res.status(201).json(result.rows[0]);
+      // 단일 insert
+      const { title, date, memo, userId: singleUserId } = body || {};
+      if (!title || !date) return res.status(400).json({ success: false, message: 'title, date 필요', errors: [{ reason: 'invalid_payload' }] });
+      try {
+        const result = await db.query(
+          'INSERT INTO schedules (title, date, memo, "userId", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *',
+          [title, date, memo || null, singleUserId || null],
+        );
+        return res.status(201).json({ success: true, saved: 1, data: result.rows[0] });
+      } catch (e: any) {
+        if (e.message?.includes('"userId"') && e.message?.includes('does not exist')) {
+          return res.status(500).json({ success: false, message: 'DB migration이 필요합니다.', errors: [{ reason: 'schema_not_migrated' }] });
+        }
+        return res.status(500).json({ success: false, message: '저장 실패', errors: [{ reason: 'db_error', detail: e.message?.slice(0, 80) }] });
+      }
     }
 
     if (req.method === 'PATCH' && id) {
