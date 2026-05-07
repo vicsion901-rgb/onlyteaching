@@ -10,17 +10,17 @@ function getPool(): Pool {
 }
 
 // ─── 장 생성 공식 ───
-const CHAPTER_CONFIG: Record<number, { title: string; tone: string; primarySources: string[]; secondarySources: string[] }> = {
-  0: { title: '시작하는 글', tone: '시작, 기대, 조심스러운 긴장', primarySources: ['question', 'schedule'], secondarySources: ['care'] },
-  1: { title: '올해의 환경과 현실', tone: '현실, 압박, 구조적 배경', primarySources: ['schedule', 'care'], secondarySources: ['question'] },
-  2: { title: '학교생활의 초반', tone: '시작, 낯섦, 긴장, 첫 경험', primarySources: ['schedule', 'care'], secondarySources: ['observation', 'meal'] },
-  3: { title: '익숙해지는 과정', tone: '적응, 루틴, 버팀의 리듬', primarySources: ['care', 'schedule'], secondarySources: ['observation'] },
-  4: { title: '관계와 사람들', tone: '사람, 위로와 소모, 관계의 온도', primarySources: ['observation', 'care'], secondarySources: ['question', 'meal'] },
-  5: { title: '책임감과 역할', tone: '책임, 감당, 역할의 무게', primarySources: ['care', 'schedule'], secondarySources: ['observation', 'question'] },
-  6: { title: '전환의 순간', tone: '흔들림, 회복, 결정적 계기', primarySources: ['care', 'question'], secondarySources: ['observation', 'schedule'] },
-  7: { title: '지금의 나', tone: '현재, 정리, 자기 인식', primarySources: ['question', 'care'], secondarySources: ['schedule'] },
-  8: { title: '앞으로의 마음', tone: '다짐, 시선, 미래 준비', primarySources: ['question'], secondarySources: ['care', 'schedule'] },
-  9: { title: '맺는 글', tone: '정리, 회고, 마무리', primarySources: ['question', 'care'], secondarySources: ['meal'] },
+const CHAPTER_CONFIG: Record<number, { title: string; tone: string; style: string; sceneGuide: string; emphasis: string; primarySources: string[]; secondarySources: string[] }> = {
+  0: { title: '시작하는 글', tone: '조심스러운 시작, 기대, 첫 마음', style: '짧고 맑은 문장. 지나치게 무겁지 않게.', sceneGuide: '연초의 교실 분위기, 첫 출근길, 새 학년 첫날의 공기', emphasis: '첫 마음의 질감', primarySources: ['question', 'schedule'], secondarySources: ['care'] },
+  1: { title: '올해의 환경과 현실', tone: '설명적, 구조적, 현실 인식', style: '맥락 설명 포함. 감정만 쏟지 말고 환경/업무 구조를 보여줄 것.', sceneGuide: '업무 더미, 회의실 분위기, 반복되는 서류 앞의 시간', emphasis: '구조적 압박의 풍경', primarySources: ['schedule', 'care'], secondarySources: ['question'] },
+  2: { title: '학교생활의 초반', tone: '시작의 긴장, 낯섦, 적응 초입', style: '첫 경험의 신선함과 부담을 동시에. 시행착오의 질감.', sceneGuide: '첫 수업, 첫 상담, 학생 이름을 외우던 시간, 교실 정리', emphasis: '처음 마주한 현실의 구체성', primarySources: ['schedule', 'care'], secondarySources: ['observation', 'meal'] },
+  3: { title: '익숙해지는 과정', tone: '반복 속 적응, 버팀, 서서히 안정', style: '서서히 변하는 리듬을 보여줄 것. 급변이 아닌 점진적 흐름.', sceneGuide: '같은 시간에 반복되는 루틴, 몸에 밴 동선, 눈치 없이 흘러간 하루', emphasis: '버티다 보니 익숙해진 감각', primarySources: ['care', 'schedule'], secondarySources: ['observation'] },
+  4: { title: '관계와 사람들', tone: '사람, 대화, 위로, 소모', style: '인물과 말과 분위기 중심. 관계의 온도가 느껴지게.', sceneGuide: '동료와의 짧은 대화, 학부모 전화 후의 고요, 학생의 예상 못한 한마디', emphasis: '사람 사이의 온도', primarySources: ['observation', 'care'], secondarySources: ['question', 'meal'] },
+  5: { title: '책임감과 역할', tone: '무게감, 감당, 끝까지 해냄', style: '업무와 역할의 부담이 드러나되 자랑이 아닌 기록으로.', sceneGuide: '마감 직전의 긴장, 혼자 남은 교무실, 끝냈을 때의 허탈감', emphasis: '감당의 무게와 완수의 감각', primarySources: ['care', 'schedule'], secondarySources: ['observation', 'question'] },
+  6: { title: '전환의 순간', tone: '흔들림, 깨달음, 다시 일어섬', style: '감정선이 가장 강해야 하는 장. 급격한 변화의 순간을 잡아낼 것.', sceneGuide: '무너질 뻔한 순간, 누군가의 말, 갑자기 달라진 시선, 멈춰 선 복도', emphasis: '전환이 일어난 정확한 순간', primarySources: ['care', 'question'], secondarySources: ['observation', 'schedule'] },
+  7: { title: '지금의 나', tone: '현재의 정리, 자기 인식', style: '차분하고 압축적. 지금의 모습이 또렷해야 함.', sceneGuide: '최근의 하루, 퇴근길 감각, 교실에서 자기를 바라보는 순간', emphasis: '올해를 지난 후의 선명한 자기 인식', primarySources: ['question', 'care'], secondarySources: ['schedule'] },
+  8: { title: '앞으로의 마음', tone: '다짐, 희망, 조심스러운 미래', style: '막연하지 않고 현재에서 이어지는 방향성. 가볍지만 진심 있게.', sceneGuide: '내년을 상상하는 장면, 달라지고 싶은 구체적 모습', emphasis: '현실에서 출발하는 다짐', primarySources: ['question'], secondarySources: ['care', 'schedule'] },
+  9: { title: '맺는 글', tone: '닫음, 정리, 남기는 말', style: '감정 과잉보다 잔향이 남는 마무리. 여운을 남길 것.', sceneGuide: '연말의 교실, 마지막 인사, 혼자 앉은 시간', emphasis: '올해를 닫는 마지막 장면과 한마디', primarySources: ['question', 'care'], secondarySources: ['meal'] },
 };
 
 // source_type별 역할
@@ -34,33 +34,51 @@ const SOURCE_ROLES: Record<string, { paragraphRole: string; priority: number }> 
   'ai-generated': { paragraphRole: 'bridge', priority: 6 },
 };
 
-function buildSystemPrompt(chapterIndex: number) {
+function buildSystemPrompt(chapterIndex: number, emotionContext: string) {
   const config = CHAPTER_CONFIG[chapterIndex] || CHAPTER_CONFIG[0];
   return `당신은 초등학교 교사의 연간 자서전을 편찬하는 전문 작가입니다.
 
-현재 작성 중인 장: "${config.title}"
-이 장의 톤: ${config.tone}
+━━━ 현재 장 정보 ━━━
+장: 제${chapterIndex + 1}장 "${config.title}"
+톤: ${config.tone}
+문체: ${config.style}
+이 장이 보여줘야 할 핵심: ${config.emphasis}
+${emotionContext ? `감정 맥락: ${emotionContext}` : ''}
 
-장 생성 공식 (반드시 따를 것):
-1. 배경 문단: 그 시기의 일정, 업무, 환경, 분위기를 설명
-2. 장면 문단: 실제 기억에 남는 순간, 하루, 대화, 표정을 구체적으로 묘사
-3. 해석 문단: 그 장면이 교사에게 어떤 의미였는지, 왜 기억에 남는지 정리
-4. (선택) 감정 문단: 긍정/부정 감정의 온도를 장에 녹여서 표현
-5. (선택) 마무리 문단: 이 시기를 지나며 무엇이 남았는지, 다음으로 어떻게 이어지는지
+━━━ 장 생성 공식 ━━━
+1문단 [배경]: 그 시기의 일정/업무/환경/분위기. 독자가 맥락을 이해하게.
+2문단 [장면]: 실제 기억에 남는 한 순간을 구체적으로 묘사. 이 장의 핵심.
+3문단 [해석]: 그 장면이 교사에게 어떤 의미였는지. 자기 인식.
+4문단 [감정] (선택): 감정의 온도. 긍정/부정 감정의 질감.
+5문단 [마무리] (선택): 이 시기를 지나며 남은 것. 다음으로의 연결.
 
-문체 규칙:
+━━━ 장면성 규칙 (가장 중요) ━━━
+장면 문단에는 반드시 아래 중 2개 이상 포함:
+- 시간감 (늦은 오후, 학기 초, 마감 전날)
+- 상황/행동 (몇 줄의 기록을 붙잡고 있었다)
+- 공간/분위기 (교무실이 가라앉아 있었다)
+- 관계/대화 (동료의 짧은 말 한마디)
+- 몸의 감각 (마음이 먼저 지쳐갔다)
+
+장면 힌트: ${config.sceneGuide}
+
+금지:
+× "힘들었다" "버거웠다" "지쳤다" 같은 추상 요약으로 장면 문단 시작
+× 같은 감정 단어 한 장 안에서 2회 이상 반복
+× 이전 문단과 같은 어미로 끝나는 연속 문장
+
+━━━ 중복 억제 규칙 ━━━
+- 같은 감정/키워드를 한 장 안에서 반복하지 마세요
+- 비슷한 의미의 문장이 2개 이상이면 가장 장면성이 높은 것만 사용하세요
+- "힘들었다/버거웠다/지쳤다"를 동시에 쓰지 마세요. 하나만 쓰고 나머지는 구체 장면으로 대체하세요
+
+━━━ 문체 규칙 ━━━
 - 교사 시점의 차분한 회고 톤
-- 설명보다 장면을 먼저
-- "힘들었다"보다 "어떤 날 어떻게 힘들었는지"를 보여줄 것
-- 과장하지 않고, 시적이지 않게
-- 생활기록부 톤이 아닌 자서전 톤
-- 같은 감정/표현 반복 금지
-- 각 문단은 50~120자
-
-출력 형식:
-각 문단을 줄바꿈으로 구분해서 출력하세요.
-설명이나 제목 없이 본문만 출력하세요.
-최소 3문단, 최대 5문단.`;
+- 보고서도 아니고 감상문도 아닌, 교사의 한 해를 정리한 자서전 톤
+- 각 문단 60~150자
+- 줄바꿈으로 구분
+- 설명/제목 없이 본문만
+- 최소 3문단, 최대 5문단`;
 }
 
 function buildUserPrompt(materials: { background: string[]; scene: string[]; interpretation: string[]; atmosphere: string[]; emotion: string }) {
@@ -125,7 +143,7 @@ function classifyMaterials(entries: any[], digests: any[]) {
     }
   }
 
-  return { background, scene, interpretation, atmosphere };
+  return { background, scene, interpretation, atmosphere, emotion: '' };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -178,7 +196,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: buildSystemPrompt(chapterIndex) },
+        { role: 'system', content: buildSystemPrompt(chapterIndex, emotionSummary) },
         { role: 'user', content: buildUserPrompt(materials) },
       ],
       max_tokens: 2000,
