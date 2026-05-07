@@ -166,6 +166,7 @@ function CareClassroom() {
   const [keyScene, setKeyScene] = useState('');
   const [supportSource, setSupportSource] = useState('');
   const [supportMemo, setSupportMemo] = useState('');
+  const [emotionReasonNote, setEmotionReasonNote] = useState('');
   const [positiveScore, setPositiveScore] = useState(5);
   const [negativeScore, setNegativeScore] = useState(5);
   const [isMoodPickerOpen, setIsMoodPickerOpen] = useState(false);
@@ -231,6 +232,7 @@ function CareClassroom() {
     setKeyScene(current?.keyScene || '');
     setSupportSource(current?.supportSource || '');
     setSupportMemo(current?.supportMemo || '');
+    setEmotionReasonNote(current?.emotionReasonNote || '');
     setPositiveScore(current?.positiveEmotionScore ?? 5);
     setNegativeScore(current?.negativeEmotionScore ?? 5);
   }, [records, selectedDate]);
@@ -287,6 +289,7 @@ function CareClassroom() {
         keyScene,
         supportSource,
         supportMemo,
+        emotionReasonNote,
         positiveEmotionScore: positiveScore,
         negativeEmotionScore: negativeScore,
         linkedContext: linkedContext?.date === selectedDate ? linkedContext : undefined,
@@ -800,6 +803,11 @@ function CareClassroom() {
               </div>
               {/* ③ 감정 이유 태그 */}
               <EmotionReasonTags moodReasonTags={moodReasonTags} setMoodReasonTags={setMoodReasonTags} suggestedTags={linkedContext?.suggestedEmotionTags} />
+              <div className="mt-2">
+                <input type="text" value={emotionReasonNote} onChange={(e) => setEmotionReasonNote(e.target.value)}
+                  className="block w-full rounded-lg border border-gray-200 p-2 text-sm focus:border-primary-500 focus:ring-primary-500"
+                  placeholder="태그로 표현되지 않는 감정 이유를 적어주세요" />
+              </div>
 
               {/* ④ 오늘의 한 장면 */}
               <div>
