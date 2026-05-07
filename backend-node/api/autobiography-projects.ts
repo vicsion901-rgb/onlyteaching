@@ -188,7 +188,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       await db.query('DELETE FROM autobiography_chapter_entries WHERE chapter_id=$1', [chapterId]);
 
-      const results: any[] = [];
+      const results: Record<string, unknown>[] = [];
       for (let i = 0; i < entries.length; i++) {
         const e = entries[i];
         const { rows } = await db.query(`
@@ -212,11 +212,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!entryId) return res.status(400).json({ message: 'entryId 필요' });
 
       const sets: string[] = ['updated_at=NOW()'];
-      const vals: any[] = [];
+      const vals: (string | number | boolean | null)[] = [];
       let idx = 1;
-      if (currentText !== undefined) { sets.push(`current_text=$${idx}, is_edited=TRUE`); vals.push(currentText); idx++; }
-      if (displayOrder !== undefined) { sets.push(`display_order=$${idx}`); vals.push(displayOrder); idx++; }
-      vals.push(entryId);
+      if (currentText !== undefined) { sets.push(`current_text=$${idx}, is_edited=TRUE`); vals.push(currentText as string); idx++; }
+      if (displayOrder !== undefined) { sets.push(`display_order=$${idx}`); vals.push(displayOrder as number); idx++; }
+      vals.push(entryId as number);
 
       const { rows } = await db.query(`UPDATE autobiography_chapter_entries SET ${sets.join(', ')} WHERE id=$${idx} RETURNING *`, vals);
       return res.status(200).json(rows[0] || null);

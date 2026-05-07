@@ -80,7 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // DB 조회 시도, 실패하거나 빈 결과면 추천 키워드 반환
       try {
         let sql = 'SELECT DISTINCT category AS keyword, subcategory, attribute FROM student_record_comments';
-        const vals: any[] = [];
+        const vals: (string | number | boolean | null)[] = [];
         if (query) { sql += ' WHERE category ILIKE $1 OR subcategory ILIKE $1 OR attribute ILIKE $1'; vals.push(`%${query}%`); }
         sql += ' ORDER BY category, subcategory LIMIT 50';
         const { rows } = await db.query(sql, vals);

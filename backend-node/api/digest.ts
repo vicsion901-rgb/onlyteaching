@@ -47,7 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!userId || !date) return res.status(400).json({ message: 'userId, date 필요' });
 
       let sql = 'SELECT * FROM daily_digests WHERE user_id = $1 AND digest_date = $2';
-      const vals: any[] = [userId, date];
+      const vals: (string | number | boolean | null)[] = [userId, date];
 
       if (sources.length > 0) {
         sql += ' AND source_type = ANY($3)';

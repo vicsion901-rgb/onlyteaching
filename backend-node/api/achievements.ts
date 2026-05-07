@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { subject, grade_group } = req.query;
     let query = 'SELECT * FROM achievement_standards';
-    const vals: any[] = [];
+    const vals: (string | number | boolean | null)[] = [];
     const conds: string[] = [];
     if (subject) { conds.push(`subject = $${vals.length + 1}`); vals.push(subject); }
     if (grade_group) { conds.push(`grade_group = $${vals.length + 1}`); vals.push(grade_group); }

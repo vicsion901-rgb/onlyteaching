@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // 배치 INSERT
-      const values: any[] = [];
+      const values: (string | number | null)[] = [];
       const placeholders: string[] = [];
       let idx = 1;
 

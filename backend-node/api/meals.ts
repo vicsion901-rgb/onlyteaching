@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'GET' && !action) {
       const { schoolCode, mealDate } = req.query;
       let sql = 'SELECT * FROM meals';
-      const vals: any[] = [];
+      const vals: (string | number | boolean | null)[] = [];
       const conds: string[] = [];
       if (schoolCode) { conds.push(`"schoolCode" = $${vals.length + 1}`); vals.push(schoolCode); }
       if (mealDate) { conds.push(`"mealDate" = $${vals.length + 1}`); vals.push(mealDate); }

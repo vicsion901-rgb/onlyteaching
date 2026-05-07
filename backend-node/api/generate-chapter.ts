@@ -130,7 +130,10 @@ function buildUserPrompt(materials: { background: string[]; scene: string[]; int
   return parts.join('\n\n');
 }
 
-function classifyMaterials(entries: any[], digests: any[]) {
+interface SourceEntry { current_text?: string; currentText?: string; source_type?: string; sourceType?: string; }
+interface DigestEntry { summary_lines?: string[]; summaryLines?: string[]; source_type?: string; sourceType?: string; }
+
+function classifyMaterials(entries: SourceEntry[], digests: DigestEntry[]) {
   const background: string[] = [];
   const scene: string[] = [];
   const interpretation: string[] = [];
@@ -146,9 +149,9 @@ function classifyMaterials(entries: any[], digests: any[]) {
 
   // entries 분류
   for (const e of entries) {
-    const text = (e.current_text || e.currentText || '').trim();
+    const text = String(e.current_text || e.currentText || '').trim();
     if (!text || text.length < 3) continue;
-    const type = e.source_type || e.sourceType || 'manual';
+    const type = String(e.source_type || e.sourceType || 'manual');
     const role = SOURCE_ROLES[type]?.paragraphRole || 'interpretation';
     if (role === 'background') addUnique(background, text);
     else if (role === 'scene') addUnique(scene, text);
@@ -158,8 +161,8 @@ function classifyMaterials(entries: any[], digests: any[]) {
 
   // digests 보강
   for (const d of digests) {
-    const lines = d.summary_lines || d.summaryLines || [];
-    const type = d.source_type || d.sourceType || '';
+    const lines: string[] = d.summary_lines || d.summaryLines || [];
+    const type = String(d.source_type || d.sourceType || '');
     for (const line of lines) {
       if (!line || seen.has(line.slice(0, 30))) continue;
       if (type === 'schedule') addUnique(background, line);

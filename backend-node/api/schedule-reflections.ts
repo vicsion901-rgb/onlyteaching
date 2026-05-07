@@ -40,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const month = req.query.month as string;
 
       let sql = 'SELECT * FROM schedule_reflections WHERE user_id = $1';
-      const vals: any[] = [userId];
+      const vals: (string | number | boolean | null)[] = [userId];
       if (month) {
         sql += ' AND event_date BETWEEN $2 AND $3';
         vals.push(`${month}-01`, `${month}-31`);

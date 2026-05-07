@@ -48,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!userId) return res.status(400).json({ message: 'userId 필요' });
 
       let sql = 'SELECT * FROM question_answers WHERE user_id = $1 AND project_type = $2 AND academic_year = $3';
-      const vals: any[] = [userId, projectType, year];
+      const vals: (string | number)[] = [userId, projectType, year];
 
       if (chapter !== undefined && chapter !== '') {
         sql += ' AND chapter_index = $4';
@@ -68,8 +68,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { userId, projectType = 'teacher', academicYear = 2026, answers } = body;
       if (!userId || !Array.isArray(answers)) return res.status(400).json({ success: false, message: 'userId, answers[] 필요', errors: [{ reason: 'invalid_payload' }] });
 
-      const results: any[] = [];
-      const errors: any[] = [];
+      const results: Record<string, unknown>[] = [];
+      const errors: { reason: string; target?: string; detail?: string }[] = [];
       for (const a of answers) {
         if (!a.questionId) { errors.push({ reason: 'invalid_payload', target: 'questionId missing' }); continue; }
         try {

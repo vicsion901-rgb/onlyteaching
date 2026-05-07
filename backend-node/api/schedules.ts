@@ -55,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         try {
-          const values: any[] = [];
+          const values: (string | null)[] = [];
           const placeholders: string[] = [];
           valid.forEach((ev: any, i: number) => {
             const offset = i * 4;
@@ -74,8 +74,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
           // 개별 fallback
           let inserted = 0;
-          const results: any[] = [];
-          const errors: any[] = [];
+          const results: Record<string, unknown>[] = [];
+          const errors: { title: string; date: string; reason: string; detail?: string }[] = [];
           for (const ev of valid) {
             try {
               const { rows } = await db.query(
@@ -112,11 +112,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'PATCH' && id) {
       const sets: string[] = [];
-      const vals: any[] = [];
+      const vals: (string | number | null)[] = [];
       let idx = 1;
-      if (body.title !== undefined) { sets.push(`title = $${idx++}`); vals.push(body.title); }
-      if (body.date !== undefined) { sets.push(`date = $${idx++}`); vals.push(body.date); }
-      if (body.memo !== undefined) { sets.push(`memo = $${idx++}`); vals.push(body.memo); }
+      if (body.title !== undefined) { sets.push(`title = $${idx++}`); vals.push(body.title as string); }
+      if (body.date !== undefined) { sets.push(`date = $${idx++}`); vals.push(body.date as string); }
+      if (body.memo !== undefined) { sets.push(`memo = $${idx++}`); vals.push(body.memo as string | null); }
       sets.push(`"updatedAt" = NOW()`);
       vals.push(id);
       const result = await db.query(`UPDATE schedules SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`, vals);
