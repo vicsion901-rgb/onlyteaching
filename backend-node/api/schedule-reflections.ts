@@ -1,3 +1,4 @@
+import { setCors } from './_cors';
 // @ts-ignore
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // @ts-ignore
@@ -28,10 +29,7 @@ CREATE INDEX IF NOT EXISTS idx_sched_ref_user ON schedule_reflections(user_id, e
 let initialized = false;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (setCors(req, res)) return;
 
   const db = getPool();
   if (!initialized) { await db.query(INIT_SQL); initialized = true; }

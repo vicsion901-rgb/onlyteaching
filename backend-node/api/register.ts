@@ -1,3 +1,4 @@
+import { setCors } from './_cors';
 // @ts-ignore - @vercel/node provided at build time
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // @ts-ignore - pg types optional
@@ -57,11 +58,8 @@ function searchHash(plaintext: string | null | undefined): string | null {
 // ── NestJS 부팅 없는 초경량 회원가입 핸들러 (100~500ms) ──
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (setCors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' });
 
   try {

@@ -1,3 +1,4 @@
+import { setCors } from './_cors';
 // @ts-ignore - @vercel/node provided at build time
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // @ts-ignore - pg types optional
@@ -30,9 +31,6 @@ function getPool(): Pool {
 // 전체 응답 시간: 100~300ms (기존 3~7s 대비 20배 빠름)
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(204).end();

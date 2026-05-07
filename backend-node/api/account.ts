@@ -1,3 +1,4 @@
+import { setCors } from './_cors';
 // @ts-ignore
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // @ts-ignore
@@ -46,10 +47,7 @@ function decrypt(payload: string | null | undefined): string | null {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (setCors(req, res)) return;
 
   let body: any = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
