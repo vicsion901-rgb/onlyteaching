@@ -1996,8 +1996,19 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
                   e.source_type,
                   e.metadata?.sourceLabel || e.source_type,
                 ));
-                blocks.forEach((b, i) => { b.originalText = entries[i].original_text; b._serverId = entries[i].id; });
-                setChapterBlocks(prev => ({ ...prev, [fixedCh.id]: blocks }));
+                blocks.forEach((b, i) => { b.originalText = entries[i].original_text; b._serverId = entries[i].id; b._serverUpdatedAt = entries[i].updated_at; });
+                setChapterBlocks(prev => {
+                  const localBlocks = prev[fixedCh.id] || [];
+                  const hasLocalEdits = localBlocks.some(lb => lb.type === 'linked-edited' || lb.type === 'manual');
+                  if (hasLocalEdits && entries.length > 0) {
+                    const serverTime = new Date(entries[0].updated_at).getTime();
+                    const localTime = Date.now() - 60000;
+                    if (serverTime > localTime) {
+                      console.info(`[conflict] 장 ${fixedCh.id}: 서버가 더 최신 — 서버 데이터 적용`);
+                    }
+                  }
+                  return { ...prev, [fixedCh.id]: blocks };
+                });
               }
             }
           } catch {}
@@ -2053,25 +2064,48 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
 
   // ── 블록 CRUD ──
 
+  const getServerChapterId = (chapterId) => {
+    const chIdx = FIXED_CHAPTERS.findIndex(c => c.id === chapterId);
+    return chapterIdsRef.current[chIdx];
+  };
+
   const addBlock = useCallback((chapterId, atIndex) => {
+    const newBlock = createBlock('manual', '');
     setChapterBlocks(prev => {
       const arr = [...(prev[chapterId] || [])];
-      arr.splice(atIndex, 0, createBlock('manual', ''));
+      arr.splice(atIndex, 0, newBlock);
       return { ...prev, [chapterId]: arr };
     });
+    // 서버 추가
+    const serverId = getServerChapterId(chapterId);
+    if (serverId && projectRef.current) {
+      client.post('/api/autobiography-projects?action=add-entry', {
+        projectId: projectRef.current.id, chapterId: serverId, sourceType: 'manual', originalText: '', currentText: '', displayOrder: atIndex,
+      }, { timeout: 6000, __retryCount: 99 }).then(res => {
+        if (res.data?.id) newBlock._serverId = res.data.id;
+      }).catch(() => {});
+    }
   }, []);
 
+  const patchTimerRef = useRef({});
   const updateBlock = useCallback((chapterId, blockIndex, newText) => {
     setChapterBlocks(prev => {
       const arr = [...(prev[chapterId] || [])];
       const block = { ...arr[blockIndex] };
       block.currentText = newText;
-      if (block.type === 'linked' && newText !== block.originalText) {
-        block.type = 'linked-edited';
-      } else if (block.type === 'linked-edited' && newText === block.originalText) {
-        block.type = 'linked';
-      }
+      if (block.type === 'linked' && newText !== block.originalText) block.type = 'linked-edited';
+      else if (block.type === 'linked-edited' && newText === block.originalText) block.type = 'linked';
       arr[blockIndex] = block;
+
+      // 서버 개별 patch (2초 debounce)
+      const patchKey = `${chapterId}-${blockIndex}`;
+      if (patchTimerRef.current[patchKey]) clearTimeout(patchTimerRef.current[patchKey]);
+      patchTimerRef.current[patchKey] = setTimeout(() => {
+        if (block._serverId) {
+          client.post('/api/autobiography-projects?action=patch-entry', { entryId: block._serverId, currentText: newText }, { timeout: 6000, __retryCount: 99 }).catch(() => {});
+        }
+      }, 2000);
+
       return { ...prev, [chapterId]: arr };
     });
   }, []);
@@ -2079,7 +2113,12 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
   const deleteBlock = useCallback((chapterId, blockIndex) => {
     setChapterBlocks(prev => {
       const arr = [...(prev[chapterId] || [])];
+      const removed = arr[blockIndex];
       arr.splice(blockIndex, 1);
+      // 서버 삭제
+      if (removed?._serverId) {
+        client.post('/api/autobiography-projects?action=delete-entry', { entryId: removed._serverId }, { timeout: 6000, __retryCount: 99 }).catch(() => {});
+      }
       return { ...prev, [chapterId]: arr };
     });
   }, []);
@@ -2091,31 +2130,33 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
       block.currentText = block.originalText;
       block.type = 'linked';
       arr[blockIndex] = block;
+      // 서버 patch
+      if (block._serverId) {
+        client.post('/api/autobiography-projects?action=patch-entry', { entryId: block._serverId, currentText: block.originalText }, { timeout: 6000, __retryCount: 99 }).catch(() => {});
+      }
       return { ...prev, [chapterId]: arr };
     });
   }, []);
 
-  // ── 서버 동기화 (블록 변경 후 3초 debounce) ──
+  // bulk 동기화는 fallback으로만 유지 (질문 블록 등 서버 ID 없는 블록 일괄 저장)
   const syncTimerRef = useRef({});
   const syncChapterToServer = useCallback((chapterId) => {
     if (syncTimerRef.current[chapterId]) clearTimeout(syncTimerRef.current[chapterId]);
     syncTimerRef.current[chapterId] = setTimeout(() => {
-      const chIdx = FIXED_CHAPTERS.findIndex(c => c.id === chapterId);
-      const serverId = chapterIdsRef.current[chIdx];
+      const serverId = getServerChapterId(chapterId);
       if (!serverId || !projectRef.current) return;
       const blocks = chapterBlocks[chapterId] || [];
-      const entries = blocks.map((b, i) => ({
+      const hasUnsyncedBlocks = blocks.some(b => !b._serverId);
+      if (!hasUnsyncedBlocks) return; // 서버 ID 있는 블록만이면 개별 patch로 충분
+      const entries = blocks.map((b) => ({
         sourceType: b.source?.startsWith('question-') ? 'question' : b.type === 'manual' ? 'manual' : (b.source || 'manual'),
-        sourceId: b.source || null,
-        originalText: b.originalText,
-        currentText: b.currentText,
-        isEdited: b.type === 'linked-edited',
-        metadata: b.sourceLabel ? { sourceLabel: b.sourceLabel } : null,
+        sourceId: b.source || null, originalText: b.originalText, currentText: b.currentText,
+        isEdited: b.type === 'linked-edited', metadata: b.sourceLabel ? { sourceLabel: b.sourceLabel } : null,
       }));
       client.post('/api/autobiography-projects?action=bulk-entries', {
         projectId: projectRef.current.id, chapterId: serverId, entries,
       }, { timeout: 10000, __retryCount: 99 }).catch(() => {});
-    }, 3000);
+    }, 5000);
   }, [chapterBlocks]);
 
   useEffect(() => {

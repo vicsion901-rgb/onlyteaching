@@ -1,7 +1,7 @@
 import { Column, Entity, Index, ManyToOne, JoinColumn, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
-@Entity('students')
+@Entity('student_records')
 @Index(['residentId'], {
   unique: true,
   where: '"residentId" IS NOT NULL',

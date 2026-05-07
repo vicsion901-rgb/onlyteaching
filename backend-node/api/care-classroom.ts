@@ -98,19 +98,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         RETURNING *
       `, [userId, recordDate, mood || null, customMood || null, positiveEmotionScore ?? null, negativeEmotionScore ?? null, emotionReasonTags || [], JSON.stringify(todoItems || []), keyScene || null, supportSource || null, supportMemo || null, freeMemo || null, linkedStudentIds || [], linkedContextSummary ? JSON.stringify(linkedContextSummary) : null, computedEmotionLabel || null, computedEmotionSummary || null]);
 
-      // Upsert daily digest
+      // 응답 먼저 반환 — digest는 fire-and-forget 비동기
+      res.status(200).json(rows[0]);
+
+      // digest 비동기 갱신 (응답 후 처리)
       try {
         const tags = emotionReasonTags || [];
         const summary = [computedEmotionLabel, keyScene?.slice(0, 50)].filter(Boolean);
         await db.query(`
-          INSERT INTO daily_digests (user_id, digest_date, source_type, summary_lines, tags, emotion_hints, related_chapter_hints, updated_at)
-          VALUES ($1, $2, 'care', $3, $4, $5, $6, NOW())
+          INSERT INTO daily_digests (user_id, digest_date, source_type, summary_lines, tags, emotion_hints, related_chapter_hints, digest_status, source_updated_at, updated_at)
+          VALUES ($1, $2, 'care', $3, $4, $5, $6, 'fresh', NOW(), NOW())
           ON CONFLICT (user_id, digest_date, source_type)
-          DO UPDATE SET summary_lines=$3, tags=$4, emotion_hints=$5, related_chapter_hints=$6, updated_at=NOW()
+          DO UPDATE SET summary_lines=$3, tags=$4, emotion_hints=$5, related_chapter_hints=$6, digest_status='fresh', source_updated_at=NOW(), updated_at=NOW()
         `, [userId, recordDate, summary, tags, [computedEmotionLabel].filter(Boolean), []]);
-      } catch { /* digest table might not exist yet */ }
-
-      return res.status(200).json(rows[0]);
+      } catch {}
+      return;
     }
 
     return res.status(405).json({ message: 'Method not allowed' });
