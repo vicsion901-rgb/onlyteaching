@@ -208,8 +208,30 @@ function Schedule() {
 
   useEffect(() => { localStorage.setItem('schedule_reflections', JSON.stringify(scheduleReflections)); }, [scheduleReflections]);
 
+  // 서버에서 회고 데이터 로드
+  useEffect(() => {
+    const userId = localStorage.getItem('userId');
+    if (!userId) return;
+    client.get(`/api/schedule-reflections?userId=${userId}`, { timeout: 6000, __retryCount: 99 })
+      .then(res => {
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          const serverRefs = {};
+          res.data.forEach(r => { serverRefs[r.schedule_id] = { emotionTag: r.emotion_tag, memo: r.memo, eventTitle: r.event_title, date: r.event_date }; });
+          setScheduleReflections(prev => ({ ...prev, ...serverRefs }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const saveReflection = (eventId, data) => {
     setScheduleReflections(prev => ({ ...prev, [eventId]: { ...prev[eventId], ...data, updatedAt: new Date().toISOString() } }));
+    // 서버 저장 (백그라운드)
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      client.post('/api/schedule-reflections', {
+        userId, scheduleId: eventId, eventTitle: data.eventTitle, eventDate: data.date, emotionTag: data.emotionTag || data.memo ? (data.emotionTag || '') : '', memo: data.memo || '',
+      }, { timeout: 6000, __retryCount: 99 }).catch(() => {});
+    }
   };
 
   useEffect(() => {

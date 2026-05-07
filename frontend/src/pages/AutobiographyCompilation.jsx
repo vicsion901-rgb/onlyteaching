@@ -484,9 +484,46 @@ function AutobiographyCompilation() {
     try { const s = localStorage.getItem('autobio_quickChoices'); return s ? JSON.parse(s) : {}; } catch { return {}; }
   });
 
-  useEffect(() => { localStorage.setItem('autobio_questionAnswers', JSON.stringify(questionAnswers)); }, [questionAnswers]);
+  useEffect(() => {
+    localStorage.setItem('autobio_questionAnswers', JSON.stringify(questionAnswers));
+    // 서버 동기화 (debounced — 변경 후 2초 대기)
+    const timer = setTimeout(() => {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+      const questions = TEACHER_QUESTIONS.concat(STUDENT_QUESTIONS);
+      const answers = Object.entries(questionAnswers).filter(([, v]) => v?.trim()).map(([qId, text]) => {
+        const q = questions.find(qq => qq.id === qId);
+        return { questionId: qId, chapterIndex: q?.chapter ?? 0, questionText: q?.text || '', answerText: text };
+      });
+      if (answers.length > 0) {
+        client.post('/api/question-answers', { userId, answers }, { timeout: 8000, __retryCount: 99 }).catch(() => {});
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [questionAnswers]);
   useEffect(() => { localStorage.setItem('autobio_followUpAnswers', JSON.stringify(followUpAnswers)); }, [followUpAnswers]);
   useEffect(() => { localStorage.setItem('autobio_followUps', JSON.stringify(followUps)); }, [followUps]);
+
+  // 서버에서 질문 답변 복원 (마운트 시 1회)
+  useEffect(() => {
+    const userId = localStorage.getItem('userId');
+    if (!userId) return;
+    client.get(`/api/question-answers?userId=${userId}`, { timeout: 6000, __retryCount: 99 })
+      .then(res => {
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          const serverAnswers = {};
+          res.data.forEach(r => { if (r.answer_text?.trim()) serverAnswers[r.question_id] = r.answer_text; });
+          if (Object.keys(serverAnswers).length > 0) {
+            setQuestionAnswers(prev => {
+              const localCount = Object.values(prev).filter(v => v?.trim()).length;
+              const serverCount = Object.keys(serverAnswers).length;
+              return serverCount >= localCount ? { ...prev, ...serverAnswers } : prev;
+            });
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
   useEffect(() => { localStorage.setItem('autobio_quickAnswers', JSON.stringify(quickAnswers)); }, [quickAnswers]);
   useEffect(() => { localStorage.setItem('autobio_quickChoices', JSON.stringify(quickChoices)); }, [quickChoices]);
   const [selectedSources, setSelectedSources] = useState({
