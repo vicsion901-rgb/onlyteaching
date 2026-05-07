@@ -115,51 +115,47 @@ function Schedule() {
         addMockEvent('과학의 날 행사', 4, 21, '#16a34a');
       }
 
-      // ① 즉시 화면 반영 (체감 0초)
+      // ① 즉시 화면 반영 + 생성 완료 메시지 (체감 ~0ms)
       setEvents(prev => {
         const next = { ...prev };
-        generatedEvents.forEach(ev => { next[ev.date] = [...(next[ev.date] || []), { ...ev, id: `temp-${Date.now()}-${Math.random()}` }]; });
+        generatedEvents.forEach(ev => { next[ev.date] = [...(next[ev.date] || []), { ...ev, id: `temp-${Date.now()}-${Math.random()}`, _status: 'pending' }]; });
         return next;
       });
       setIsAiLoading(false);
       setAiPrompt('');
-      setSaveStatus(`${generatedEvents.length}개 일정 저장 중...`);
+      setSaveStatus(`✅ ${generatedEvents.length}개 일정 생성 완료 · 서버 저장 중`);
 
-      // ② 백그라운드 bulk 저장 (fire-and-forget)
+      // ② 백그라운드 저장 (fire-and-forget — UI block 없음)
       const userId = localStorage.getItem('userId');
       const saveBulk = () => {
+        setSaveStatus(prev => prev.includes('생성 완료') ? prev : `서버 저장 중...`);
         client.post('/api/schedules', { userId, events: generatedEvents }, { timeout: 20000, __retryCount: 99 })
           .then(res => {
             const { inserted = 0, skipped = 0, errors = [] } = res.data || {};
-            if (inserted > 0) {
-              let msg = `${inserted}개 저장 완료`;
-              if (skipped > 0) msg += ` · ${skipped}개 건너뜀`;
-              if (errors.length > 0) {
-                const dupes = errors.filter(e => e.reason === 'duplicate').length;
-                if (dupes > 0) msg += ` (중복 ${dupes}개)`;
-              }
-              setSaveStatus(msg);
-              fetchEvents();
-            } else {
-              setSaveStatus('저장된 일정 없음 (중복이거나 오류)');
+            let msg = `✅ ${inserted}개 저장 완료`;
+            if (skipped > 0) msg += ` · ${skipped}개 건너뜀`;
+            if (errors.length > 0) {
+              const dupes = errors.filter(e => e.reason === 'duplicate').length;
+              if (dupes > 0) msg += ` (중복 ${dupes}개)`;
             }
-            setTimeout(() => setSaveStatus(''), 4000);
+            setSaveStatus(msg);
+            fetchEvents();
+            setTimeout(() => setSaveStatus(''), 5000);
           })
           .catch((err) => {
             const serverErrors = err.response?.data?.errors || [];
             const isSchema = serverErrors.some(e => e.reason === 'schema_not_migrated');
             const isMissing = serverErrors.some(e => e.reason === 'missing_user');
             if (isSchema) {
-              setSaveStatus('서버 구조 업데이트 필요 — 관리자에게 문의');
+              setSaveStatus('⚠️ 서버 업데이트 필요 — 관리자 문의');
             } else if (isMissing) {
-              setSaveStatus('로그인 필요 — 계정 정보를 확인해주세요');
+              setSaveStatus('⚠️ 로그인 필요');
             } else {
-              setSaveStatus('저장 실패 — 탭하여 재시도');
+              setSaveStatus('⚠️ 저장 실패 — 탭하여 재시도');
             }
           });
       };
       saveBulk();
-      // 재시도 가능하게 참조 저장
       window.__retrySaveSchedule = saveBulk;
 
     } catch (error) {
