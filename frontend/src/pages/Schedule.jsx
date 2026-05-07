@@ -138,29 +138,29 @@ function Schedule() {
         addMockEvent('과학의 날 행사', 4, 21, '#16a34a');
       }
 
-      let successCount = 0;
-      for (const ev of generatedEvents) {
-        try {
-          // Given: A generated event
-          // When: Sending to backend
-          // Then: Update local state
-          const res = await client.post('/api/schedules', ev);
-          setEvents(prev => ({
-            ...prev,
-            [ev.date]: [...(prev[ev.date] || []), res.data]
-          }));
-          successCount++;
-        } catch (e) {
-          console.error("Failed to add mock event", e);
-        }
-      }
-
-      if (successCount > 0) {
-        await fetchEvents();
-        alert(`${successCount}개의 일정이 생성되었습니다! 캘린더를 확인해주세요.`);
-        setAiPrompt('');
+      if (generatedEvents.length === 0) {
+        alert('일정을 생성하지 못했습니다. 더 구체적으로 입력해주세요.');
       } else {
-         alert('일정을 생성하지 못했습니다. 더 구체적으로 입력해주세요.');
+        // 화면에 먼저 반영 (optimistic)
+        setEvents(prev => {
+          const next = { ...prev };
+          generatedEvents.forEach(ev => { next[ev.date] = [...(next[ev.date] || []), { ...ev, id: `temp-${Date.now()}-${Math.random()}` }]; });
+          return next;
+        });
+
+        // bulk 저장 1회 호출
+        try {
+          const userId = localStorage.getItem('userId');
+          const res = await client.post('/api/schedules', { userId, events: generatedEvents }, { timeout: 15000, __retryCount: 99 });
+          const { inserted = 0, skipped = 0 } = res.data || {};
+          await fetchEvents();
+          alert(`${inserted}개의 일정이 생성되었습니다!${skipped > 0 ? ` (${skipped}개 건너뜀)` : ''}`);
+          setAiPrompt('');
+        } catch (e) {
+          console.error('Bulk save failed', e);
+          alert('일정 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+          await fetchEvents();
+        }
       }
 
     } catch (error) {

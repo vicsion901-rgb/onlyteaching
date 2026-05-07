@@ -48,6 +48,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
+      // bulk insert
+      if (Array.isArray(body?.events)) {
+        const userId = body.userId || null;
+        let inserted = 0;
+        let skipped = 0;
+        const results: any[] = [];
+        for (const ev of body.events) {
+          if (!ev.title || !ev.date) { skipped++; continue; }
+          try {
+            const { rows } = await db.query(
+              'INSERT INTO schedules (title, date, memo, "userId", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *',
+              [ev.title, ev.date, ev.memo || null, userId],
+            );
+            results.push(rows[0]);
+            inserted++;
+          } catch { skipped++; }
+        }
+        return res.status(201).json({ inserted, skipped, total: body.events.length, results });
+      }
+
+      // 단일 insert (하위호환)
       const { title, date, memo } = body || {};
       const result = await db.query(
         'INSERT INTO schedules (title, date, memo, "createdAt", "updatedAt") VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *',
