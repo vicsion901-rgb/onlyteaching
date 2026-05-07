@@ -1925,6 +1925,7 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
   const [pageInput, setPageInput] = useState('');
   const [highlight, setHighlight] = useState('');
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [conflictInfo, setConflictInfo] = useState(null);
   const hideTimer = useRef(null);
 
   // 블록 상태
@@ -1999,12 +2000,18 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
                 blocks.forEach((b, i) => { b.originalText = entries[i].original_text; b._serverId = entries[i].id; b._serverUpdatedAt = entries[i].updated_at; });
                 setChapterBlocks(prev => {
                   const localBlocks = prev[fixedCh.id] || [];
-                  const hasLocalEdits = localBlocks.some(lb => lb.type === 'linked-edited' || lb.type === 'manual');
+                  const hasLocalEdits = localBlocks.some(lb => (lb.type === 'linked-edited' || lb.type === 'manual') && lb.currentText?.trim());
                   if (hasLocalEdits && entries.length > 0) {
                     const serverTime = new Date(entries[0].updated_at).getTime();
-                    const localTime = Date.now() - 60000;
-                    if (serverTime > localTime) {
-                      console.info(`[conflict] 장 ${fixedCh.id}: 서버가 더 최신 — 서버 데이터 적용`);
+                    if (serverTime > Date.now() - 30000) {
+                      setConflictInfo({
+                        chapterId: fixedCh.id,
+                        chapterTitle: fixedCh.title,
+                        serverBlocks: blocks,
+                        localBlocks: localBlocks,
+                        localDraftText: localBlocks.map(b => b.currentText).filter(Boolean).join('\n'),
+                      });
+                      return prev;
                     }
                   }
                   return { ...prev, [fixedCh.id]: blocks };
@@ -2033,9 +2040,19 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
         if (existingQBlock) {
           if (existingQBlock.currentText !== ans) {
             next[ch.id] = arr.map(b => b.source === `question-${q.id}` ? { ...b, currentText: ans, originalText: ans } : b);
+            if (existingQBlock._serverId) {
+              client.post('/api/autobiography-projects?action=patch-entry', { entryId: existingQBlock._serverId, currentText: ans }, { timeout: 6000, __retryCount: 99 }).catch(() => {});
+            }
           }
         } else {
-          next[ch.id] = [...arr, createBlock('linked', ans, `question-${q.id}`, '질문 답변')];
+          const newBlock = createBlock('linked', ans, `question-${q.id}`, '질문 답변');
+          next[ch.id] = [...arr, newBlock];
+          const serverId = chapterIdsRef.current[q.chapter];
+          if (serverId && projectRef.current) {
+            client.post('/api/autobiography-projects?action=add-entry', {
+              projectId: projectRef.current.id, chapterId: serverId, sourceType: 'question', sourceId: q.id, originalText: ans, currentText: ans, metadata: { sourceLabel: '질문 답변', questionText: q.text },
+            }, { timeout: 6000, __retryCount: 99 }).then(r => { if (r.data?.id) newBlock._serverId = r.data.id; }).catch(() => {});
+          }
         }
       });
       return next;
@@ -2479,6 +2496,45 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
           <span className={`text-2xl transition-opacity ${spread === maxSpread ? 'opacity-0' : 'opacity-60 group-hover:opacity-100'} text-white`}>›</span>
         </button>
       </div>
+
+      {/* conflict resolution UI */}
+      {conflictInfo && (
+        <div className="fixed inset-0 z-[300] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="text-center">
+              <span className="text-3xl">⚠️</span>
+              <h3 className="text-lg font-bold text-gray-900 mt-2">다른 기기에서 수정됨</h3>
+              <p className="text-sm text-gray-500 mt-1">"{conflictInfo.chapterTitle}" 장이 다른 기기에서 수정되었습니다.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-blue-50 rounded-lg p-3">
+                <div className="text-xs font-semibold text-blue-700 mb-1">서버 버전</div>
+                <p className="text-xs text-gray-600 line-clamp-3">{conflictInfo.serverBlocks.map(b => b.currentText).filter(Boolean).join(' ').slice(0, 150)}...</p>
+              </div>
+              <div className="bg-amber-50 rounded-lg p-3">
+                <div className="text-xs font-semibold text-amber-700 mb-1">내 임시 수정</div>
+                <p className="text-xs text-gray-600 line-clamp-3">{conflictInfo.localDraftText.slice(0, 150)}...</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <button type="button" onClick={() => {
+                setChapterBlocks(prev => ({ ...prev, [conflictInfo.chapterId]: conflictInfo.serverBlocks }));
+                setConflictInfo(null);
+              }} className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700">서버 버전 불러오기</button>
+              <button type="button" onClick={() => {
+                setChapterBlocks(prev => ({ ...prev, [conflictInfo.chapterId]: conflictInfo.localBlocks }));
+                setConflictInfo(null);
+              }} className="w-full py-2.5 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600">내 임시 수정 유지</button>
+              <button type="button" onClick={() => {
+                navigator.clipboard.writeText(conflictInfo.localDraftText);
+                setChapterBlocks(prev => ({ ...prev, [conflictInfo.chapterId]: conflictInfo.serverBlocks }));
+                setConflictInfo(null);
+                alert('임시 수정 내용이 클립보드에 복사되었습니다.');
+              }} className="w-full py-2 text-gray-500 text-xs font-medium hover:text-gray-700">내 수정 복사 후 서버 버전 보기</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 하단 인디케이터 */}
       <div className={`flex items-center justify-center gap-1.5 py-2 transition-opacity duration-500 ${controlsVisible ? 'opacity-100' : 'opacity-0'}`}>

@@ -101,16 +101,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // 응답 먼저 반환 — digest는 fire-and-forget 비동기
       res.status(200).json(rows[0]);
 
-      // digest 비동기 갱신 (응답 후 처리)
+      // digest job enqueue (비동기 — 실패해도 원본 저장은 완료)
       try {
-        const tags = emotionReasonTags || [];
-        const summary = [computedEmotionLabel, keyScene?.slice(0, 50)].filter(Boolean);
         await db.query(`
-          INSERT INTO daily_digests (user_id, digest_date, source_type, summary_lines, tags, emotion_hints, related_chapter_hints, digest_status, source_updated_at, updated_at)
-          VALUES ($1, $2, 'care', $3, $4, $5, $6, 'fresh', NOW(), NOW())
-          ON CONFLICT (user_id, digest_date, source_type)
-          DO UPDATE SET summary_lines=$3, tags=$4, emotion_hints=$5, related_chapter_hints=$6, digest_status='fresh', source_updated_at=NOW(), updated_at=NOW()
-        `, [userId, recordDate, summary, tags, [computedEmotionLabel].filter(Boolean), []]);
+          INSERT INTO digest_jobs (user_id, source_type, target_date, status) VALUES ($1, 'care', $2, 'pending')
+        `, [userId, recordDate]);
       } catch {}
       return;
     }
