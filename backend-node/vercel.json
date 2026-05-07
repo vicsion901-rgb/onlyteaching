@@ -19,7 +19,17 @@
     "api/creative.ts": { "maxDuration": 10 },
     "api/liferecords.ts": { "maxDuration": 30 },
     "api/meals.ts": { "maxDuration": 10 },
-    "api/autobiography.ts": { "maxDuration": 60 }
+    "api/autobiography.ts": { "maxDuration": 60 },
+    "api/care-classroom.ts": { "maxDuration": 10 },
+    "api/observations.ts": { "maxDuration": 10 },
+    "api/question-answers.ts": { "maxDuration": 10 },
+    "api/digest.ts": { "maxDuration": 10 },
+    "api/digest-jobs.ts": { "maxDuration": 15 },
+    "api/autobiography-projects.ts": { "maxDuration": 15 },
+    "api/generate-chapter.ts": { "maxDuration": 30 },
+    "api/schedule-reflections.ts": { "maxDuration": 10 },
+    "api/proofread.ts": { "maxDuration": 15 },
+    "api/schema-check.ts": { "maxDuration": 10 }
   },
   "rewrites": [
     { "source": "/api/users/login", "destination": "/api/login" },
@@ -39,6 +49,16 @@
     { "source": "/api/liferecords", "destination": "/api/liferecords" },
     { "source": "/api/meals", "destination": "/api/meals" },
     { "source": "/api/autobiography", "destination": "/api/autobiography" },
+    { "source": "/api/care-classroom", "destination": "/api/care-classroom" },
+    { "source": "/api/observations", "destination": "/api/observations" },
+    { "source": "/api/question-answers", "destination": "/api/question-answers" },
+    { "source": "/api/digest", "destination": "/api/digest" },
+    { "source": "/api/digest-jobs", "destination": "/api/digest-jobs" },
+    { "source": "/api/autobiography-projects", "destination": "/api/autobiography-projects" },
+    { "source": "/api/generate-chapter", "destination": "/api/generate-chapter" },
+    { "source": "/api/schedule-reflections", "destination": "/api/schedule-reflections" },
+    { "source": "/api/proofread", "destination": "/api/proofread" },
+    { "source": "/api/schema-check", "destination": "/api/schema-check" },
     { "source": "/(.*)", "destination": "/api/index" }
   ],
   "env": {
