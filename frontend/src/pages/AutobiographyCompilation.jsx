@@ -1966,6 +1966,25 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
     setProofreadResults({});
   }, [response, sourceData]);
 
+  // 서버에서 프로젝트/장/entries 로드 (마운트 시)
+  const projectRef = useRef(null);
+  const chapterIdsRef = useRef({});
+  useEffect(() => {
+    const userId = localStorage.getItem('userId');
+    if (!userId) return;
+    const projectType = activeTab === 'student' ? 'student' : 'teacher';
+    client.post('/api/autobiography-projects?action=create-project', { userId, projectType }, { timeout: 8000, __retryCount: 99 })
+      .then(res => {
+        if (!res.data?.project) return;
+        projectRef.current = res.data.project;
+        const serverChapters = res.data.chapters || [];
+        const idMap = {};
+        serverChapters.forEach(ch => { idMap[ch.chapter_order] = ch.id; });
+        chapterIdsRef.current = idMap;
+      })
+      .catch(() => {});
+  }, [activeTab]);
+
   // 질문 답변 → 해당 장 블록 자동 삽입
   useEffect(() => {
     if (!questionAnswers) return;
@@ -2054,6 +2073,35 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
       return { ...prev, [chapterId]: arr };
     });
   }, []);
+
+  // ── 서버 동기화 (블록 변경 후 3초 debounce) ──
+  const syncTimerRef = useRef({});
+  const syncChapterToServer = useCallback((chapterId) => {
+    if (syncTimerRef.current[chapterId]) clearTimeout(syncTimerRef.current[chapterId]);
+    syncTimerRef.current[chapterId] = setTimeout(() => {
+      const chIdx = FIXED_CHAPTERS.findIndex(c => c.id === chapterId);
+      const serverId = chapterIdsRef.current[chIdx];
+      if (!serverId || !projectRef.current) return;
+      const blocks = chapterBlocks[chapterId] || [];
+      const entries = blocks.map((b, i) => ({
+        sourceType: b.source?.startsWith('question-') ? 'question' : b.type === 'manual' ? 'manual' : (b.source || 'manual'),
+        sourceId: b.source || null,
+        originalText: b.originalText,
+        currentText: b.currentText,
+        isEdited: b.type === 'linked-edited',
+        metadata: b.sourceLabel ? { sourceLabel: b.sourceLabel } : null,
+      }));
+      client.post('/api/autobiography-projects?action=bulk-entries', {
+        projectId: projectRef.current.id, chapterId: serverId, entries,
+      }, { timeout: 10000, __retryCount: 99 }).catch(() => {});
+    }, 3000);
+  }, [chapterBlocks]);
+
+  useEffect(() => {
+    Object.keys(chapterBlocks).forEach(chId => {
+      if ((chapterBlocks[chId] || []).length > 0) syncChapterToServer(chId);
+    });
+  }, [chapterBlocks]);
 
   // ── 교정 ──
 

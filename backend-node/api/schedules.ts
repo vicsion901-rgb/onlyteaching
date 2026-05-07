@@ -23,6 +23,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     if (req.method === 'GET') {
+      const userId = req.query.userId as string;
+      const month = req.query.month as string;
+
+      // 인덱스 생성 (1회)
+      try { await db.query('CREATE INDEX IF NOT EXISTS idx_schedules_user_date ON schedules("userId", date)'); } catch {}
+
+      if (userId && month) {
+        const { rows } = await db.query(
+          'SELECT * FROM schedules WHERE "userId" = $1 AND date BETWEEN $2 AND $3 ORDER BY date ASC, id ASC',
+          [userId, `${month}-01`, `${month}-31`],
+        );
+        return res.status(200).json(rows);
+      }
+
+      if (userId) {
+        const { rows } = await db.query('SELECT * FROM schedules WHERE "userId" = $1 ORDER BY date ASC, id ASC', [userId]);
+        return res.status(200).json(rows);
+      }
+
+      // 하위호환: userId 없으면 전체 조회
       const { rows } = await db.query('SELECT * FROM schedules ORDER BY date ASC, id ASC');
       return res.status(200).json(rows);
     }
