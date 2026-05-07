@@ -68,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { userId, projectType = 'teacher', academicYear = 2026, answers } = body;
       if (!userId || !Array.isArray(answers)) return res.status(400).json({ success: false, message: 'userId, answers[] 필요', errors: [{ reason: 'invalid_payload' }] });
 
-      const results = [];
+      const results: any[] = [];
       const errors: any[] = [];
       for (const a of answers) {
         if (!a.questionId) { errors.push({ reason: 'invalid_payload', target: 'questionId missing' }); continue; }

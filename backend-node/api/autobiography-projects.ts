@@ -188,7 +188,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       await db.query('DELETE FROM autobiography_chapter_entries WHERE chapter_id=$1', [chapterId]);
 
-      const results = [];
+      const results: any[] = [];
       for (let i = 0; i < entries.length; i++) {
         const e = entries[i];
         const { rows } = await db.query(`
