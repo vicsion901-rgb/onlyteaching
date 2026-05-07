@@ -70,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         };
       }
 
-      return res.status(200).json({ date, digests: result });
+      return res.status(200).json({ success: true, date, data: result });
     }
 
     // POST /api/digest — upsert digest

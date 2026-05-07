@@ -49,32 +49,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (date) {
         const { rows } = await db.query('SELECT * FROM observation_logs WHERE user_id = $1 AND observed_date = $2 ORDER BY created_at', [userId, date]);
-        return res.status(200).json(rows);
+        return res.status(200).json({ success: true, data: rows });
       }
       if (studentId) {
         const { rows } = await db.query('SELECT * FROM observation_logs WHERE user_id = $1 AND student_id = $2 ORDER BY observed_date DESC LIMIT 50', [userId, studentId]);
-        return res.status(200).json(rows);
+        return res.status(200).json({ success: true, data: rows });
       }
       if (month) {
         const { rows } = await db.query('SELECT id, observed_date, category, tags, summary FROM observation_logs WHERE user_id = $1 AND observed_date BETWEEN $2 AND $3 ORDER BY observed_date', [userId, `${month}-01`, `${month}-31`]);
-        return res.status(200).json(rows);
+        return res.status(200).json({ success: true, data: rows });
       }
 
-      return res.status(400).json({ message: 'month, date, 또는 studentId 필요' });
+      return res.status(400).json({ success: false, message: 'month, date, 또는 studentId 필요', errors: [{ reason: 'invalid_payload' }] });
     }
 
     if (req.method === 'POST') {
       let body: any = req.body;
       if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
       const { userId, studentId, observedDate, category, tags, summary, content, emotionHints } = body;
-      if (!userId || !observedDate) return res.status(400).json({ message: 'userId, observedDate 필요' });
+      if (!userId || !observedDate) return res.status(400).json({ success: false, message: 'userId, observedDate 필요', errors: [{ reason: 'invalid_payload' }] });
 
       const { rows } = await db.query(`
         INSERT INTO observation_logs (user_id, student_id, observed_date, category, tags, summary, content, emotion_hints)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
       `, [userId, studentId || null, observedDate, category || null, tags || [], summary || null, content || null, emotionHints || []]);
 
-      return res.status(200).json(rows[0]);
+      return res.status(200).json({ success: true, saved: 1, data: rows[0], errors: [] });
     }
 
     return res.status(405).json({ message: 'Method not allowed' });

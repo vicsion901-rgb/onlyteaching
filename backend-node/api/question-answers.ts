@@ -60,7 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       sql += ' ORDER BY chapter_index, question_id';
       const { rows } = await db.query(sql, vals);
-      return res.status(200).json(rows);
+      return res.status(200).json({ success: true, data: rows });
     }
 
     // POST — bulk upsert
@@ -69,22 +69,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
 
       const { userId, projectType = 'teacher', academicYear = 2026, answers } = body;
-      if (!userId || !Array.isArray(answers)) return res.status(400).json({ message: 'userId, answers[] 필요' });
+      if (!userId || !Array.isArray(answers)) return res.status(400).json({ success: false, message: 'userId, answers[] 필요', errors: [{ reason: 'invalid_payload' }] });
 
       const results = [];
+      const errors: any[] = [];
       for (const a of answers) {
-        if (!a.questionId) continue;
-        const { rows } = await db.query(`
-          INSERT INTO question_answers (user_id, project_type, academic_year, question_id, chapter_index, question_text, answer_text, selected_choices, status, updated_at)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-          ON CONFLICT (user_id, project_type, academic_year, question_id)
-          DO UPDATE SET answer_text=$7, selected_choices=$8, status=$9, updated_at=NOW()
-          RETURNING *
-        `, [userId, projectType, academicYear, a.questionId, a.chapterIndex ?? 0, a.questionText || '', a.answerText || '', a.selectedChoices || [], a.answerText?.trim() ? 'completed' : 'unanswered']);
-        results.push(rows[0]);
+        if (!a.questionId) { errors.push({ reason: 'invalid_payload', target: 'questionId missing' }); continue; }
+        try {
+          const { rows } = await db.query(`
+            INSERT INTO question_answers (user_id, project_type, academic_year, question_id, chapter_index, question_text, answer_text, selected_choices, status, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+            ON CONFLICT (user_id, project_type, academic_year, question_id)
+            DO UPDATE SET answer_text=$7, selected_choices=$8, status=$9, updated_at=NOW()
+            RETURNING *
+          `, [userId, projectType, academicYear, a.questionId, a.chapterIndex ?? 0, a.questionText || '', a.answerText || '', a.selectedChoices || [], a.answerText?.trim() ? 'completed' : 'unanswered']);
+          results.push(rows[0]);
+        } catch (e: any) {
+          errors.push({ reason: e.code === '23505' ? 'duplicate' : 'db_error', target: a.questionId, detail: e.message?.slice(0, 80) });
+        }
       }
 
-      return res.status(200).json({ saved: results.length, results });
+      return res.status(200).json({ success: true, saved: results.length, skipped: errors.length, total: answers.length, data: results, errors });
     }
 
     return res.status(405).json({ message: 'Method not allowed' });

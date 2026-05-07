@@ -98,8 +98,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         RETURNING *
       `, [userId, recordDate, mood || null, customMood || null, positiveEmotionScore ?? null, negativeEmotionScore ?? null, emotionReasonTags || [], JSON.stringify(todoItems || []), keyScene || null, supportSource || null, supportMemo || null, freeMemo || null, linkedStudentIds || [], linkedContextSummary ? JSON.stringify(linkedContextSummary) : null, computedEmotionLabel || null, computedEmotionSummary || null]);
 
-      // 응답 먼저 반환 — digest는 fire-and-forget 비동기
-      res.status(200).json(rows[0]);
+      // 응답 먼저 반환 (표준 구조)
+      res.status(200).json({ success: true, saved: 1, data: rows[0], errors: [] });
 
       // digest job enqueue (비동기 — 실패해도 원본 저장은 완료)
       try {

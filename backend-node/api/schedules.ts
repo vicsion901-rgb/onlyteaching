@@ -46,6 +46,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'POST') {
 
+      // userId 컬럼 존재 여부 감지 (1회)
+      let hasUserIdCol = true;
+      try {
+        const colCheck = await db.query("SELECT column_name FROM information_schema.columns WHERE table_name='schedules' AND column_name='userId'");
+        hasUserIdCol = colCheck.rows.length > 0;
+        if (!hasUserIdCol) {
+          try { await db.query('ALTER TABLE schedules ADD COLUMN "userId" VARCHAR'); hasUserIdCol = true; } catch {}
+        }
+      } catch {}
+
       // bulk insert
       if (Array.isArray(body?.events)) {
         const userId = body.userId || null;
@@ -53,34 +63,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const skipped = body.events.length - valid.length;
 
         if (valid.length === 0) {
-          return res.status(200).json({ inserted: 0, skipped, total: body.events.length, results: [] });
+          return res.status(200).json({ success: true, inserted: 0, skipped, total: body.events.length, results: [], errors: [] });
         }
 
-        // 단일 multi-row INSERT (10건 → 1 쿼리)
+        // userId 컬럼 여부에 따라 INSERT 구조 분기
+        const cols = hasUserIdCol ? 'title, date, memo, "userId", "createdAt", "updatedAt"' : 'title, date, memo, "createdAt", "updatedAt"';
+        const colCount = hasUserIdCol ? 4 : 3;
+
         try {
           const values: any[] = [];
           const placeholders: string[] = [];
           valid.forEach((ev: any, i: number) => {
-            const offset = i * 4;
-            placeholders.push(`($${offset+1}, $${offset+2}, $${offset+3}, $${offset+4}, NOW(), NOW())`);
-            values.push(ev.title, ev.date, ev.memo || null, userId);
+            const offset = i * colCount;
+            if (hasUserIdCol) {
+              placeholders.push(`($${offset+1}, $${offset+2}, $${offset+3}, $${offset+4}, NOW(), NOW())`);
+              values.push(ev.title, ev.date, ev.memo || null, userId);
+            } else {
+              placeholders.push(`($${offset+1}, $${offset+2}, $${offset+3}, NOW(), NOW())`);
+              values.push(ev.title, ev.date, ev.memo || null);
+            }
           });
-          const { rows } = await db.query(
-            `INSERT INTO schedules (title, date, memo, "userId", "createdAt", "updatedAt") VALUES ${placeholders.join(', ')} RETURNING *`,
-            values,
-          );
-          return res.status(201).json({ inserted: rows.length, skipped, total: body.events.length, results: rows });
+          const { rows } = await db.query(`INSERT INTO schedules (${cols}) VALUES ${placeholders.join(', ')} RETURNING *`, values);
+          return res.status(201).json({ success: true, inserted: rows.length, skipped, total: body.events.length, results: rows, errors: [] });
         } catch (bulkErr: any) {
-          // multi-row 실패 시 개별 fallback + 에러 이유 수집
+          // 개별 fallback
           let inserted = 0;
           const results: any[] = [];
           const errors: any[] = [];
           for (const ev of valid) {
             try {
-              const { rows } = await db.query(
-                'INSERT INTO schedules (title, date, memo, "userId", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *',
-                [ev.title, ev.date, ev.memo || null, userId],
-              );
+              const insertSql = hasUserIdCol
+                ? 'INSERT INTO schedules (title, date, memo, "userId", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *'
+                : 'INSERT INTO schedules (title, date, memo, "createdAt", "updatedAt") VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *';
+              const insertVals = hasUserIdCol ? [ev.title, ev.date, ev.memo || null, userId] : [ev.title, ev.date, ev.memo || null];
+              const { rows } = await db.query(insertSql, insertVals);
               results.push(rows[0]);
               inserted++;
             } catch (e: any) {
@@ -88,7 +104,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               errors.push({ title: ev.title, date: ev.date, reason, detail: e.message?.slice(0, 80) });
             }
           }
-          return res.status(201).json({ inserted, skipped: skipped + errors.length, total: body.events.length, results, errors, fallback: true });
+          return res.status(201).json({ success: inserted > 0, inserted, skipped: skipped + errors.length, total: body.events.length, results, errors, fallback: true });
         }
       }
 
