@@ -53,10 +53,10 @@ export class TeacherVerification extends BaseEntity {
   @Column({ type: 'varchar', nullable: true })
   issuedAt!: string | null;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   verifiedAt!: Date | null;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   expiresAt!: Date | null;
 
   @Column({ type: 'varchar', nullable: true })
