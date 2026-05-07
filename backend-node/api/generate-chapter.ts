@@ -11,8 +11,8 @@ function getPool(): Pool {
 
 // ─── 장 생성 공식 ───
 const CHAPTER_CONFIG: Record<number, { title: string; tone: string; style: string; sceneGuide: string; emphasis: string; primarySources: string[]; secondarySources: string[] }> = {
-  0: { title: '시작하는 글', tone: '조심스러운 시작, 기대, 첫 마음', style: '짧고 맑은 문장. 지나치게 무겁지 않게.', sceneGuide: '연초의 교실 분위기, 첫 출근길, 새 학년 첫날의 공기', emphasis: '첫 마음의 질감', primarySources: ['question', 'schedule'], secondarySources: ['care'] },
-  1: { title: '올해의 환경과 현실', tone: '설명적, 구조적, 현실 인식', style: '맥락 설명 포함. 감정만 쏟지 말고 환경/업무 구조를 보여줄 것.', sceneGuide: '업무 더미, 회의실 분위기, 반복되는 서류 앞의 시간', emphasis: '구조적 압박의 풍경', primarySources: ['schedule', 'care'], secondarySources: ['question'] },
+  0: { title: '시작하는 글', tone: '조심스러운 시작, 기대와 긴장이 섞인 첫 마음', style: '짧고 맑은 문장. 무겁지 않되 감각이 살아 있게. 첫날의 공기감을 반드시 포함할 것.', sceneGuide: '첫날 교실 문을 열던 순간의 공기, 이른 아침 복도의 정적, 이름표와 빈 자리를 바라보던 시간, 출근길 발걸음의 긴장, 아직 낯선 교실의 냄새', emphasis: '첫날의 감각 — 무엇을 보았고 어디에 서 있었고 어떤 공기가 감돌았는지', primarySources: ['question', 'schedule'], secondarySources: ['care'] },
+  1: { title: '올해의 환경과 현실', tone: '현실을 체감하는 장면 중심의 구조적 묘사', style: '설명문만으로 끝내지 말 것. 적어도 한 문단은 현실을 체감하는 장면으로. 업무 나열 대신 업무 앞에 선 교사의 모습을 보여줄 것.', sceneGuide: '아침부터 울리던 메신저 알림, 책상 위에 쌓인 서류 더미, 마감일이 빽빽한 일정표, 조용하지만 무거운 교무실 공기, 점심도 못 먹고 이어지는 회의', emphasis: '구조적 압박을 단어가 아니라 상황으로 보여줄 것', primarySources: ['schedule', 'care'], secondarySources: ['question'] },
   2: { title: '학교생활의 초반', tone: '시작의 긴장, 낯섦, 적응 초입', style: '첫 경험의 신선함과 부담을 동시에. 시행착오의 질감.', sceneGuide: '첫 수업, 첫 상담, 학생 이름을 외우던 시간, 교실 정리', emphasis: '처음 마주한 현실의 구체성', primarySources: ['schedule', 'care'], secondarySources: ['observation', 'meal'] },
   3: { title: '익숙해지는 과정', tone: '반복 속 적응, 버팀, 서서히 안정', style: '서서히 변하는 리듬을 보여줄 것. 급변이 아닌 점진적 흐름.', sceneGuide: '같은 시간에 반복되는 루틴, 몸에 밴 동선, 눈치 없이 흘러간 하루', emphasis: '버티다 보니 익숙해진 감각', primarySources: ['care', 'schedule'], secondarySources: ['observation'] },
   4: { title: '관계와 사람들', tone: '사람, 대화, 위로, 소모', style: '인물과 말과 분위기 중심. 관계의 온도가 느껴지게.', sceneGuide: '동료와의 짧은 대화, 학부모 전화 후의 고요, 학생의 예상 못한 한마디', emphasis: '사람 사이의 온도', primarySources: ['observation', 'care'], secondarySources: ['question', 'meal'] },
@@ -20,7 +20,7 @@ const CHAPTER_CONFIG: Record<number, { title: string; tone: string; style: strin
   6: { title: '전환의 순간', tone: '흔들림, 깨달음, 다시 일어섬', style: '감정선이 가장 강해야 하는 장. 급격한 변화의 순간을 잡아낼 것.', sceneGuide: '무너질 뻔한 순간, 누군가의 말, 갑자기 달라진 시선, 멈춰 선 복도', emphasis: '전환이 일어난 정확한 순간', primarySources: ['care', 'question'], secondarySources: ['observation', 'schedule'] },
   7: { title: '지금의 나', tone: '현재의 정리, 자기 인식', style: '차분하고 압축적. 지금의 모습이 또렷해야 함.', sceneGuide: '최근의 하루, 퇴근길 감각, 교실에서 자기를 바라보는 순간', emphasis: '올해를 지난 후의 선명한 자기 인식', primarySources: ['question', 'care'], secondarySources: ['schedule'] },
   8: { title: '앞으로의 마음', tone: '다짐, 희망, 조심스러운 미래', style: '막연하지 않고 현재에서 이어지는 방향성. 가볍지만 진심 있게.', sceneGuide: '내년을 상상하는 장면, 달라지고 싶은 구체적 모습', emphasis: '현실에서 출발하는 다짐', primarySources: ['question'], secondarySources: ['care', 'schedule'] },
-  9: { title: '맺는 글', tone: '닫음, 정리, 남기는 말', style: '감정 과잉보다 잔향이 남는 마무리. 여운을 남길 것.', sceneGuide: '연말의 교실, 마지막 인사, 혼자 앉은 시간', emphasis: '올해를 닫는 마지막 장면과 한마디', primarySources: ['question', 'care'], secondarySources: ['meal'] },
+  9: { title: '맺는 글', tone: '닫음, 담담한 여운, 마지막 인사', style: '감정 과잉보다 잔향이 오래 남는 마무리. 마지막 문단의 마지막 한 줄은 독자가 책을 덮고도 기억할 문장으로. 뻔한 마무리 금지.', sceneGuide: '빈 교실에 혼자 앉은 연말의 시간, 마지막 기록을 닫는 순간, 불 꺼진 교실을 나서며, 연말 책상 위의 고요', emphasis: '마지막 장면의 잔향 + 올해를 닫는 한 문장. "그렇게 한 해가 지나갔다" 같은 뻔한 문장 금지. 교사 자서전답게 담담하되 오래 남는 여운.', primarySources: ['question', 'care'], secondarySources: ['meal'] },
 };
 
 // source_type별 역할
@@ -67,10 +67,18 @@ ${emotionContext ? `감정 맥락: ${emotionContext}` : ''}
 × 같은 감정 단어 한 장 안에서 2회 이상 반복
 × 이전 문단과 같은 어미로 끝나는 연속 문장
 
-━━━ 중복 억제 규칙 ━━━
+━━━ 중복 억제 규칙 (강화) ━━━
 - 같은 감정/키워드를 한 장 안에서 반복하지 마세요
 - 비슷한 의미의 문장이 2개 이상이면 가장 장면성이 높은 것만 사용하세요
 - "힘들었다/버거웠다/지쳤다"를 동시에 쓰지 마세요. 하나만 쓰고 나머지는 구체 장면으로 대체하세요
+- 같은 어미로 3문장 이상 연속 금지 (예: ~했다/~했다/~했다)
+- 문단별 첫 문장의 리듬을 다르게 (시간 → 행동 → 감각 등 시작점 변형)
+- 같은 감정 단어군(힘듦/버거움/지침/피로)은 장 전체에서 중심 표현 1~2개만 허용
+
+━━━ 특수 장 규칙 ━━━
+${chapterIndex === 0 ? '이 장은 1장(시작하는 글)입니다. 반드시 첫날/첫주의 감각(공기, 냄새, 소리, 발걸음)을 장면 문단에 넣으세요. 추상적 감정 설명으로 시작하지 마세요.' : ''}
+${chapterIndex === 1 ? '이 장은 2장(환경과 현실)입니다. 배경 문단도 설명문이 아니라 장면으로 쓰세요. 업무 나열 대신 "업무 앞에 선 교사의 모습"을 보여주세요.' : ''}
+${chapterIndex === 9 ? '이 장은 10장(맺는 글)입니다. 마지막 문단의 마지막 한 줄은 독자가 책을 덮고도 기억할 문장이어야 합니다. "그렇게 한 해가 지나갔다" 같은 뻔한 마무리 금지. 담담하되 오래 남는 여운의 한 줄로 끝내세요.' : ''}
 
 ━━━ 문체 규칙 ━━━
 - 교사 시점의 차분한 회고 톤
