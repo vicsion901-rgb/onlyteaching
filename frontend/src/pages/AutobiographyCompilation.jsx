@@ -1599,7 +1599,7 @@ function EditableBlock({ block, onUpdate, onDelete, onRestore, onProofread, proo
   );
 }
 
-function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBlock, onRestoreBlock, onProofreadBlock, onProofreadPage, proofreadResults, isProofreading, onApplyProofread, onDismissProofread, highlight, questionAnswers, setQuestionAnswers, activeTab }) {
+function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBlock, onRestoreBlock, onProofreadBlock, onProofreadPage, proofreadResults, isProofreading, onApplyProofread, onDismissProofread, highlight, questionAnswers, setQuestionAnswers, activeTab, setChapterBlocks }) {
   const [showQPopup, setShowQPopup] = useState(false);
   const [activeQIdx, setActiveQIdx] = useState(0);
 
@@ -1691,8 +1691,26 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
             <p className="text-xs text-gray-400 mb-4">
               {answeredCount === 0 ? '위 "시작하기" 버튼을 눌러 질문에 답하면 초안이 생성됩니다' :
                hasUnanswered ? `${questions.length - answeredCount}개 질문을 더 답하면 더 풍부한 초안이 생성됩니다` :
-               '질문 답변 완료! "생성하기"로 초안을 만들어보세요'}
+               '질문 답변 완료!'}
             </p>
+            {answeredCount > 0 && (
+              <button type="button" onClick={async () => {
+                const chBlocks = [];
+                const questions2 = (activeTab === 'student' ? STUDENT_QUESTIONS : TEACHER_QUESTIONS).filter(q2 => q2.chapter === idx);
+                questions2.forEach(q2 => { if (questionAnswers?.[q2.id]?.trim()) chBlocks.push({ sourceType: 'question', currentText: questionAnswers[q2.id] }); });
+                try {
+                  const res = await client.post('/api/generate-chapter', { userId: localStorage.getItem('userId'), chapterIndex: idx, entries: chBlocks, digests: [], emotionSummary: '' }, { timeout: 15000, __retryCount: 99 });
+                  const paragraphs = res.data?.paragraphs || [];
+                  if (paragraphs.length > 0) {
+                    const newBlocks = paragraphs.map(p => createBlock('linked', p, 'ai-generated', 'AI 편찬'));
+                    onAddBlock(ch.id, 0);
+                    setChapterBlocks?.(prev => ({ ...prev, [ch.id]: newBlocks }));
+                  }
+                } catch {}
+              }} className="mb-3 px-4 py-2 bg-purple-600 text-white text-xs font-semibold rounded-lg hover:bg-purple-700">
+                ✨ 초안 생성하기
+              </button>
+            )}
             <AddBlockButton onClick={() => onAddBlock(ch.id, 0)} alwaysVisible />
           </div>
         )}
@@ -2459,6 +2477,7 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
                 questionAnswers={questionAnswers}
                 setQuestionAnswers={setQuestionAnswers}
                 activeTab={activeTab}
+                setChapterBlocks={setChapterBlocks}
               />
             )}
           </div>
@@ -2484,6 +2503,7 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
                 questionAnswers={questionAnswers}
                 setQuestionAnswers={setQuestionAnswers}
                 activeTab={activeTab}
+                setChapterBlocks={setChapterBlocks}
               />
             ) : (
               <div className="h-full flex items-center justify-center text-gray-300 text-xs italic">— 끝 —</div>
