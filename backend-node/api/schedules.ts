@@ -48,24 +48,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
+      // userId 컬럼 없으면 추가
+      try { await db.query('ALTER TABLE schedules ADD COLUMN IF NOT EXISTS "userId" VARCHAR'); } catch {}
+
       // bulk insert
       if (Array.isArray(body?.events)) {
         const userId = body.userId || null;
-        let inserted = 0;
-        let skipped = 0;
-        const results: any[] = [];
-        for (const ev of body.events) {
-          if (!ev.title || !ev.date) { skipped++; continue; }
-          try {
-            const { rows } = await db.query(
-              'INSERT INTO schedules (title, date, memo, "userId", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *',
-              [ev.title, ev.date, ev.memo || null, userId],
-            );
-            results.push(rows[0]);
-            inserted++;
-          } catch { skipped++; }
+        const valid = body.events.filter((ev: any) => ev.title && ev.date);
+        const skipped = body.events.length - valid.length;
+
+        if (valid.length === 0) {
+          return res.status(200).json({ inserted: 0, skipped, total: body.events.length, results: [] });
         }
-        return res.status(201).json({ inserted, skipped, total: body.events.length, results });
+
+        // 단일 multi-row INSERT (10건 → 1 쿼리)
+        try {
+          const values: any[] = [];
+          const placeholders: string[] = [];
+          valid.forEach((ev: any, i: number) => {
+            const offset = i * 4;
+            placeholders.push(`($${offset+1}, $${offset+2}, $${offset+3}, $${offset+4}, NOW(), NOW())`);
+            values.push(ev.title, ev.date, ev.memo || null, userId);
+          });
+          const { rows } = await db.query(
+            `INSERT INTO schedules (title, date, memo, "userId", "createdAt", "updatedAt") VALUES ${placeholders.join(', ')} RETURNING *`,
+            values,
+          );
+          return res.status(201).json({ inserted: rows.length, skipped, total: body.events.length, results: rows });
+        } catch (bulkErr: any) {
+          // multi-row 실패 시 개별 fallback
+          let inserted = 0;
+          const results: any[] = [];
+          for (const ev of valid) {
+            try {
+              const { rows } = await db.query(
+                'INSERT INTO schedules (title, date, memo, "userId", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *',
+                [ev.title, ev.date, ev.memo || null, userId],
+              );
+              results.push(rows[0]);
+              inserted++;
+            } catch { /* skip */ }
+          }
+          return res.status(201).json({ inserted, skipped: skipped + (valid.length - inserted), total: body.events.length, results, fallback: true });
+        }
       }
 
       // 단일 insert (하위호환)

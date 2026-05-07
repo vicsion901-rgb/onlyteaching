@@ -23,15 +23,33 @@ const CHAPTER_CONFIG: Record<number, { title: string; tone: string; style: strin
   9: { title: '맺는 글', tone: '닫음, 담담한 여운, 마지막 인사', style: '감정 과잉보다 잔향이 오래 남는 마무리. 마지막 문단의 마지막 한 줄은 독자가 책을 덮고도 기억할 문장으로. 뻔한 마무리 금지.', sceneGuide: '빈 교실에 혼자 앉은 연말의 시간, 마지막 기록을 닫는 순간, 불 꺼진 교실을 나서며, 연말 책상 위의 고요', emphasis: '마지막 장면의 잔향 + 올해를 닫는 한 문장. "그렇게 한 해가 지나갔다" 같은 뻔한 문장 금지. 교사 자서전답게 담담하되 오래 남는 여운.', primarySources: ['question', 'care'], secondarySources: ['meal'] },
 };
 
-// source_type별 역할
-const SOURCE_ROLES: Record<string, { paragraphRole: string; priority: number }> = {
-  schedule: { paragraphRole: 'background', priority: 1 },
-  care: { paragraphRole: 'scene', priority: 2 },
-  observation: { paragraphRole: 'scene', priority: 3 },
-  meal: { paragraphRole: 'atmosphere', priority: 5 },
-  question: { paragraphRole: 'interpretation', priority: 4 },
-  manual: { paragraphRole: 'interpretation', priority: 0 },
-  'ai-generated': { paragraphRole: 'bridge', priority: 6 },
+// source_type별 역할 — 전체 탭 통합
+const SOURCE_ROLES: Record<string, { paragraphRole: string; priority: number; description: string }> = {
+  schedule: { paragraphRole: 'background', priority: 1, description: '시간축/업무배경/시기흐름' },
+  care: { paragraphRole: 'scene', priority: 2, description: '감정/장면/버팀/하루기록' },
+  observation: { paragraphRole: 'scene', priority: 3, description: '구체사건/행동/관계디테일' },
+  'life-record': { paragraphRole: 'background', priority: 3, description: '반복된시선/성장키워드' },
+  'subject-eval': { paragraphRole: 'background', priority: 4, description: '수업변화/교사관찰' },
+  'creative-activity': { paragraphRole: 'scene', priority: 3, description: '활동장면/협력/사건' },
+  meal: { paragraphRole: 'atmosphere', priority: 5, description: '생활감/분위기/일상질감' },
+  student: { paragraphRole: 'background', priority: 4, description: '학급구성/사람존재감' },
+  question: { paragraphRole: 'interpretation', priority: 2, description: '해석/의미/회고/다짐' },
+  manual: { paragraphRole: 'interpretation', priority: 0, description: '사용자직접강조' },
+  'ai-generated': { paragraphRole: 'bridge', priority: 6, description: '연결/확장' },
+};
+
+// 장별 우선 source 매핑
+const CHAPTER_SOURCE_MAP: Record<number, string[]> = {
+  0: ['schedule', 'care', 'question'],
+  1: ['schedule', 'care', 'life-record', 'question'],
+  2: ['schedule', 'student', 'subject-eval', 'meal', 'care'],
+  3: ['schedule', 'life-record', 'care'],
+  4: ['care', 'student', 'creative-activity', 'observation', 'meal'],
+  5: ['schedule', 'life-record', 'subject-eval', 'creative-activity', 'care'],
+  6: ['care', 'observation', 'schedule', 'student', 'question'],
+  7: ['care', 'life-record', 'subject-eval', 'meal', 'question'],
+  8: ['question', 'schedule', 'care'],
+  9: ['question', 'care', 'meal'],
 };
 
 function buildSystemPrompt(chapterIndex: number, emotionContext: string) {

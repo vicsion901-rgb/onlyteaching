@@ -127,17 +127,25 @@ function Schedule() {
 
       // ② 백그라운드 bulk 저장 (fire-and-forget)
       const userId = localStorage.getItem('userId');
-      client.post('/api/schedules', { userId, events: generatedEvents }, { timeout: 15000, __retryCount: 99 })
-        .then(res => {
-          const { inserted = 0 } = res.data || {};
-          setSaveStatus(`${inserted}개 일정 저장 완료`);
-          fetchEvents();
-          setTimeout(() => setSaveStatus(''), 3000);
-        })
-        .catch(() => {
-          setSaveStatus('저장 실패 — 다시 시도해주세요');
-          setTimeout(() => setSaveStatus(''), 5000);
-        });
+      const saveBulk = () => {
+        client.post('/api/schedules', { userId, events: generatedEvents }, { timeout: 20000, __retryCount: 99 })
+          .then(res => {
+            const { inserted = 0, skipped = 0 } = res.data || {};
+            if (inserted > 0) {
+              setSaveStatus(`${inserted}개 저장 완료${skipped > 0 ? ` · ${skipped}개 건너뜀` : ''}`);
+              fetchEvents();
+            } else {
+              setSaveStatus('저장된 일정 없음 (중복이거나 오류)');
+            }
+            setTimeout(() => setSaveStatus(''), 4000);
+          })
+          .catch(() => {
+            setSaveStatus('저장 실패 — 탭하여 재시도');
+          });
+      };
+      saveBulk();
+      // 재시도 가능하게 참조 저장
+      window.__retrySaveSchedule = saveBulk;
 
     } catch (error) {
       console.error('AI generation failed', error);
@@ -722,7 +730,8 @@ function Schedule() {
                   </button>
                 </div>
                 {saveStatus && (
-                  <p className={`mt-2 text-xs font-medium ${saveStatus.includes('완료') ? 'text-green-600' : saveStatus.includes('실패') ? 'text-red-500' : 'text-amber-600 animate-pulse'}`}>
+                  <p onClick={() => { if (saveStatus.includes('실패') && window.__retrySaveSchedule) { setSaveStatus('재시도 중...'); window.__retrySaveSchedule(); } }}
+                    className={`mt-2 text-xs font-medium ${saveStatus.includes('완료') ? 'text-green-600' : saveStatus.includes('실패') || saveStatus.includes('없음') ? 'text-red-500 cursor-pointer underline' : 'text-amber-600 animate-pulse'}`}>
                     {saveStatus}
                   </p>
                 )}
