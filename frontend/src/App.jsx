@@ -26,6 +26,11 @@ import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import Policy from './pages/Policy';
 import AccountSettings from './pages/AccountSettings';
+import MorningActivity from './pages/MorningActivity';
+import ActivityArchive from './pages/ActivityArchive';
+import GrowthView from './pages/GrowthView';
+import CreativeStudio from './pages/CreativeStudio';
+import MyBook from './pages/MyBook';
 import Layout from './components/Layout';
 
 function App() {
@@ -59,6 +64,11 @@ function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/policy" element={<Policy />} />
           <Route path="/account" element={<AccountSettings />} />
+          <Route path="/morning-activity" element={<MorningActivity />} />
+          <Route path="/activity-archive" element={<ActivityArchive />} />
+          <Route path="/growth-view" element={<GrowthView />} />
+          <Route path="/creative-studio" element={<CreativeStudio />} />
+          <Route path="/my-book" element={<MyBook />} />
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </Layout>
