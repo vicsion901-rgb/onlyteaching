@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-function CreativeStudio() {
+function CreativeStudio({ embedded }) {
   const navigate = useNavigate();
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [collectionTitle, setCollectionTitle] = useState('');
@@ -34,13 +34,13 @@ function CreativeStudio() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {!embedded && (<div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">📖 창작 편찬실</h1>
           <p className="mt-1 text-sm text-gray-500">내가 쓴 글을 모아 묶음을 만들어보세요</p>
         </div>
         <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium">← 홈으로</button>
-      </div>
+      </div>)}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 왼쪽: 글 선택 */}

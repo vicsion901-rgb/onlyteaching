@@ -1,6 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import client from '../api/client';
+
+const ActivityArchive = lazy(() => import('./ActivityArchive'));
+const GrowthView = lazy(() => import('./GrowthView'));
+const CreativeStudio = lazy(() => import('./CreativeStudio'));
+const MyBook = lazy(() => import('./MyBook'));
+
+const SUB_TABS = [
+  { id: 'today', emoji: '✏️', label: '오늘 활동' },
+  { id: 'archive', emoji: '📂', label: '활동 보관함' },
+  { id: 'growth', emoji: '🌱', label: '성장 보기' },
+  { id: 'studio', emoji: '📖', label: '창작 편찬실' },
+  { id: 'book', emoji: '📕', label: '내 책 만들기' },
+];
 
 const ACTIVITY_TYPES = [
   { id: 'poem-copy', emoji: '📜', label: '시 필사', placeholder: '좋아하는 시를 따라 적어보세요', hint: '천천히, 한 글자씩 정성스럽게' },
@@ -15,137 +27,126 @@ const ACTIVITY_TYPES = [
 
 function MorningActivity() {
   const navigate = useNavigate();
+  const [activeSubTab, setActiveSubTab] = useState('today');
+
+  return (
+    <div className="space-y-4">
+      {/* 헤더 */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">✏️ 아침 활동</h1>
+          <p className="mt-0.5 text-sm text-gray-500">문해력 성장 · 창작 편찬</p>
+        </div>
+        <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium text-sm">← 홈으로</button>
+      </div>
+
+      {/* 내부 탭 네비게이션 */}
+      <div className="flex gap-1 bg-white shadow rounded-lg p-1">
+        {SUB_TABS.map(tab => (
+          <button key={tab.id} onClick={() => setActiveSubTab(tab.id)}
+            className={`flex-1 py-2 px-2 text-xs font-semibold rounded-md transition text-center ${
+              activeSubTab === tab.id ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'
+            }`}>
+            <span className="block text-base mb-0.5">{tab.emoji}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 탭 콘텐츠 */}
+      <Suspense fallback={<div className="text-center py-12 text-gray-400">로딩 중...</div>}>
+        {activeSubTab === 'today' && <TodayActivity />}
+        {activeSubTab === 'archive' && <ActivityArchive embedded />}
+        {activeSubTab === 'growth' && <GrowthView embedded />}
+        {activeSubTab === 'studio' && <CreativeStudio embedded />}
+        {activeSubTab === 'book' && <MyBook embedded />}
+      </Suspense>
+    </div>
+  );
+}
+
+function TodayActivity() {
   const [selectedType, setSelectedType] = useState(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
 
-  const handleSave = async (isDraft = false) => {
+  const handleSave = (isDraft = false) => {
     if (!selectedType || !content.trim()) return;
-    setIsSaving(true);
     const activity = {
-      type: selectedType.id,
-      typeLabel: selectedType.label,
+      type: selectedType.id, typeLabel: selectedType.label,
       title: title.trim() || `${selectedType.label} - ${new Date().toLocaleDateString('ko-KR')}`,
-      content: content.trim(),
-      status: isDraft ? 'draft' : 'submitted',
-      createdAt: new Date().toISOString(),
+      content: content.trim(), status: isDraft ? 'draft' : 'submitted', createdAt: new Date().toISOString(),
     };
-
-    // localStorage 저장 (서버 연동 전)
-    try {
-      const key = 'morning_activities';
-      const saved = JSON.parse(localStorage.getItem(key) || '[]');
-      saved.unshift(activity);
-      localStorage.setItem(key, JSON.stringify(saved));
-      setSaveStatus(isDraft ? '임시 저장됨' : '제출 완료!');
-      if (!isDraft) {
-        setTimeout(() => { setSelectedType(null); setTitle(''); setContent(''); setSaveStatus(''); }, 1500);
-      }
-    } catch {
-      setSaveStatus('저장 실패');
-    }
-    setIsSaving(false);
+    const saved = JSON.parse(localStorage.getItem('morning_activities') || '[]');
+    saved.unshift(activity);
+    localStorage.setItem('morning_activities', JSON.stringify(saved));
+    setSaveStatus(isDraft ? '임시 저장됨' : '제출 완료! 🎉');
+    if (!isDraft) setTimeout(() => { setSelectedType(null); setTitle(''); setContent(''); setSaveStatus(''); }, 1500);
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">✏️ 아침 활동</h1>
-          <p className="mt-1 text-sm text-gray-500">오늘의 짧은 글쓰기를 시작해보세요</p>
+  if (!selectedType) {
+    return (
+      <div>
+        <h2 className="text-base font-semibold text-gray-800 mb-3">오늘은 어떤 활동을 해볼까요?</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {ACTIVITY_TYPES.map(type => (
+            <button key={type.id} onClick={() => setSelectedType(type)}
+              className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-gray-100 hover:border-purple-300 hover:bg-purple-50 transition text-center">
+              <span className="text-2xl">{type.emoji}</span>
+              <span className="text-xs font-semibold text-gray-700">{type.label}</span>
+            </button>
+          ))}
         </div>
-        <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium">← 홈으로</button>
-      </div>
-
-      {!selectedType ? (
-        <div>
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">오늘은 어떤 활동을 해볼까요?</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {ACTIVITY_TYPES.map(type => (
-              <button key={type.id} onClick={() => setSelectedType(type)}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-gray-100 hover:border-purple-300 hover:bg-purple-50 transition text-center">
-                <span className="text-3xl">{type.emoji}</span>
-                <span className="text-sm font-semibold text-gray-700">{type.label}</span>
-                <span className="text-[10px] text-gray-400">{type.hint}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white shadow rounded-xl p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">{selectedType.emoji}</span>
-              <h2 className="text-lg font-semibold text-gray-800">{selectedType.label}</h2>
-            </div>
-            <button onClick={() => { setSelectedType(null); setTitle(''); setContent(''); }}
-              className="text-sm text-gray-400 hover:text-gray-600">← 활동 선택으로</button>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">제목 (선택)</label>
-            <input type="text" value={title} onChange={e => setTitle(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-purple-400 focus:border-purple-400"
-              placeholder={`예: 오늘의 ${selectedType.label}`} />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">내용</label>
-            <textarea value={content} onChange={e => setContent(e.target.value)} rows={8}
-              className="w-full border border-gray-300 rounded-lg p-3 text-sm resize-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 leading-relaxed"
-              placeholder={selectedType.placeholder} />
-            <p className="text-[10px] text-gray-300 mt-1">{selectedType.hint}</p>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2">
-              <button onClick={() => handleSave(true)} disabled={isSaving || !content.trim()}
-                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-40">
-                임시 저장
-              </button>
-              <button onClick={() => handleSave(false)} disabled={isSaving || !content.trim()}
-                className="px-6 py-2 text-sm font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-40">
-                {isSaving ? '저장 중...' : '제출하기'}
-              </button>
-            </div>
-            {saveStatus && <span className={`text-sm font-medium ${saveStatus.includes('완료') ? 'text-green-600' : saveStatus.includes('실패') ? 'text-red-500' : 'text-amber-600'}`}>{saveStatus}</span>}
-          </div>
-        </div>
-      )}
-
-      {/* 최근 활동 미리보기 */}
-      <div className="bg-white shadow rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">📂 최근 활동</h3>
         <RecentActivities />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white shadow rounded-xl p-5 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{selectedType.emoji}</span>
+          <h2 className="text-base font-semibold text-gray-800">{selectedType.label}</h2>
+        </div>
+        <button onClick={() => { setSelectedType(null); setTitle(''); setContent(''); }} className="text-xs text-gray-400 hover:text-gray-600">← 활동 선택</button>
+      </div>
+      <input type="text" value={title} onChange={e => setTitle(e.target.value)}
+        className="w-full border border-gray-300 rounded-lg p-2 text-sm" placeholder={`예: 오늘의 ${selectedType.label}`} />
+      <textarea value={content} onChange={e => setContent(e.target.value)} rows={6}
+        className="w-full border border-gray-300 rounded-lg p-3 text-sm resize-none leading-relaxed" placeholder={selectedType.placeholder} />
+      <p className="text-[10px] text-gray-300">{selectedType.hint}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          <button onClick={() => handleSave(true)} disabled={!content.trim()} className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg disabled:opacity-40">임시 저장</button>
+          <button onClick={() => handleSave(false)} disabled={!content.trim()} className="px-5 py-1.5 text-xs font-semibold text-white bg-purple-600 rounded-lg disabled:opacity-40">제출하기</button>
+        </div>
+        {saveStatus && <span className="text-xs font-medium text-green-600">{saveStatus}</span>}
       </div>
     </div>
   );
 }
 
 function RecentActivities() {
-  const activities = JSON.parse(localStorage.getItem('morning_activities') || '[]').slice(0, 5);
-  if (activities.length === 0) return <p className="text-xs text-gray-400">아직 활동이 없습니다. 첫 글을 써보세요!</p>;
+  const activities = JSON.parse(localStorage.getItem('morning_activities') || '[]').slice(0, 3);
+  if (activities.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      {activities.map((a, i) => (
-        <div key={i} className="flex items-center gap-3 p-2 rounded-lg border border-gray-50 hover:bg-gray-50">
-          <span className="text-lg">{ACTIVITY_TYPES.find(t => t.id === a.type)?.emoji || '📝'}</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-800 truncate">{a.title}</p>
-            <p className="text-xs text-gray-400">{a.typeLabel} · {new Date(a.createdAt).toLocaleDateString('ko-KR')}</p>
+    <div className="mt-4">
+      <h3 className="text-xs font-semibold text-gray-500 mb-2">최근 활동</h3>
+      <div className="space-y-1.5">
+        {activities.map((a, i) => (
+          <div key={i} className="flex items-center gap-2 p-2 rounded-lg border border-gray-50 text-xs">
+            <span>{ACTIVITY_TYPES.find(t => t.id === a.type)?.emoji || '📝'}</span>
+            <span className="font-medium text-gray-700 truncate flex-1">{a.title}</span>
+            <span className="text-gray-400">{new Date(a.createdAt).toLocaleDateString('ko-KR')}</span>
           </div>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full ${a.status === 'submitted' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-            {a.status === 'submitted' ? '제출' : '임시'}
-          </span>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
 
-const ACTIVITY_TYPES_EXPORT = ACTIVITY_TYPES;
-export { ACTIVITY_TYPES_EXPORT as ACTIVITY_TYPES };
+export { ACTIVITY_TYPES };
 export default MorningActivity;

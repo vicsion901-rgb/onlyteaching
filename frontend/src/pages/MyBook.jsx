@@ -8,7 +8,7 @@ const BOOK_TYPES = [
   { id: 'growth', emoji: '🌱', label: '내 성장 기록집', desc: '한 학기 동안의 성장 기록' },
 ];
 
-function MyBook() {
+function MyBook({ embedded }) {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [bookType, setBookType] = useState(null);
@@ -21,13 +21,13 @@ function MyBook() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {!embedded && (<div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">📕 내 책 만들기</h1>
           <p className="mt-1 text-sm text-gray-500">내가 쓴 글을 한 권의 책으로 만들어보세요</p>
         </div>
         <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium">← 홈으로</button>
-      </div>
+      </div>)}
 
       {/* 단계 표시 */}
       <div className="flex items-center gap-2 text-xs text-gray-400">

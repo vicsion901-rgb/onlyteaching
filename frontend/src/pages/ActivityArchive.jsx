@@ -12,7 +12,7 @@ const TYPE_LABELS = {
   'free-writing': { emoji: '✨', label: '자유 글쓰기' },
 };
 
-function ActivityArchive() {
+function ActivityArchive({ embedded }) {
   const navigate = useNavigate();
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,13 +30,15 @@ function ActivityArchive() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">📂 활동 보관함</h1>
-          <p className="mt-1 text-sm text-gray-500">내가 쓴 모든 글을 모아봅니다</p>
+      {!embedded && (
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">📂 활동 보관함</h1>
+            <p className="mt-1 text-sm text-gray-500">내가 쓴 모든 글을 모아봅니다</p>
+          </div>
+          <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium">← 홈으로</button>
         </div>
-        <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium">← 홈으로</button>
-      </div>
+      )}
 
       <div className="flex flex-wrap gap-2 items-center">
         <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}

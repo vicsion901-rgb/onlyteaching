@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import client from '../api/client';
 
-const VALID_TABS = ['student', 'teacher'];
+const VALID_TABS = ['teacher'];
 
 const TEACHER_ROLE_OPTIONS = [
   { value: '담임교사', label: '담임교사' },

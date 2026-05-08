@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-function GrowthView() {
+function GrowthView({ embedded }) {
   const navigate = useNavigate();
 
   const stats = useMemo(() => {
@@ -27,13 +27,13 @@ function GrowthView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {!embedded && (<div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">🌱 성장 보기</h1>
           <p className="mt-1 text-sm text-gray-500">나의 문해력 성장을 확인합니다</p>
         </div>
         <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium">← 홈으로</button>
-      </div>
+      </div>)}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard emoji="📝" label="총 활동 수" value={stats.total} unit="개" />
