@@ -86,7 +86,9 @@ function Dashboard() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await client.get('/api/schedules');
+        const userId = localStorage.getItem('userId') || localStorage.getItem('user_id');
+        if (!userId) return;
+        const res = await client.get('/api/schedules', { params: { userId } });
         // Group events by date
         const eventsByDate = {};
         res.data.forEach(event => {
