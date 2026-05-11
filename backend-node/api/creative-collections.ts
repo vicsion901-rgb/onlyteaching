@@ -9,27 +9,6 @@ function getPool(): Pool {
   return pool;
 }
 
-const INIT_SQL = `
-CREATE TABLE IF NOT EXISTS creative_collections (
-  id VARCHAR(20) PRIMARY KEY,
-  user_id VARCHAR NOT NULL,
-  title VARCHAR(200) NOT NULL,
-  description TEXT DEFAULT '',
-  collection_type VARCHAR(30) DEFAULT 'general',
-  item_ids TEXT[] DEFAULT '{}',
-  items JSONB DEFAULT '[]',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_cc_user ON creative_collections(user_id);
-`;
-
-let initialized = false;
-async function ensureTable(db: Pool) {
-  if (initialized) return;
-  try { await db.query(INIT_SQL); initialized = true; } catch {}
-}
-
 function cors(req: VercelRequest, res: VercelResponse) {
   const origin = req.headers.origin || '';
   const allowed = ['https://www.onlyteaching.kr', 'http://localhost:5173', 'http://localhost:5174'];
@@ -49,7 +28,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const db = getPool();
-    await ensureTable(db);
     const { action } = req.query;
 
     if (req.method === 'GET' && action === 'list') {

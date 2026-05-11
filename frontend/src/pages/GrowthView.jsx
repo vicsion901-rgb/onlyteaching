@@ -1,12 +1,16 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAllActivities, getTypeInfo } from '../utils/activityUtils';
+import { getAllActivities, getTypeInfo, fetchAllActivitiesFromServer } from '../utils/activityUtils';
 
 function GrowthView({ embedded, onSwitchTab }) {
   const navigate = useNavigate();
+  const [activities, setActivities] = useState([]);
+
+  useEffect(() => {
+    fetchAllActivitiesFromServer().then(setActivities).catch(() => setActivities(getAllActivities()));
+  }, []);
 
   const { stats, recentActivities } = useMemo(() => {
-    const activities = getAllActivities();
     const total = activities.length;
     const submitted = activities.filter(a => a.status === 'submitted').length;
     const types = {};
@@ -42,7 +46,7 @@ function GrowthView({ embedded, onSwitchTab }) {
       stats: { total, submitted, types, months, topType, avgLength, manuscriptTotal, manuscriptModes, avgAccuracy },
       recentActivities: activities.slice(0, 5),
     };
-  }, []);
+  }, [activities]);
 
   return (
     <div className="space-y-6">

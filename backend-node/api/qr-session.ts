@@ -11,30 +11,6 @@ function getPool(): Pool {
   return pool;
 }
 
-const INIT_SQL = `
-CREATE TABLE IF NOT EXISTS qr_sessions (
-  id SERIAL PRIMARY KEY,
-  join_code VARCHAR(8) UNIQUE NOT NULL,
-  teacher_id VARCHAR NOT NULL,
-  class_name VARCHAR(50),
-  activity_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  activity_type VARCHAR(30),
-  is_active BOOLEAN DEFAULT TRUE,
-  expires_at TIMESTAMPTZ NOT NULL,
-  joined_count INTEGER DEFAULT 0,
-  submitted_count INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_qr_join_code ON qr_sessions(join_code);
-CREATE INDEX IF NOT EXISTS idx_qr_teacher ON qr_sessions(teacher_id);
-`;
-
-let initialized = false;
-async function ensureTable(db: Pool) {
-  if (initialized) return;
-  try { await db.query(INIT_SQL); initialized = true; } catch {}
-}
-
 function cors(req: VercelRequest, res: VercelResponse) {
   const origin = req.headers.origin || '';
   const allowed = ['https://www.onlyteaching.kr', 'http://localhost:5173', 'http://localhost:5174'];
@@ -54,7 +30,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const db = getPool();
-    await ensureTable(db);
     const { action } = req.query;
 
     if (req.method === 'POST' && action === 'create') {

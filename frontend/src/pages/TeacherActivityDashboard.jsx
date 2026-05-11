@@ -18,21 +18,31 @@ function TeacherActivityDashboard() {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sourceFilter, setSourceFilter] = useState('all');
+  const [classFilter, setClassFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedSub, setSelectedSub] = useState(null);
 
   useEffect(() => {
     if (!teacherId) return;
     setLoading(true);
-    client.get('/api/student-submissions', { params: { action: 'list', teacherId, limit: '100' } })
+    client.get('/api/student-submissions', { params: { action: 'list', teacherId, limit: '200' } })
       .then(res => setSubmissions(res.data?.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [teacherId]);
 
+  const classNames = useMemo(() => {
+    const set = new Set(submissions.map(s => s.class_id).filter(Boolean));
+    return [...set];
+  }, [submissions]);
+
   const filtered = useMemo(() => {
-    if (sourceFilter === 'all') return submissions;
-    return submissions.filter(s => s.source_type === sourceFilter);
-  }, [submissions, sourceFilter]);
+    let list = submissions;
+    if (sourceFilter !== 'all') list = list.filter(s => s.source_type === sourceFilter);
+    if (classFilter !== 'all') list = list.filter(s => s.class_id === classFilter);
+    if (statusFilter !== 'all') list = list.filter(s => s.status === statusFilter);
+    return list;
+  }, [submissions, sourceFilter, classFilter, statusFilter]);
 
   const stats = useMemo(() => {
     const total = submissions.length;
@@ -95,7 +105,7 @@ function TeacherActivityDashboard() {
         </div>
       </div>
 
-      <div className="flex gap-1.5">
+      <div className="flex flex-wrap gap-1.5 items-center">
         {[
           { id: 'all', label: '전체' },
           { id: 'morning', label: '아침 활동' },
@@ -106,6 +116,32 @@ function TeacherActivityDashboard() {
             {f.label}
           </button>
         ))}
+        <span className="text-gray-300 mx-1">|</span>
+        {[
+          { id: 'all', label: '전체 상태' },
+          { id: 'submitted', label: '제출 완료' },
+          { id: 'draft', label: '작성 중' },
+        ].map(f => (
+          <button key={f.id} onClick={() => setStatusFilter(f.id)}
+            className={`text-[10px] px-2.5 py-1.5 rounded-full border font-medium ${statusFilter === f.id ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-500 border-gray-200'}`}>
+            {f.label}
+          </button>
+        ))}
+        {classNames.length > 0 && (
+          <>
+            <span className="text-gray-300 mx-1">|</span>
+            <button onClick={() => setClassFilter('all')}
+              className={`text-[10px] px-2.5 py-1.5 rounded-full border font-medium ${classFilter === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200'}`}>
+              전체 학급
+            </button>
+            {classNames.map(cid => (
+              <button key={cid} onClick={() => setClassFilter(cid)}
+                className={`text-[10px] px-2.5 py-1.5 rounded-full border font-medium ${classFilter === cid ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200'}`}>
+                {cid}
+              </button>
+            ))}
+          </>
+        )}
       </div>
 
       {loading ? (

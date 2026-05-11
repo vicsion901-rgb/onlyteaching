@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAllActivities, getBadges, getTypeInfo, getAllActivitiesWithMeta, saveMetadataToServer, toggleFavoriteOnServer } from '../utils/activityUtils';
+import { getAllActivities, getBadges, getTypeInfo, fetchAllActivitiesFromServer, getAllActivitiesWithMeta, saveMetadataToServer, toggleFavoriteOnServer } from '../utils/activityUtils';
 
 const FILTER_GROUPS = [
   { id: 'all', label: '전체' },
@@ -21,7 +21,7 @@ function ActivityArchive({ embedded, onSwitchTab }) {
   const [allActivities, setAllActivities] = useState([]);
 
   useEffect(() => {
-    getAllActivitiesWithMeta().then(setAllActivities).catch(() => setAllActivities(getAllActivities()));
+    fetchAllActivitiesFromServer().then(setAllActivities).catch(() => setAllActivities(getAllActivities()));
   }, [refreshKey]);
 
   const activities = useMemo(() => {

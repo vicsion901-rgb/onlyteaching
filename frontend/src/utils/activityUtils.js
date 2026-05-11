@@ -116,6 +116,39 @@ function getAllActivities() {
   return merged;
 }
 
+async function fetchAllActivitiesFromServer() {
+  const userId = localStorage.getItem('userId') || localStorage.getItem('user_id');
+  if (!userId) return getAllActivities();
+  try {
+    const res = await client.get('/api/student-submissions', { params: { action: 'list', teacherId: userId, limit: '200' } });
+    const serverRows = (res.data?.data || []).map(r => {
+      const hint = BOOK_HINTS[r.activity_type] || {};
+      return {
+        _id: r.id,
+        type: r.activity_type,
+        typeLabel: (ALL_TYPE_LABELS[r.activity_type] || {}).label || r.activity_type,
+        title: r.title || '',
+        content: r.content || '',
+        status: r.status || 'submitted',
+        createdAt: r.submitted_at || r.created_at,
+        accuracy: r.accuracy,
+        sourceType: r.source_type || 'morning',
+        feeling: r.feeling || '',
+        originalText: r.original_text || '',
+        studentName: r.student_name || '',
+        canUseInBook: hint.canUseInBook || false,
+        recommendedBookType: hint.recommendedBookType || null,
+        favorited: false,
+        memo: '',
+      };
+    });
+    if (serverRows.length > 0) return serverRows;
+    return getAllActivities();
+  } catch {
+    return getAllActivities();
+  }
+}
+
 function getBookableActivities(bookTypeId) {
   return getAllActivities().filter(a => {
     if (a.status !== 'submitted' && a.sourceType !== 'manuscript') return false;
@@ -205,6 +238,7 @@ export {
   getTypeInfo,
   makeActivityKey,
   getAllActivities,
+  fetchAllActivitiesFromServer,
   getBookableActivities,
   generateId,
   buildActivityMap,
