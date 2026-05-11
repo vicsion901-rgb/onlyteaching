@@ -40,7 +40,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 3 쿼리로 전체 확인
     const { rows: tables } = await pool.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'");
     const tableSet = new Set(tables.map((r: { table_name: string }) => r.table_name));
-    for (const t of ['users','schedules','student_records','care_classroom_records']) {
+    const requiredTables = [
+      'users','schedules','student_records','care_classroom_records',
+      'qr_sessions','activity_metadata','creative_collections',
+      'student_activity_submissions','student_activity_summaries',
+      'classes','activity_sessions','book_projects',
+    ];
+    for (const t of requiredTables) {
       if (!tableSet.has(t)) issues.push(`table_missing:${t}`);
     }
 
