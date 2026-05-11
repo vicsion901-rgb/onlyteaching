@@ -3,6 +3,7 @@ import ManuscriptGrid from '../components/ManuscriptGrid';
 import ManuscriptSpacing from '../components/ManuscriptSpacing';
 import ManuscriptTypo from '../components/ManuscriptTypo';
 import { MANUSCRIPT_CONTENTS } from '../data/manuscriptContents';
+import { submitActivity, saveToLocalCache } from '../utils/submissionApi';
 
 const MODES = [
   { id: 'copy', emoji: '📝', label: '원고지 필사', desc: '한 글자씩 따라 쓰기' },
@@ -50,9 +51,13 @@ function ManuscriptActivity({ embedded }) {
       difficulty,
       userText,
     };
-    const saved = JSON.parse(localStorage.getItem('manuscript_activities') || '[]');
-    saved.unshift(record);
-    localStorage.setItem('manuscript_activities', JSON.stringify(saved));
+    saveToLocalCache(record, 'manuscript_activities');
+    submitActivity({
+      activityType: `manuscript-${mode}`, sourceType: 'manuscript',
+      title: record.title, content: userText,
+      metadata: { accuracy: activityResult?.accuracy, difficulty, contentId: selectedContent.id, mode },
+      status: 'submitted',
+    });
     setResult(activityResult);
   };
 

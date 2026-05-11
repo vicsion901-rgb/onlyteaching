@@ -64,6 +64,14 @@ export const TAB_REGISTRY = [
     subtitle: () => '문해력 성장 · 창작 편찬',
   },
   {
+    id: 'teacher-activities',
+    route: '/teacher-activities',
+    emoji: '📋',
+    title: '학생 활동 관리',
+    section: 'student',
+    subtitle: () => '제출 확인 · 활동 관리',
+  },
+  {
     id: 'autobiography-compilation',
     route: '/autobiography-compilation',
     emoji: '📚',

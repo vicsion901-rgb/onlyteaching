@@ -13,6 +13,56 @@ function genId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+const INIT_SQL = `
+CREATE TABLE IF NOT EXISTS student_activity_submissions (
+  id VARCHAR(20) PRIMARY KEY,
+  session_id VARCHAR(20),
+  teacher_id VARCHAR NOT NULL,
+  class_id VARCHAR(20),
+  student_id INTEGER,
+  student_name VARCHAR(50),
+  activity_type VARCHAR(30) NOT NULL,
+  source_type VARCHAR(20) NOT NULL DEFAULT 'morning',
+  title VARCHAR(200),
+  content TEXT,
+  original_text TEXT,
+  feeling TEXT,
+  accuracy SMALLINT,
+  metadata JSONB DEFAULT '{}',
+  status VARCHAR(20) DEFAULT 'submitted',
+  submitted_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_sub_teacher_date ON student_activity_submissions(teacher_id, submitted_at);
+CREATE INDEX IF NOT EXISTS idx_sub_student ON student_activity_submissions(student_id);
+CREATE INDEX IF NOT EXISTS idx_sub_session ON student_activity_submissions(session_id);
+CREATE INDEX IF NOT EXISTS idx_sub_type ON student_activity_submissions(activity_type);
+
+CREATE TABLE IF NOT EXISTS student_activity_summaries (
+  id SERIAL PRIMARY KEY,
+  teacher_id VARCHAR NOT NULL,
+  class_id VARCHAR(20),
+  student_id INTEGER,
+  summary_date DATE NOT NULL,
+  total_count INTEGER DEFAULT 0,
+  submitted_count INTEGER DEFAULT 0,
+  morning_count INTEGER DEFAULT 0,
+  manuscript_count INTEGER DEFAULT 0,
+  avg_accuracy SMALLINT,
+  type_distribution JSONB DEFAULT '{}',
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(teacher_id, student_id, summary_date)
+);
+CREATE INDEX IF NOT EXISTS idx_summary_teacher_date ON student_activity_summaries(teacher_id, summary_date);
+`;
+
+let initialized = false;
+async function ensureTable(db: Pool) {
+  if (initialized) return;
+  try { await db.query(INIT_SQL); initialized = true; } catch {}
+}
+
 function cors(req: VercelRequest, res: VercelResponse) {
   const origin = req.headers.origin || '';
   const allowed = ['https://www.onlyteaching.kr', 'http://localhost:5173', 'http://localhost:5174'];
@@ -28,6 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const db = getPool();
+    await ensureTable(db);
     const { action } = req.query;
 
     if (req.method === 'POST' && action === 'submit') {
@@ -47,6 +98,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (sessionId) {
         await db.query('UPDATE activity_sessions SET submitted_count = submitted_count + 1 WHERE id = $1', [sessionId]).catch(() => {});
       }
+
+      // summary 자동 갱신
+      const src = sourceType || 'morning';
+      await db.query(`
+        INSERT INTO student_activity_summaries (teacher_id, class_id, student_id, summary_date, total_count, submitted_count, morning_count, manuscript_count)
+        VALUES ($1, $2, $3, CURRENT_DATE, 1, 1,
+          CASE WHEN $4 = 'morning' THEN 1 ELSE 0 END,
+          CASE WHEN $4 = 'manuscript' THEN 1 ELSE 0 END)
+        ON CONFLICT (teacher_id, student_id, summary_date)
+        DO UPDATE SET
+          total_count = student_activity_summaries.total_count + 1,
+          submitted_count = student_activity_summaries.submitted_count + 1,
+          morning_count = student_activity_summaries.morning_count + CASE WHEN $4 = 'morning' THEN 1 ELSE 0 END,
+          manuscript_count = student_activity_summaries.manuscript_count + CASE WHEN $4 = 'manuscript' THEN 1 ELSE 0 END,
+          updated_at = NOW()
+      `, [teacherId, classId || null, studentId || null, src]).catch(() => {});
 
       return res.json({ data: rows[0] });
     }

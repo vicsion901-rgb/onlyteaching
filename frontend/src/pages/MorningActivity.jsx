@@ -2,6 +2,7 @@ import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import QrDistribution from '../components/QrDistribution';
 import { MANUSCRIPT_CONTENTS } from '../data/manuscriptContents';
+import { submitActivity, saveToLocalCache } from '../utils/submissionApi';
 
 const ActivityArchive = lazy(() => import('./ActivityArchive'));
 const GrowthView = lazy(() => import('./GrowthView'));
@@ -80,16 +81,20 @@ function TodayActivity({ onGoToManuscript }) {
   const [saveStatus, setSaveStatus] = useState('');
   const [showQr, setShowQr] = useState(false);
 
-  const handleSave = (isDraft = false) => {
+  const handleSave = async (isDraft = false) => {
     if (!selectedType || !content.trim()) return;
+    const actTitle = title.trim() || `${selectedType.label} - ${new Date().toLocaleDateString('ko-KR')}`;
     const activity = {
       type: selectedType.id, typeLabel: selectedType.label,
-      title: title.trim() || `${selectedType.label} - ${new Date().toLocaleDateString('ko-KR')}`,
-      content: content.trim(), status: isDraft ? 'draft' : 'submitted', createdAt: new Date().toISOString(),
+      title: actTitle, content: content.trim(),
+      status: isDraft ? 'draft' : 'submitted', createdAt: new Date().toISOString(),
     };
-    const saved = JSON.parse(localStorage.getItem('morning_activities') || '[]');
-    saved.unshift(activity);
-    localStorage.setItem('morning_activities', JSON.stringify(saved));
+    saveToLocalCache(activity, 'morning_activities');
+    submitActivity({
+      activityType: selectedType.id, sourceType: 'morning',
+      title: actTitle, content: content.trim(),
+      status: isDraft ? 'draft' : 'submitted',
+    });
     setSaveStatus(isDraft ? '임시 저장됨' : '제출 완료! 🎉');
     if (!isDraft) setTimeout(() => { setSelectedType(null); setTitle(''); setContent(''); setSaveStatus(''); }, 1500);
   };
@@ -195,23 +200,23 @@ function PoemCopyActivity({ selectedType, onBack, onSave, saveStatus }) {
 
   const handleSubmit = (isDraft) => {
     if (!selectedPoem || !content.trim()) return;
+    const actTitle = title.trim() || `${selectedPoem.title} 필사`;
     const activity = {
       type: selectedType.id, typeLabel: selectedType.label,
-      title: title.trim() || `${selectedPoem.title} 필사`,
-      content: content.trim(),
-      status: isDraft ? 'draft' : 'submitted',
-      createdAt: new Date().toISOString(),
-      poemId: selectedPoem.id,
-      sourceTitle: selectedPoem.title,
-      sourceAuthor: selectedPoem.author,
-      sourceTheme: selectedPoem.theme || '',
-      originalText: selectedPoem.text,
-      copyrightStatus: selectedPoem.copyrightStatus || 'public_domain',
+      title: actTitle, content: content.trim(),
+      status: isDraft ? 'draft' : 'submitted', createdAt: new Date().toISOString(),
+      poemId: selectedPoem.id, sourceTitle: selectedPoem.title,
+      sourceAuthor: selectedPoem.author, sourceTheme: selectedPoem.theme || '',
+      originalText: selectedPoem.text, copyrightStatus: selectedPoem.copyrightStatus || 'public_domain',
       feeling: feeling.trim(),
     };
-    const saved = JSON.parse(localStorage.getItem('morning_activities') || '[]');
-    saved.unshift(activity);
-    localStorage.setItem('morning_activities', JSON.stringify(saved));
+    saveToLocalCache(activity, 'morning_activities');
+    submitActivity({
+      activityType: selectedType.id, sourceType: 'morning',
+      title: actTitle, content: content.trim(),
+      status: isDraft ? 'draft' : 'submitted',
+      metadata: { originalText: selectedPoem.text, feeling: feeling.trim(), poemId: selectedPoem.id, sourceAuthor: selectedPoem.author },
+    });
     if (!isDraft) {
       setSubmitted(true);
       setTimeout(() => { setSelectedPoem(null); setContent(''); setTitle(''); setFeeling(''); setSubmitted(false); onBack(); }, 1500);
