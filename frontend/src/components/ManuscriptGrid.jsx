@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 
 const COLS = 20;
 
@@ -9,71 +9,80 @@ function ManuscriptGrid({ originalText, userInput, onInputChange, readOnly = fal
   const totalCells = Math.max(chars.length, (userInput || '').length, COLS);
   const rows = Math.ceil(totalCells / COLS);
 
+  useEffect(() => {
+    inputRefs.current.forEach((el, i) => {
+      if (!el) return;
+      const ch = (userInput || '')[i] || '';
+      if (document.activeElement !== el) {
+        el.value = ch;
+      }
+    });
+  }, [userInput]);
+
+  const commitChar = useCallback((cellIdx, ch) => {
+    const current = (userInput || '').split('');
+    while (current.length <= cellIdx) current.push('');
+    current[cellIdx] = ch || '';
+    onInputChange(current.join(''));
+  }, [userInput, onInputChange]);
+
+  const advanceToNext = useCallback((cellIdx) => {
+    if (cellIdx < totalCells - 1) {
+      setTimeout(() => {
+        const next = inputRefs.current[cellIdx + 1];
+        if (next) { next.value = ''; next.focus(); }
+      }, 0);
+    }
+  }, [totalCells]);
+
   const handleKeyDown = useCallback((cellIdx, e) => {
-    if (readOnly || composingRef.current) return;
+    if (readOnly) return;
+    if (composingRef.current) return;
 
     if (e.key === 'Backspace') {
       e.preventDefault();
-      const current = (userInput || '').split('');
-      if (current[cellIdx]) {
-        current[cellIdx] = '';
-        onInputChange(current.join(''));
+      const el = inputRefs.current[cellIdx];
+      if (el && el.value) {
+        el.value = '';
+        commitChar(cellIdx, '');
       } else if (cellIdx > 0) {
-        current[cellIdx - 1] = '';
-        onInputChange(current.join(''));
-        inputRefs.current[cellIdx - 1]?.focus();
+        const prev = inputRefs.current[cellIdx - 1];
+        if (prev) { prev.value = ''; prev.focus(); }
+        commitChar(cellIdx - 1, '');
       }
       return;
     }
 
-    if (e.key === 'ArrowLeft' && cellIdx > 0) {
-      inputRefs.current[cellIdx - 1]?.focus();
-      return;
-    }
-    if (e.key === 'ArrowRight' && cellIdx < totalCells - 1) {
-      inputRefs.current[cellIdx + 1]?.focus();
-      return;
-    }
-    if (e.key === 'ArrowUp' && cellIdx >= COLS) {
-      inputRefs.current[cellIdx - COLS]?.focus();
-      return;
-    }
-    if (e.key === 'ArrowDown' && cellIdx + COLS < totalCells) {
-      inputRefs.current[cellIdx + COLS]?.focus();
-      return;
-    }
-  }, [userInput, onInputChange, readOnly, totalCells]);
+    if (e.key === 'ArrowLeft' && cellIdx > 0) { inputRefs.current[cellIdx - 1]?.focus(); return; }
+    if (e.key === 'ArrowRight' && cellIdx < totalCells - 1) { inputRefs.current[cellIdx + 1]?.focus(); return; }
+    if (e.key === 'ArrowUp' && cellIdx >= COLS) { inputRefs.current[cellIdx - COLS]?.focus(); return; }
+    if (e.key === 'ArrowDown' && cellIdx + COLS < totalCells) { inputRefs.current[cellIdx + COLS]?.focus(); return; }
+  }, [readOnly, totalCells, commitChar]);
 
-  const handleInput = useCallback((cellIdx, e) => {
-    if (readOnly) return;
+  const handleChange = useCallback((cellIdx, e) => {
+    if (readOnly || composingRef.current) return;
     const val = e.target.value;
     if (!val) return;
+    const ch = val.slice(-1);
+    e.target.value = ch;
+    commitChar(cellIdx, ch);
+    advanceToNext(cellIdx);
+  }, [readOnly, commitChar, advanceToNext]);
 
-    const ch = val[val.length - 1];
-    const current = (userInput || '').split('');
-    while (current.length <= cellIdx) current.push('');
-    current[cellIdx] = ch;
-    onInputChange(current.join(''));
-
-    if (!composingRef.current && cellIdx < totalCells - 1) {
-      setTimeout(() => inputRefs.current[cellIdx + 1]?.focus(), 10);
-    }
-  }, [userInput, onInputChange, readOnly, totalCells]);
+  const handleCompositionStart = useCallback(() => {
+    composingRef.current = true;
+  }, []);
 
   const handleCompositionEnd = useCallback((cellIdx, e) => {
     composingRef.current = false;
-    const val = e.target.value;
-    if (val) {
-      const ch = val[val.length - 1];
-      const current = (userInput || '').split('');
-      while (current.length <= cellIdx) current.push('');
-      current[cellIdx] = ch;
-      onInputChange(current.join(''));
+    const val = e.target.value || e.data || '';
+    const ch = val.slice(-1);
+    if (ch) {
+      e.target.value = ch;
+      commitChar(cellIdx, ch);
+      advanceToNext(cellIdx);
     }
-    if (cellIdx < totalCells - 1) {
-      setTimeout(() => inputRefs.current[cellIdx + 1]?.focus(), 10);
-    }
-  }, [userInput, onInputChange, totalCells]);
+  }, [commitChar, advanceToNext]);
 
   const getCellStatus = (cellIdx) => {
     const orig = chars[cellIdx] || '';
@@ -122,13 +131,12 @@ function ManuscriptGrid({ originalText, userInput, onInputChange, readOnly = fal
                       <input
                         ref={el => inputRefs.current[cellIdx] = el}
                         type="text"
-                        value={userChar}
-                        onChange={e => handleInput(cellIdx, e)}
+                        defaultValue={userChar}
+                        onChange={e => handleChange(cellIdx, e)}
                         onKeyDown={e => handleKeyDown(cellIdx, e)}
-                        onCompositionStart={() => { composingRef.current = true; }}
+                        onCompositionStart={handleCompositionStart}
                         onCompositionEnd={e => handleCompositionEnd(cellIdx, e)}
                         className="w-full h-full text-center text-sm font-medium text-gray-800 outline-none bg-transparent focus:bg-purple-50"
-                        maxLength={2}
                         autoComplete="off"
                       />
                     )}
