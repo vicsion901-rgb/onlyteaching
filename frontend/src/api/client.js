@@ -60,13 +60,7 @@ client.interceptors.response.use(
   },
 );
 
-// 백엔드 prewarm — 페이지 로드 시 1회만 ping
-export function prewarmBackend() {
-  client.get('/health').catch(() => {});
-}
-
-if (typeof window !== 'undefined') {
-  prewarmBackend();
-}
+// prewarm 제거 — /health 엔드포인트가 불안정하여 CORS 에러 유발
+// cold start는 첫 실제 API 호출로 대응
 
 export default client;
