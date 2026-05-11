@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import OpenAI from 'openai';
 
 type KeywordItem = { keyword_id: number; keyword: string; category?: string };
 type CommentItem = {
@@ -117,7 +118,6 @@ export class LifeRecordsService {
     }
 
     try {
-      const { default: OpenAI } = await import('openai');
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 15000 });
 
       const systemPrompt = `당신은 초등학교 생활기록부 작성 전문가입니다.
