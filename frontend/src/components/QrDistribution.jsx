@@ -24,8 +24,11 @@ function QrDistribution({ onClose }) {
 
   const teacherId = localStorage.getItem('userId') || localStorage.getItem('user_id') || 'teacher';
 
+  const [creating, setCreating] = useState(false);
+
   const createSession = async () => {
     setError('');
+    setCreating(true);
     try {
       const res = await client.post('/api/qr-session', {
         teacherId,
@@ -33,10 +36,21 @@ function QrDistribution({ onClose }) {
         activityType: activityType || null,
         durationMinutes: duration,
       }, { params: { action: 'create' } });
-      setSession(res.data.data);
-      setStep('active');
+      if (res.data?.error === 'schema_not_migrated') {
+        setError('서버 설정이 필요합니다. 관리자에게 문의해 주세요.');
+      } else {
+        setSession(res.data.data);
+        setStep('active');
+      }
     } catch (err) {
-      setError(err.response?.data?.error || 'QR 생성에 실패했습니다');
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || '';
+      if (msg.includes('Network') || !err.response) {
+        setError('서버에 연결할 수 없습니다. 네트워크를 확인해 주세요.');
+      } else {
+        setError(msg || 'QR 생성에 실패했습니다. 다시 시도해 주세요.');
+      }
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -95,7 +109,7 @@ function QrDistribution({ onClose }) {
     return (
       <div className="bg-white shadow rounded-xl p-6 space-y-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-900">📱 QR로 배포하기</h2>
+          <h2 className="text-base font-bold text-gray-900">📱 학생 입장 QR 만들기</h2>
           {onClose && <button onClick={onClose} className="text-xs text-gray-400 hover:text-gray-600">닫기</button>}
         </div>
 
@@ -114,7 +128,7 @@ function QrDistribution({ onClose }) {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">유효 시간</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">QR 사용 시간</label>
           <div className="flex gap-2">
             {[30, 60, 120].map(m => (
               <button key={m} onClick={() => setDuration(m)}
@@ -123,14 +137,20 @@ function QrDistribution({ onClose }) {
               </button>
             ))}
           </div>
+          <p className="text-[10px] text-gray-400 mt-1">수업이 끝나면 자동 만료되거나 직접 종료할 수 있어요</p>
         </div>
 
-        {error && <p className="text-xs text-red-500">{error}</p>}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-2.5">
+            <p className="text-xs text-red-600">{error}</p>
+          </div>
+        )}
 
-        <button onClick={createSession}
-          className="w-full py-3 bg-purple-600 text-white font-semibold rounded-xl text-sm hover:bg-purple-700">
-          QR 코드 만들기
+        <button onClick={createSession} disabled={creating}
+          className="w-full py-3 bg-purple-600 text-white font-semibold rounded-xl text-sm hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-wait">
+          {creating ? '생성 중...' : 'QR 코드 만들기'}
         </button>
+        <p className="text-[10px] text-gray-400 text-center">학생이 태블릿으로 스캔해 바로 활동을 시작할 수 있어요</p>
       </div>
     );
   }

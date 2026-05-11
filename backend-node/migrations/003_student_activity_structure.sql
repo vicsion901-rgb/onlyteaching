@@ -3,6 +3,62 @@
 -- 실행: PostgreSQL, 배포 전 1회
 
 -- ═══════════════════════════════════════
+-- 0. qr_sessions (QR 배포 세션)
+-- ═══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS qr_sessions (
+  id SERIAL PRIMARY KEY,
+  join_code VARCHAR(8) UNIQUE NOT NULL,
+  teacher_id VARCHAR NOT NULL,
+  class_name VARCHAR(50),
+  activity_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  activity_type VARCHAR(30),
+  is_active BOOLEAN DEFAULT TRUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  joined_count INTEGER DEFAULT 0,
+  submitted_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_qr_join_code ON qr_sessions(join_code);
+CREATE INDEX IF NOT EXISTS idx_qr_teacher ON qr_sessions(teacher_id);
+
+-- ═══════════════════════════════════════
+-- 0b. activity_metadata (즐겨찾기/메모)
+-- ═══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS activity_metadata (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR NOT NULL,
+  activity_key VARCHAR NOT NULL,
+  source_type VARCHAR(20) NOT NULL,
+  is_favorited BOOLEAN DEFAULT FALSE,
+  memo TEXT DEFAULT '',
+  student_id INTEGER,
+  submission_id VARCHAR(20),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, activity_key)
+);
+CREATE INDEX IF NOT EXISTS idx_actmeta_user ON activity_metadata(user_id);
+
+-- ═══════════════════════════════════════
+-- 0c. creative_collections (편찬 묶음)
+-- ═══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS creative_collections (
+  id VARCHAR(20) PRIMARY KEY,
+  user_id VARCHAR NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  description TEXT DEFAULT '',
+  collection_type VARCHAR(30) DEFAULT 'general',
+  item_ids TEXT[] DEFAULT '{}',
+  items JSONB DEFAULT '[]',
+  class_id VARCHAR(20),
+  student_id INTEGER,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_cc_user ON creative_collections(user_id);
+CREATE INDEX IF NOT EXISTS idx_cc_student ON creative_collections(student_id);
+
+-- ═══════════════════════════════════════
 -- A. classes (학급/그룹)
 -- ═══════════════════════════════════════
 CREATE TABLE IF NOT EXISTS classes (

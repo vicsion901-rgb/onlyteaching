@@ -119,6 +119,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(400).json({ error: 'unknown action' });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    cors(req, res);
+    const msg = err.message || '';
+    if (msg.includes('relation') && msg.includes('does not exist')) {
+      return res.status(200).json({ error: 'schema_not_migrated', message: 'qr_sessions 테이블이 아직 생성되지 않았습니다. 관리자에게 migration 실행을 요청해 주세요.' });
+    }
+    return res.status(500).json({ error: msg });
   }
 }

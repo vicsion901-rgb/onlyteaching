@@ -78,6 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(400).json({ error: 'unknown action' });
   } catch (err: any) {
+    cors(req, res);
     return res.status(500).json({ error: err.message });
   }
 }
