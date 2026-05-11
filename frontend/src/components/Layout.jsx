@@ -12,11 +12,12 @@ function Layout({ children }) {
   const isResetPage = location.pathname === '/reset-password';
   const isPolicyPage = ['/terms', '/privacy', '/policy'].includes(location.pathname);
   const isVerifyPage = location.pathname === '/teacher-verification';
+  const isStudentPage = location.pathname === '/join' || location.pathname === '/student-activity';
 
   // 교사 인증 게이트 — 인증 안 됐으면 /teacher-verification 외 다른 탭 접근 차단
   const [verifyStatus, setVerifyStatus] = useState(null); // null=loading, 'VERIFIED', 'BLOCKED'
   useEffect(() => {
-    if (isLoginPage || isResetPage || isPolicyPage) return;
+    if (isLoginPage || isResetPage || isPolicyPage || isStudentPage) return;
     const userId = localStorage.getItem('userId');
     if (!userId) {
       navigate('/login', { replace: true });

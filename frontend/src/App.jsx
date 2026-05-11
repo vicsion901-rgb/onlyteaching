@@ -32,50 +32,60 @@ import GrowthView from './pages/GrowthView';
 import CreativeStudio from './pages/CreativeStudio';
 import MyBook from './pages/MyBook';
 import StudentJoin from './pages/StudentJoin';
+import StudentActivity from './pages/StudentActivity';
 import TeacherActivityDashboard from './pages/TeacherActivityDashboard';
 import Layout from './components/Layout';
+import StudentLayout from './components/StudentLayout';
 
 function App() {
   return (
     <Router>
-      <Layout>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/schedule" element={<Schedule />} />
-          <Route path="/semester1-schedule" element={<Semester1Schedule />} />
-          <Route path="/semester2-schedule" element={<Semester2Schedule />} />
-          <Route path="/student-records" element={<StudentRecords />} />
-          <Route path="/subject-evaluation" element={<SubjectEvaluation />} />
-          <Route path="/life-records" element={<LifeRecords />} />
-          <Route path="/newsletter" element={<Newsletter />} />
-          <Route path="/counseling" element={<Counseling />} />
-          <Route path="/absence-report" element={<AbsenceReport />} />
-          <Route path="/exam-grading" element={<ExamGrading />} />
-          <Route path="/creative-activities" element={<CreativeActivities />} />
-          <Route path="/academic-calendar" element={<AcademicCalendar />} />
-          <Route path="/autobiography-compilation" element={<AutobiographyCompilation />} />
-          <Route path="/today-meal" element={<TodayMeal />} />
-          <Route path="/care-classroom" element={<CareClassroom />} />
-          <Route path="/presenter-picker" element={<PresenterPicker />} />
-          <Route path="/seat-arrangement" element={<SeatArrangement />} />
-          <Route path="/role-assignment" element={<RoleAssignment />} />
-          <Route path="/teacher-verification" element={<TeacherVerification />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/policy" element={<Policy />} />
-          <Route path="/account" element={<AccountSettings />} />
-          <Route path="/morning-activity" element={<MorningActivity />} />
-          <Route path="/activity-archive" element={<ActivityArchive />} />
-          <Route path="/growth-view" element={<GrowthView />} />
-          <Route path="/creative-studio" element={<CreativeStudio />} />
-          <Route path="/my-book" element={<MyBook />} />
-          <Route path="/join" element={<StudentJoin />} />
-          <Route path="/teacher-activities" element={<TeacherActivityDashboard />} />
-          <Route path="/" element={<Navigate to="/login" />} />
-        </Routes>
-      </Layout>
+      <Routes>
+        {/* 학생 전용 라우트 — Layout/인증 게이트 밖 */}
+        <Route path="/join" element={<StudentJoin />} />
+        <Route path="/student-activity" element={<StudentLayout><StudentActivity /></StudentLayout>} />
+
+        {/* 교사/관리자 라우트 — Layout 안 (사이드바 + 인증 게이트) */}
+        <Route path="/*" element={
+          <Layout>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/schedule" element={<Schedule />} />
+              <Route path="/semester1-schedule" element={<Semester1Schedule />} />
+              <Route path="/semester2-schedule" element={<Semester2Schedule />} />
+              <Route path="/student-records" element={<StudentRecords />} />
+              <Route path="/subject-evaluation" element={<SubjectEvaluation />} />
+              <Route path="/life-records" element={<LifeRecords />} />
+              <Route path="/newsletter" element={<Newsletter />} />
+              <Route path="/counseling" element={<Counseling />} />
+              <Route path="/absence-report" element={<AbsenceReport />} />
+              <Route path="/exam-grading" element={<ExamGrading />} />
+              <Route path="/creative-activities" element={<CreativeActivities />} />
+              <Route path="/academic-calendar" element={<AcademicCalendar />} />
+              <Route path="/autobiography-compilation" element={<AutobiographyCompilation />} />
+              <Route path="/today-meal" element={<TodayMeal />} />
+              <Route path="/care-classroom" element={<CareClassroom />} />
+              <Route path="/presenter-picker" element={<PresenterPicker />} />
+              <Route path="/seat-arrangement" element={<SeatArrangement />} />
+              <Route path="/role-assignment" element={<RoleAssignment />} />
+              <Route path="/teacher-verification" element={<TeacherVerification />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/policy" element={<Policy />} />
+              <Route path="/account" element={<AccountSettings />} />
+              <Route path="/morning-activity" element={<MorningActivity />} />
+              <Route path="/activity-archive" element={<ActivityArchive />} />
+              <Route path="/growth-view" element={<GrowthView />} />
+              <Route path="/creative-studio" element={<CreativeStudio />} />
+              <Route path="/my-book" element={<MyBook />} />
+              <Route path="/teacher-activities" element={<TeacherActivityDashboard />} />
+              <Route path="/" element={<Navigate to="/login" />} />
+            </Routes>
+          </Layout>
+        } />
+      </Routes>
     </Router>
   );
 }

@@ -55,7 +55,7 @@ function StudentJoin() {
       localStorage.setItem('qr_student_name', studentName.trim());
       localStorage.setItem('qr_student_number', studentNumber.trim());
 
-      navigate('/morning-activity');
+      navigate('/student-activity');
     } catch {
       setError('입장에 실패했습니다. 다시 시도해 주세요.');
     }
