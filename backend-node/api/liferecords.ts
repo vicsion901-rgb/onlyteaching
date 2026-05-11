@@ -2,6 +2,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // @ts-ignore
 import { Pool } from 'pg';
+// @ts-ignore
+import OpenAI from 'openai';
 
 let pool: Pool | null = null;
 function getPool(): Pool {
@@ -123,7 +125,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       try {
-        const { default: OpenAI } = await import('openai');
         const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
         const systemPrompt = `당신은 초등학교 생활기록부 작성 전문가입니다.

@@ -2,6 +2,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // @ts-ignore
 import { Pool } from 'pg';
+// @ts-ignore
+import OpenAI from 'openai';
 
 let pool: Pool | null = null;
 function getPool(): Pool {
@@ -216,7 +218,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { default: OpenAI } = await import('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const completion = await openai.chat.completions.create({

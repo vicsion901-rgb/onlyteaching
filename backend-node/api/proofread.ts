@@ -1,5 +1,7 @@
 // @ts-ignore
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+// @ts-ignore
+import OpenAI from 'openai';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const _origin = req.headers?.origin || ""; const _allowed = ["https://www.onlyteaching.kr","https://onlyteaching.kr","http://localhost:5173","http://localhost:3000"].includes(_origin) ? _origin : "https://www.onlyteaching.kr"; res.setHeader("Access-Control-Allow-Origin", _allowed); res.setHeader("Access-Control-Allow-Credentials", "true"); res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,PUT,DELETE,OPTIONS"); res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization"); if (req.method === "OPTIONS") return res.status(204).end();
@@ -22,7 +24,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ message: 'AI API 키 미설정' });
   }
 
-  const { default: OpenAI } = await import('openai');
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const model = process.env.PROOFREAD_MODEL || 'gpt-4o-mini';
 

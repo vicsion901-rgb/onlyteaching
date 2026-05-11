@@ -2,6 +2,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // @ts-ignore
 import { Pool } from 'pg';
+// @ts-ignore
+import OpenAI from 'openai';
 
 let pool: Pool | null = null;
 function getPool(): Pool {
@@ -189,7 +191,6 @@ ${contentPrompt}
 
 위 내용을 바탕으로 자서전을 작성해주세요.`;
 
-      const { default: OpenAI } = await import('openai');
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       const completion = await openai.chat.completions.create({
