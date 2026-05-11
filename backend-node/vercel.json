@@ -29,7 +29,10 @@
     "api/generate-chapter.ts": { "maxDuration": 30 },
     "api/schedule-reflections.ts": { "maxDuration": 10 },
     "api/proofread.ts": { "maxDuration": 15 },
-    "api/schema-check.ts": { "maxDuration": 10 }
+    "api/schema-check.ts": { "maxDuration": 10 },
+    "api/activity-metadata.ts": { "maxDuration": 10 },
+    "api/qr-session.ts": { "maxDuration": 10 },
+    "api/creative-collections.ts": { "maxDuration": 10 }
   },
   "rewrites": [
     { "source": "/api/users/login", "destination": "/api/login" },
@@ -59,6 +62,9 @@
     { "source": "/api/schedule-reflections", "destination": "/api/schedule-reflections" },
     { "source": "/api/proofread", "destination": "/api/proofread" },
     { "source": "/api/schema-check", "destination": "/api/schema-check" },
+    { "source": "/api/activity-metadata", "destination": "/api/activity-metadata" },
+    { "source": "/api/qr-session", "destination": "/api/qr-session" },
+    { "source": "/api/creative-collections", "destination": "/api/creative-collections" },
     { "source": "/(.*)", "destination": "/api/index" }
   ],
   "env": {

@@ -31,6 +31,7 @@ import ActivityArchive from './pages/ActivityArchive';
 import GrowthView from './pages/GrowthView';
 import CreativeStudio from './pages/CreativeStudio';
 import MyBook from './pages/MyBook';
+import StudentJoin from './pages/StudentJoin';
 import Layout from './components/Layout';
 
 function App() {
@@ -69,6 +70,7 @@ function App() {
           <Route path="/growth-view" element={<GrowthView />} />
           <Route path="/creative-studio" element={<CreativeStudio />} />
           <Route path="/my-book" element={<MyBook />} />
+          <Route path="/join" element={<StudentJoin />} />
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </Layout>

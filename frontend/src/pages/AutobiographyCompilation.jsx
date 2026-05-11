@@ -16,7 +16,6 @@ const SUBJECT_OPTIONS = [
   '실과', '정보', '역사', '기술·가정', '한문', '제2외국어',
 ];
 const STUDENT_LINKAGE_OPTIONS = [
-  { key: 'radioStory', label: '라디오 사연 보내기' },
   { key: 'careClassroom', label: '돌봄교실' },
   { key: 'schedule', label: '학사일정' },
   { key: 'studentRecords', label: '학생명부' },
@@ -352,7 +351,6 @@ const FIXED_CHAPTERS = [
 
 // ─── 블록 관련 상수 ───
 const SOURCE_LABELS = {
-  radioStory: '라디오 사연',
   careClassroom: '돌봄교실',
   schedule: '학사일정',
   studentRecords: '학생명부',
@@ -364,7 +362,6 @@ const SOURCE_LABELS = {
 };
 
 const SOURCE_TO_CHAPTERS = {
-  radioStory: ['intro', 'relations'],
   studentRecords: ['intro', 'background'],
   lifeRecords: ['early', 'settling', 'relations'],
   careClassroom: ['relations', 'responsibility'],
@@ -407,8 +404,6 @@ function formatSourceItem(source, item) {
       return typeof item === 'string' ? item : (item.achievement || item.description || item.comment || JSON.stringify(item));
     case 'todayMeal':
       return typeof item === 'string' ? item : (item.menu || item.name || JSON.stringify(item));
-    case 'radioStory':
-      return typeof item === 'string' ? item : (item.content || item.story || JSON.stringify(item));
     default:
       return typeof item === 'string' ? item : JSON.stringify(item);
   }
@@ -527,7 +522,6 @@ function AutobiographyCompilation() {
   useEffect(() => { localStorage.setItem('autobio_quickAnswers', JSON.stringify(quickAnswers)); }, [quickAnswers]);
   useEffect(() => { localStorage.setItem('autobio_quickChoices', JSON.stringify(quickChoices)); }, [quickChoices]);
   const [selectedSources, setSelectedSources] = useState({
-    radioStory: false,
     careClassroom: false,
     schedule: false,
     studentRecords: false,
@@ -612,7 +606,6 @@ function AutobiographyCompilation() {
   const toggleAllSources = () => {
     const nextValue = !isAllSourcesSelected;
     setSelectedSources({
-      radioStory: nextValue,
       careClassroom: nextValue,
       schedule: nextValue,
       studentRecords: nextValue,
@@ -810,17 +803,16 @@ function AutobiographyCompilation() {
         </button>
       </div>
 
-      {/* 탭 토글 */}
-      <div className="bg-white shadow rounded-lg p-1.5 grid grid-cols-2 gap-1.5">
+      {/* 탭 헤더 */}
+      <div className="bg-white shadow rounded-lg p-1.5">
         {[
-          { id: 'student', icon: '🎙', label: '학생', sub: '라디오 사연 + @', color: 'bg-sky-600' },
           { id: 'teacher', icon: '👩‍🏫', label: '선생님', sub: '돌봄교실 + @', color: 'bg-purple-600' },
         ].map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => { setTab(t.id); setIsSourcePickerOpen(false); }}
-            className={`rounded-md px-3 py-2.5 text-sm font-semibold transition-colors text-center ${
+            className={`w-full rounded-md px-3 py-2.5 text-sm font-semibold transition-colors text-center ${
               activeTab === t.id ? `${t.color} text-white shadow-sm` : 'text-gray-500 hover:bg-gray-50'
             }`}
           >
@@ -1503,7 +1495,6 @@ function EditableBlock({ block, onUpdate, onDelete, onRestore, onProofread, proo
     observationJournal: 'bg-pink-100 text-pink-700',
     schedule: 'bg-indigo-100 text-indigo-700',
     todayMeal: 'bg-orange-100 text-orange-700',
-    radioStory: 'bg-rose-100 text-rose-700',
   };
 
   return (

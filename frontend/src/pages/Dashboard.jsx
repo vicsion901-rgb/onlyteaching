@@ -4,6 +4,7 @@ import client from '../api/client';
 import { ChevronRight } from 'lucide-react';
 import { getTabItems } from '../config/tabRegistry';
 import WalkingAnimation from '../components/WalkingAnimation';
+import QrDistribution from '../components/QrDistribution';
 
 const GREETING_TEXT = 'On1yTeaching';
 
@@ -15,6 +16,7 @@ function Dashboard() {
   const [selectedModel] = useState('claude-3-5-sonnet-20241022');
   const [usedModel, setUsedModel] = useState('');
   const [events, setEvents] = useState({});
+  const [showQr, setShowQr] = useState(false);
   const [currentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear] = useState(new Date().getFullYear());
   const [tabUsage, setTabUsage] = useState(() => {
@@ -219,8 +221,20 @@ function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* QR 배포 */}
+        <div className="mt-4">
+          {showQr ? (
+            <QrDistribution onClose={() => setShowQr(false)} />
+          ) : (
+            <button onClick={() => setShowQr(true)}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-purple-50 text-purple-700 rounded-xl border border-purple-200 hover:bg-purple-100 transition text-sm font-medium">
+              📱 QR로 아침 활동 배포하기
+            </button>
+          )}
+        </div>
       </div>
-      
+
       {/* AI Prompt Section - Split layout */}
       <div className="bg-white overflow-hidden shadow rounded-lg flex-1 flex flex-col">
         <div className="px-4 py-5 sm:p-6 flex-1 flex flex-col">

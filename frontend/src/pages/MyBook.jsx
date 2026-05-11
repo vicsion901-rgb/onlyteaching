@@ -1,23 +1,102 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getBookableActivities, getAllActivities, getTypeInfo, buildActivityMap } from '../utils/activityUtils';
+import { generateBookPdf } from '../utils/bookPdfGenerator';
+import { fetchCollections, fetchCollectionById } from '../utils/collectionApi';
 
 const BOOK_TYPES = [
-  { id: 'poem', emoji: '📜', label: '내 시집', desc: '내가 필사하고 쓴 시를 모은 시집' },
-  { id: 'story', emoji: '📖', label: '내 이야기책', desc: '이어쓰기로 완성한 이야기 모음' },
-  { id: 'essay', emoji: '✍️', label: '내 에세이집', desc: '일기, 감상문, 편지 모음' },
-  { id: 'growth', emoji: '🌱', label: '내 성장 기록집', desc: '한 학기 동안의 성장 기록' },
+  { id: 'poem',   emoji: '📜', label: '내 시집',       desc: '필사한 시와 내가 쓴 문장 모음', hint: '필사 결과가 들어갑니다' },
+  { id: 'story',  emoji: '📖', label: '내 이야기책',    desc: '이어쓰기로 만든 이야기 모음',  hint: '이어쓰기 결과가 들어갑니다' },
+  { id: 'essay',  emoji: '✍️', label: '내 에세이집',    desc: '일기, 편지, 감상문 모음',     hint: '일기·편지·감상문이 들어갑니다' },
+  { id: 'growth', emoji: '🌱', label: '내 성장 기록집',  desc: '한 학기 문해력 성장 기록',    hint: '대표 글 + 성장 통계가 들어갑니다' },
 ];
 
-function MyBook({ embedded }) {
+function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialCollection }) {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [bookType, setBookType] = useState(null);
-  const [selectedCollection, setSelectedCollection] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const [bookTitle, setBookTitle] = useState('');
   const [bookSubtitle, setBookSubtitle] = useState('');
   const [authorName, setAuthorName] = useState('');
 
-  const collections = useMemo(() => JSON.parse(localStorage.getItem('creative_collections') || '[]'), []);
+  const [useCollection, setUseCollection] = useState(false);
+  const [selectedCollectionId, setSelectedCollectionId] = useState(null);
+  const [selectedCollection, setSelectedCollection] = useState(null);
+  const [collections, setCollections] = useState([]);
+
+  useEffect(() => {
+    fetchCollections().then(setCollections).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (initialCollectionId !== null && initialCollectionId !== undefined) {
+      fetchCollectionById(initialCollectionId).then(found => {
+        if (found) {
+          setUseCollection(true);
+          setSelectedCollectionId(found.id);
+          setSelectedCollection(found);
+          const items = found.items || [];
+          setSelectedIds(new Set(items.map(item => item._id || items.indexOf(item))));
+        }
+      }).catch(() => {
+        const local = collections.find(c => c.id === initialCollectionId);
+        if (local) {
+          setUseCollection(true);
+          setSelectedCollectionId(local.id);
+          setSelectedCollection(local);
+          setSelectedIds(new Set((local.items || []).map(item => item._id || (local.items || []).indexOf(item))));
+        }
+      });
+      if (onClearInitialCollection) onClearInitialCollection();
+    }
+  }, [initialCollectionId]);
+
+  const recommendedActivities = useMemo(() => {
+    if (!bookType) return [];
+    if (useCollection && selectedCollection) return selectedCollection.items || [];
+    return getBookableActivities(bookType.id);
+  }, [bookType, useCollection, selectedCollection]);
+
+  const activityMap = useMemo(() => buildActivityMap(recommendedActivities), [recommendedActivities]);
+
+  const growthStats = useMemo(() => {
+    if (bookType?.id !== 'growth') return null;
+    const all = getAllActivities();
+    const total = all.length;
+    const submitted = all.filter(a => a.status === 'submitted').length;
+    const manuscript = all.filter(a => a.sourceType === 'manuscript');
+    const avgAccuracy = manuscript.length > 0
+      ? Math.round(manuscript.filter(a => a.accuracy != null).reduce((s, a) => s + a.accuracy, 0) / Math.max(1, manuscript.filter(a => a.accuracy != null).length))
+      : null;
+    const types = {};
+    all.forEach(a => {
+      const label = getTypeInfo(a).label;
+      types[label] = (types[label] || 0) + 1;
+    });
+    return { total, submitted, manuscriptCount: manuscript.length, avgAccuracy, types };
+  }, [bookType]);
+
+  const selectedItems = useMemo(() => {
+    return [...selectedIds].map(id => activityMap.get(id) || recommendedActivities[id]).filter(Boolean);
+  }, [selectedIds, activityMap, recommendedActivities]);
+
+  const toggleSelect = (activity) => {
+    const id = activity._id || recommendedActivities.indexOf(activity);
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    if (selectedIds.size === recommendedActivities.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(recommendedActivities.map(a => a._id || recommendedActivities.indexOf(a))));
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -29,7 +108,6 @@ function MyBook({ embedded }) {
         <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium">← 홈으로</button>
       </div>)}
 
-      {/* 단계 표시 */}
       <div className="flex items-center gap-2 text-xs text-gray-400">
         {['책 종류', '글 선택', '책 정보', '미리보기'].map((s, i) => (
           <React.Fragment key={i}>
@@ -39,50 +117,128 @@ function MyBook({ embedded }) {
         ))}
       </div>
 
-      {/* Step 1: 책 종류 */}
       {step === 1 && (
         <div className="grid grid-cols-2 gap-4">
-          {BOOK_TYPES.map(bt => (
-            <button key={bt.id} onClick={() => { setBookType(bt); setStep(2); }}
-              className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-100 hover:border-purple-300 hover:bg-purple-50 transition text-center">
-              <span className="text-4xl">{bt.emoji}</span>
-              <span className="text-base font-semibold text-gray-800">{bt.label}</span>
-              <span className="text-xs text-gray-400">{bt.desc}</span>
-            </button>
-          ))}
+          {BOOK_TYPES.map(bt => {
+            const count = getBookableActivities(bt.id).length;
+            return (
+              <button key={bt.id} onClick={() => { setBookType(bt); setSelectedIds(new Set()); setStep(2); }}
+                className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-gray-100 hover:border-purple-300 hover:bg-purple-50 transition text-center">
+                <span className="text-4xl">{bt.emoji}</span>
+                <span className="text-base font-semibold text-gray-800">{bt.label}</span>
+                <span className="text-[10px] text-gray-400">{bt.desc}</span>
+                <span className="text-[10px] text-purple-500 font-medium">{bt.id === 'growth' ? '전체 활동 기반' : `${count}개 글 사용 가능`}</span>
+              </button>
+            );
+          })}
         </div>
       )}
 
-      {/* Step 2: 글 선택 */}
       {step === 2 && (
-        <div className="bg-white shadow rounded-xl p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800">포함할 글 묶음을 선택하세요</h2>
-          {collections.length > 0 ? (
+        <div className="bg-white shadow rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-gray-800">{bookType.emoji} {bookType.label}에 넣을 글</h2>
+              <p className="text-[10px] text-gray-400 mt-0.5">{bookType.hint}</p>
+            </div>
+            {!useCollection && recommendedActivities.length > 0 && (
+              <button onClick={selectAll} className="text-[10px] text-purple-600 font-medium hover:underline">
+                {selectedIds.size === recommendedActivities.length ? '전체 해제' : '전체 선택'}
+              </button>
+            )}
+          </div>
+
+          {collections.length > 0 && (
+            <div className="flex gap-1">
+              <button onClick={() => { setUseCollection(false); setSelectedIds(new Set()); }}
+                className={`text-[10px] px-2.5 py-1 rounded-full font-medium ${!useCollection ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                직접 선택
+              </button>
+              <button onClick={() => { setUseCollection(true); setSelectedIds(new Set()); }}
+                className={`text-[10px] px-2.5 py-1 rounded-full font-medium ${useCollection ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                편찬실 묶음 사용
+              </button>
+            </div>
+          )}
+
+          {useCollection && selectedCollection && (
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-purple-700">선택된 묶음: {selectedCollection.title}</p>
+                <p className="text-[10px] text-purple-500">{selectedCollection.items?.length || 0}개 글 포함</p>
+              </div>
+              <button onClick={() => { setSelectedCollectionId(null); setSelectedCollection(null); setSelectedIds(new Set()); }}
+                className="text-[10px] text-purple-500 hover:text-purple-700">다른 묶음</button>
+            </div>
+          )}
+
+          {useCollection && !selectedCollection && (
             <div className="space-y-2">
               {collections.map((c, i) => (
-                <label key={i} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${selectedCollection === i ? 'border-purple-400 bg-purple-50' : 'border-gray-100'}`}>
-                  <input type="radio" name="collection" checked={selectedCollection === i} onChange={() => setSelectedCollection(i)} />
+                <label key={c.id || i} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${selectedCollectionId === (c.id || i) ? 'border-purple-400 bg-purple-50' : 'border-gray-100'}`}>
+                  <input type="radio" name="collection" checked={selectedCollectionId === c.id}
+                    onChange={() => {
+                      setSelectedCollectionId(c.id);
+                      setSelectedCollection(c);
+                      setSelectedIds(new Set((c.items || []).map(a => a._id || (c.items || []).indexOf(a))));
+                    }} />
                   <div>
                     <p className="text-sm font-medium">{c.title}</p>
-                    <p className="text-xs text-gray-400">{c.items?.length || 0}개 글</p>
+                    <p className="text-xs text-gray-400">{c.items?.length || 0}개 글 · {new Date(c.createdAt).toLocaleDateString('ko-KR')}</p>
                   </div>
                 </label>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-8 text-gray-400">
-              <p>아직 묶음이 없습니다</p>
-              <button onClick={() => navigate('/creative-studio')} className="mt-2 text-purple-600 text-sm underline">편찬실에서 묶음 만들기</button>
+          )}
+
+          {bookType.id === 'growth' && growthStats && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+              <p className="text-xs font-semibold text-emerald-700 mb-1">성장 기록집에는 아래 내용이 자동 포함됩니다</p>
+              <ul className="text-[10px] text-emerald-600 space-y-0.5">
+                <li>총 {growthStats.total}개 활동 · 제출 {growthStats.submitted}개</li>
+                {growthStats.manuscriptCount > 0 && <li>원고지 연습 {growthStats.manuscriptCount}회{growthStats.avgAccuracy != null && ` · 평균 정확도 ${growthStats.avgAccuracy}%`}</li>}
+                <li>활동 유형: {Object.entries(growthStats.types).map(([k, v]) => `${k} ${v}회`).join(', ')}</li>
+              </ul>
+              <p className="text-[10px] text-emerald-500 mt-1">아래에서 대표 글을 골라 본문에 넣을 수 있습니다</p>
             </div>
           )}
+
+          {!useCollection && (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {recommendedActivities.map((a, i) => {
+                const info = getTypeInfo(a);
+                const aid = a._id || i;
+                return (
+                  <label key={aid} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${selectedIds.has(aid) ? 'border-purple-400 bg-purple-50' : 'border-gray-100 hover:bg-gray-50'}`}>
+                    <input type="checkbox" checked={selectedIds.has(aid)} onChange={() => toggleSelect(a)} className="mt-1 h-4 w-4 rounded" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm">{info.emoji}</span>
+                        <p className="text-sm font-medium text-gray-800 truncate">{a.title || '제목 없음'}</p>
+                      </div>
+                      <p className="text-xs text-gray-400">{info.label} · {new Date(a.createdAt).toLocaleDateString('ko-KR')}</p>
+                      {a.content && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{a.content}</p>}
+                    </div>
+                  </label>
+                );
+              })}
+              {recommendedActivities.length === 0 && (
+                <div className="text-center py-8 text-gray-400">
+                  <p className="text-sm">{bookType.id === 'growth' ? '대표 글을 넣으려면 활동을 먼저 해 보세요' : '이 유형에 맞는 글이 아직 없습니다'}</p>
+                  <button onClick={() => onSwitchTab ? onSwitchTab('today') : navigate('/morning-activity')} className="mt-2 text-purple-600 text-xs underline">활동하러 가기</button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex justify-between">
             <button onClick={() => setStep(1)} className="text-sm text-gray-400">← 이전</button>
-            <button onClick={() => setStep(3)} disabled={selectedCollection === null} className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg disabled:bg-gray-300">다음 →</button>
+            <button onClick={() => setStep(3)} disabled={bookType.id !== 'growth' && selectedIds.size === 0 && !(useCollection && selectedCollection)}
+              className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg disabled:bg-gray-300">다음 →</button>
           </div>
         </div>
       )}
 
-      {/* Step 3: 책 정보 */}
       {step === 3 && (
         <div className="bg-white shadow rounded-xl p-6 space-y-4">
           <h2 className="text-lg font-semibold text-gray-800">책 정보를 입력하세요</h2>
@@ -95,7 +251,7 @@ function MyBook({ embedded }) {
             <input type="text" value={bookSubtitle} onChange={e => setBookSubtitle(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm" placeholder="예: 2026년 봄, 나의 이야기" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">저자 이름</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">글쓴이</label>
             <input type="text" value={authorName} onChange={e => setAuthorName(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm" placeholder="내 이름" />
           </div>
           <div className="flex justify-between">
@@ -105,7 +261,6 @@ function MyBook({ embedded }) {
         </div>
       )}
 
-      {/* Step 4: 미리보기 */}
       {step === 4 && (
         <div className="bg-white shadow rounded-xl p-6 space-y-6">
           <div className="text-center py-8 bg-amber-50 rounded-xl border-2 border-amber-200">
@@ -113,23 +268,76 @@ function MyBook({ embedded }) {
             <h2 className="text-xl font-bold text-gray-900 mt-3">{bookTitle || bookType?.label}</h2>
             {bookSubtitle && <p className="text-sm text-gray-500 mt-1">{bookSubtitle}</p>}
             <p className="text-sm text-gray-600 mt-2">글쓴이: {authorName || '나'}</p>
-            <p className="text-xs text-gray-400 mt-2">{selectedCollection !== null ? `${collections[selectedCollection]?.items?.length || 0}편 수록` : ''}</p>
+            <p className="text-xs text-gray-400 mt-2">{selectedItems.length}편 수록</p>
           </div>
 
-          {selectedCollection !== null && collections[selectedCollection]?.items && (
+          {selectedItems.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">목차</h3>
-              <ol className="list-decimal list-inside space-y-1 text-sm text-gray-600">
-                {collections[selectedCollection].items.map((item, i) => (
-                  <li key={i}>{item.title || `글 ${i + 1}`}</li>
-                ))}
+              <ol className="list-decimal list-inside space-y-1">
+                {selectedItems.map((item, i) => {
+                  const info = getTypeInfo(item);
+                  return (
+                    <li key={i} className="text-sm text-gray-600">
+                      <span>{info.emoji} {item.title || `글 ${i + 1}`}</span>
+                      <span className="text-[10px] text-gray-400 ml-2">{info.label}</span>
+                    </li>
+                  );
+                })}
               </ol>
             </div>
           )}
 
-          <div className="flex justify-between">
+          {selectedItems.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">본문 미리보기</h3>
+              <div className="space-y-4 max-h-[300px] overflow-y-auto">
+                {selectedItems.slice(0, 3).map((item, i) => {
+                  const info = getTypeInfo(item);
+                  return (
+                    <div key={i} className="border-l-2 border-purple-200 pl-3">
+                      <p className="text-xs font-semibold text-gray-700">{info.emoji} {item.title || `글 ${i + 1}`}</p>
+                      <p className="text-xs text-gray-600 mt-1 leading-relaxed whitespace-pre-wrap line-clamp-4">{item.content || '(내용 없음)'}</p>
+                      {item.feeling && <p className="text-[10px] text-purple-600 italic mt-1">"{item.feeling}"</p>}
+                      {bookType?.id === 'poem' && item.sourceAuthor && <p className="text-[10px] text-gray-400 mt-0.5">원작: {item.sourceAuthor}</p>}
+                    </div>
+                  );
+                })}
+                {selectedItems.length > 3 && <p className="text-[10px] text-gray-400">... 외 {selectedItems.length - 3}편</p>}
+              </div>
+            </div>
+          )}
+
+          {bookType?.id === 'growth' && growthStats && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">부록: 성장 기록</h3>
+              <div className="bg-emerald-50 rounded-lg p-4 space-y-2 text-xs text-emerald-700">
+                <p>총 {growthStats.total}개 활동 수행 · {growthStats.submitted}개 제출 완료</p>
+                {growthStats.manuscriptCount > 0 && (
+                  <p>원고지 연습 {growthStats.manuscriptCount}회{growthStats.avgAccuracy != null && ` · 평균 정확도 ${growthStats.avgAccuracy}%`}</p>
+                )}
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {Object.entries(growthStats.types).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
+                    <span key={k} className="px-2 py-0.5 bg-white rounded-full text-[10px] text-emerald-600 border border-emerald-200">{k} {v}회</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center">
             <button onClick={() => setStep(3)} className="text-sm text-gray-400">← 이전</button>
-            <button onClick={() => alert('PDF 생성 기능은 준비 중입니다!')} className="px-6 py-2.5 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700">📄 PDF 다운로드</button>
+            <div className="flex gap-2">
+              <button onClick={() => setStep(1)} className="px-4 py-2 text-xs text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200">다시 편집</button>
+              <button onClick={() => generateBookPdf({
+                bookType: bookType?.id,
+                title: bookTitle || bookType?.label,
+                subtitle: bookSubtitle,
+                author: authorName,
+                items: selectedItems,
+                growthStats,
+              })} className="px-6 py-2.5 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700">📄 PDF 만들기</button>
+            </div>
           </div>
         </div>
       )}

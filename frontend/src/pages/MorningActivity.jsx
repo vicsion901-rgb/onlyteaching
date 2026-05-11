@@ -1,13 +1,17 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
+import QrDistribution from '../components/QrDistribution';
+import { MANUSCRIPT_CONTENTS } from '../data/manuscriptContents';
 
 const ActivityArchive = lazy(() => import('./ActivityArchive'));
 const GrowthView = lazy(() => import('./GrowthView'));
 const CreativeStudio = lazy(() => import('./CreativeStudio'));
 const MyBook = lazy(() => import('./MyBook'));
+const ManuscriptActivity = lazy(() => import('./ManuscriptActivity'));
 
 const SUB_TABS = [
   { id: 'today', emoji: '✏️', label: '오늘 활동' },
+  { id: 'manuscript', emoji: '📝', label: '원고지 연습' },
   { id: 'archive', emoji: '📂', label: '활동 보관함' },
   { id: 'growth', emoji: '🌱', label: '성장 보기' },
   { id: 'studio', emoji: '📖', label: '창작 편찬실' },
@@ -28,10 +32,15 @@ const ACTIVITY_TYPES = [
 function MorningActivity() {
   const navigate = useNavigate();
   const [activeSubTab, setActiveSubTab] = useState('today');
+  const [bookCollectionId, setBookCollectionId] = useState(null);
+
+  const goToBookWithCollection = (collectionId) => {
+    setBookCollectionId(collectionId);
+    setActiveSubTab('book');
+  };
 
   return (
     <div className="space-y-4">
-      {/* 헤더 */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">✏️ 아침 활동</h1>
@@ -40,7 +49,6 @@ function MorningActivity() {
         <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium text-sm">← 홈으로</button>
       </div>
 
-      {/* 내부 탭 네비게이션 */}
       <div className="flex gap-1 bg-white shadow rounded-lg p-1">
         {SUB_TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveSubTab(tab.id)}
@@ -53,23 +61,24 @@ function MorningActivity() {
         ))}
       </div>
 
-      {/* 탭 콘텐츠 */}
       <Suspense fallback={<div className="text-center py-12 text-gray-400">로딩 중...</div>}>
-        {activeSubTab === 'today' && <TodayActivity />}
-        {activeSubTab === 'archive' && <ActivityArchive embedded />}
-        {activeSubTab === 'growth' && <GrowthView embedded />}
-        {activeSubTab === 'studio' && <CreativeStudio embedded />}
-        {activeSubTab === 'book' && <MyBook embedded />}
+        {activeSubTab === 'today' && <TodayActivity onGoToManuscript={() => setActiveSubTab('manuscript')} />}
+        {activeSubTab === 'manuscript' && <ManuscriptActivity embedded />}
+        {activeSubTab === 'archive' && <ActivityArchive embedded onSwitchTab={setActiveSubTab} />}
+        {activeSubTab === 'growth' && <GrowthView embedded onSwitchTab={setActiveSubTab} />}
+        {activeSubTab === 'studio' && <CreativeStudio embedded onSwitchTab={setActiveSubTab} onGoToBookWithCollection={goToBookWithCollection} />}
+        {activeSubTab === 'book' && <MyBook embedded onSwitchTab={setActiveSubTab} initialCollectionId={bookCollectionId} onClearInitialCollection={() => setBookCollectionId(null)} />}
       </Suspense>
     </div>
   );
 }
 
-function TodayActivity() {
+function TodayActivity({ onGoToManuscript }) {
   const [selectedType, setSelectedType] = useState(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [saveStatus, setSaveStatus] = useState('');
+  const [showQr, setShowQr] = useState(false);
 
   const handleSave = (isDraft = false) => {
     if (!selectedType || !content.trim()) return;
@@ -85,10 +94,21 @@ function TodayActivity() {
     if (!isDraft) setTimeout(() => { setSelectedType(null); setTitle(''); setContent(''); setSaveStatus(''); }, 1500);
   };
 
+  if (showQr) {
+    return <QrDistribution onClose={() => setShowQr(false)} />;
+  }
+
   if (!selectedType) {
     return (
-      <div>
-        <h2 className="text-base font-semibold text-gray-800 mb-3">오늘은 어떤 활동을 해볼까요?</h2>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-800">오늘은 어떤 활동을 해볼까요?</h2>
+          <button onClick={() => setShowQr(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-100 border border-purple-200 transition">
+            📱 QR 배포
+          </button>
+        </div>
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {ACTIVITY_TYPES.map(type => (
             <button key={type.id} onClick={() => setSelectedType(type)}
@@ -98,9 +118,24 @@ function TodayActivity() {
             </button>
           ))}
         </div>
+
+        <button onClick={onGoToManuscript}
+          className="w-full flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200 hover:border-purple-400 hover:shadow-md transition text-left group">
+          <span className="text-3xl">📝</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-purple-800 group-hover:text-purple-900">원고지 연습</p>
+            <p className="text-[11px] text-purple-500 mt-0.5">필사 · 띄어쓰기 · 오탈자 · 이어쓰기로 문해력을 키워요</p>
+          </div>
+          <span className="text-purple-400 group-hover:text-purple-600 text-lg">→</span>
+        </button>
+
         <RecentActivities />
       </div>
     );
+  }
+
+  if (selectedType.id === 'poem-copy') {
+    return <PoemCopyActivity selectedType={selectedType} onBack={() => { setSelectedType(null); setTitle(''); setContent(''); }} onSave={handleSave} saveStatus={saveStatus} />;
   }
 
   return (
@@ -128,17 +163,192 @@ function TodayActivity() {
   );
 }
 
-function RecentActivities() {
-  const activities = JSON.parse(localStorage.getItem('morning_activities') || '[]').slice(0, 3);
-  if (activities.length === 0) return null;
+const POEM_CONTENTS = MANUSCRIPT_CONTENTS.filter(c => c.tags.includes('시') || c.tags.includes('동시'));
+
+const GRADE_FILTERS = [
+  { id: 'all', label: '전체' },
+  { id: 'low', label: '저학년', grades: [3, 4] },
+  { id: 'high', label: '고학년', grades: [5, 6] },
+];
+
+const DIFFICULTY_LABELS = { easy: '쉬움', medium: '보통', hard: '어려움' };
+
+function PoemCopyActivity({ selectedType, onBack, onSave, saveStatus }) {
+  const [selectedPoem, setSelectedPoem] = useState(null);
+  const [content, setContent] = useState('');
+  const [title, setTitle] = useState('');
+  const [feeling, setFeeling] = useState('');
+  const [gradeFilter, setGradeFilter] = useState('all');
+  const [useGrid, setUseGrid] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
+
+  const ManuscriptGrid = useMemo(() => {
+    return React.lazy(() => import('../components/ManuscriptGrid'));
+  }, []);
+
+  const filteredPoems = useMemo(() => {
+    if (gradeFilter === 'all') return POEM_CONTENTS;
+    const target = GRADE_FILTERS.find(f => f.id === gradeFilter);
+    if (!target) return POEM_CONTENTS;
+    return POEM_CONTENTS.filter(p => p.grade?.some(g => target.grades.includes(g)));
+  }, [gradeFilter]);
+
+  const handleSubmit = (isDraft) => {
+    if (!selectedPoem || !content.trim()) return;
+    const activity = {
+      type: selectedType.id, typeLabel: selectedType.label,
+      title: title.trim() || `${selectedPoem.title} 필사`,
+      content: content.trim(),
+      status: isDraft ? 'draft' : 'submitted',
+      createdAt: new Date().toISOString(),
+      poemId: selectedPoem.id,
+      sourceTitle: selectedPoem.title,
+      sourceAuthor: selectedPoem.author,
+      sourceTheme: selectedPoem.theme || '',
+      originalText: selectedPoem.text,
+      copyrightStatus: selectedPoem.copyrightStatus || 'public_domain',
+      feeling: feeling.trim(),
+    };
+    const saved = JSON.parse(localStorage.getItem('morning_activities') || '[]');
+    saved.unshift(activity);
+    localStorage.setItem('morning_activities', JSON.stringify(saved));
+    if (!isDraft) {
+      setSubmitted(true);
+      setTimeout(() => { setSelectedPoem(null); setContent(''); setTitle(''); setFeeling(''); setSubmitted(false); onBack(); }, 1500);
+    }
+  };
+
+  if (!selectedPoem) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{selectedType.emoji}</span>
+            <h2 className="text-base font-semibold text-gray-800">오늘의 시를 골라보세요</h2>
+          </div>
+          <button onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600">← 활동 선택</button>
+        </div>
+
+        <div className="flex gap-1">
+          {GRADE_FILTERS.map(f => (
+            <button key={f.id} onClick={() => setGradeFilter(f.id)}
+              className={`text-[10px] px-2.5 py-1 rounded-full font-medium ${gradeFilter === f.id ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {filteredPoems.map(poem => (
+            <button key={poem.id} onClick={() => setSelectedPoem(poem)}
+              className="text-left p-4 bg-white shadow rounded-xl border border-gray-100 hover:border-purple-300 hover:bg-purple-50 transition">
+              <div className="flex items-start justify-between">
+                <p className="text-sm font-semibold text-gray-800">{poem.title}</p>
+                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                  poem.spacingDifficulty === 'easy' ? 'bg-green-100 text-green-600' :
+                  poem.spacingDifficulty === 'hard' ? 'bg-red-100 text-red-600' :
+                  'bg-amber-100 text-amber-600'
+                }`}>{DIFFICULTY_LABELS[poem.spacingDifficulty] || '보통'}</span>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-0.5">{poem.author} · {poem.text.replace(/\n/g, '').length}자{poem.theme ? ` · ${poem.theme}` : ''}</p>
+              <p className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">{poem.text.split('\n')[0]}...</p>
+            </button>
+          ))}
+          {filteredPoems.length === 0 && <p className="col-span-2 text-xs text-gray-400 text-center py-6">해당 조건의 시가 없습니다</p>}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="mt-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">📜</span>
+          <h2 className="text-base font-semibold text-gray-800">시 필사</h2>
+        </div>
+        <button onClick={() => setSelectedPoem(null)} className="text-xs text-gray-400 hover:text-gray-600">← 시 선택</button>
+      </div>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs font-semibold text-amber-700">오늘의 시</span>
+          <span className="text-[10px] text-amber-500">{selectedPoem.author}</span>
+          {selectedPoem.copyrightStatus === 'public_domain' && (
+            <span className="text-[9px] text-amber-400">공유 저작물</span>
+          )}
+        </div>
+        <h3 className="text-base font-bold text-gray-900 mb-3">{selectedPoem.title}</h3>
+        <div className="text-sm text-gray-800 leading-[2] whitespace-pre-wrap font-medium">
+          {selectedPoem.text}
+        </div>
+      </div>
+
+      <div className="bg-white shadow rounded-xl p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-gray-600 font-medium">위의 시를 보고 아래 원고지에 따라 적어보세요</p>
+          <button onClick={() => setUseGrid(!useGrid)}
+            className={`text-[10px] px-2.5 py-1 rounded-full font-medium ${useGrid ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+            {useGrid ? '일반 보기' : '원고지 보기'}
+          </button>
+        </div>
+
+        <input type="text" value={title} onChange={e => setTitle(e.target.value)}
+          className="w-full border border-gray-300 rounded-lg p-2 text-sm" placeholder={`예: ${selectedPoem.title} 필사`} />
+
+        {useGrid ? (
+          <Suspense fallback={<div className="text-center py-4 text-gray-400 text-xs">원고지 로딩 중...</div>}>
+            <ManuscriptGrid
+              originalText={selectedPoem.text.replace(/\n/g, '')}
+              userInput={content}
+              onInputChange={setContent}
+              showOriginal={true}
+            />
+          </Suspense>
+        ) : (
+          <textarea value={content} onChange={e => setContent(e.target.value)} rows={8}
+            className="w-full border border-gray-300 rounded-lg p-3 text-sm resize-none leading-[2]" placeholder="천천히, 한 글자씩 정성스럽게 따라 적어보세요" />
+        )}
+
+        <div className="border-t border-gray-100 pt-3">
+          <label className="text-[10px] text-gray-400 block mb-1">이 시를 쓰며 든 느낌 한 줄 (선택)</label>
+          <input type="text" value={feeling} onChange={e => setFeeling(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg p-2 text-xs" placeholder="마음에 남은 표현, 떠오른 생각..." maxLength={100} />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex gap-2">
+            <button onClick={() => handleSubmit(true)} disabled={!content.trim()} className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg disabled:opacity-40">임시 저장</button>
+            <button onClick={() => handleSubmit(false)} disabled={!content.trim()} className="px-5 py-1.5 text-xs font-semibold text-white bg-purple-600 rounded-lg disabled:opacity-40">제출하기</button>
+          </div>
+          {submitted && <span className="text-xs font-medium text-green-600">제출 완료!</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RecentActivities() {
+  const morning = JSON.parse(localStorage.getItem('morning_activities') || '[]');
+  const manuscript = JSON.parse(localStorage.getItem('manuscript_activities') || '[]')
+    .map(r => ({ ...r, type: `manuscript-${r.mode}`, title: r.title, createdAt: r.completedAt }));
+  const all = [...morning, ...manuscript]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 3);
+  if (all.length === 0) return null;
+
+  const emojiMap = {
+    'manuscript-copy': '📝', 'manuscript-spacing': '↔️',
+    'manuscript-typo': '🔍', 'manuscript-continue': '✍️',
+  };
+
+  return (
+    <div>
       <h3 className="text-xs font-semibold text-gray-500 mb-2">최근 활동</h3>
       <div className="space-y-1.5">
-        {activities.map((a, i) => (
+        {all.map((a, i) => (
           <div key={i} className="flex items-center gap-2 p-2 rounded-lg border border-gray-50 text-xs">
-            <span>{ACTIVITY_TYPES.find(t => t.id === a.type)?.emoji || '📝'}</span>
+            <span>{emojiMap[a.type] || ACTIVITY_TYPES.find(t => t.id === a.type)?.emoji || '📝'}</span>
             <span className="font-medium text-gray-700 truncate flex-1">{a.title}</span>
             <span className="text-gray-400">{new Date(a.createdAt).toLocaleDateString('ko-KR')}</span>
           </div>
