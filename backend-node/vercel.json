@@ -32,7 +32,9 @@
     "api/schema-check.ts": { "maxDuration": 10 },
     "api/activity-metadata.ts": { "maxDuration": 10 },
     "api/qr-session.ts": { "maxDuration": 10 },
-    "api/creative-collections.ts": { "maxDuration": 10 }
+    "api/creative-collections.ts": { "maxDuration": 10 },
+    "api/student-submissions.ts": { "maxDuration": 10 },
+    "api/classes.ts": { "maxDuration": 10 }
   },
   "rewrites": [
     { "source": "/api/users/login", "destination": "/api/login" },
@@ -65,6 +67,8 @@
     { "source": "/api/activity-metadata", "destination": "/api/activity-metadata" },
     { "source": "/api/qr-session", "destination": "/api/qr-session" },
     { "source": "/api/creative-collections", "destination": "/api/creative-collections" },
+    { "source": "/api/student-submissions", "destination": "/api/student-submissions" },
+    { "source": "/api/classes", "destination": "/api/classes" },
     { "source": "/(.*)", "destination": "/api/index" }
   ],
   "env": {
