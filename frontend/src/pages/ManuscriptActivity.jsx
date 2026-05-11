@@ -198,9 +198,10 @@ function ManuscriptActivity({ embedded }) {
       {!result && mode === 'copy' && (
         <div className="space-y-3">
           <ManuscriptGrid
-            originalText={selectedContent.text.replace(/\n/g, '')}
+            originalText={selectedContent.text}
             userInput={userInput}
             onInputChange={setUserInput}
+            mode={selectedContent.tags?.includes('시') || selectedContent.tags?.includes('동시') ? 'poem' : 'default'}
           />
           <div className="flex justify-end">
             <button onClick={handleCopyComplete} disabled={!userInput.trim()}
@@ -232,9 +233,10 @@ function ManuscriptActivity({ embedded }) {
             <p className="text-[10px] text-amber-600 mb-1">먼저 아래 글을 원고지에 따라 쓰세요</p>
           </div>
           <ManuscriptGrid
-            originalText={selectedContent.text.replace(/\n/g, '')}
+            originalText={selectedContent.text}
             userInput={userInput}
             onInputChange={setUserInput}
+            mode={selectedContent.tags?.includes('시') || selectedContent.tags?.includes('동시') ? 'poem' : 'default'}
           />
           {selectedContent.continuePrompt && (
             <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
