@@ -299,7 +299,7 @@ function PoemCopyActivity({ selectedType, onBack, onSave, saveStatus }) {
         {useGrid ? (
           <Suspense fallback={<div className="text-center py-4 text-gray-400 text-xs">원고지 로딩 중...</div>}>
             <ManuscriptGrid
-              originalText={selectedPoem.text}
+              originalText={selectedPoem.text.replace(/\n/g, '')}
               userInput={content}
               onInputChange={setContent}
               showOriginal={true}
