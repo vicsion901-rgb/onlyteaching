@@ -173,7 +173,7 @@ function QrDistribution({ onClose }) {
           className="w-full py-3 bg-purple-600 text-white font-semibold rounded-xl text-sm hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-wait">
           {creating ? '생성 중...' : 'QR 코드 만들기'}
         </button>
-        <p className="text-[10px] text-gray-400 text-center">학생이 태블릿으로 스캔해 바로 활동을 시작할 수 있어요</p>
+        <p className="text-[10px] text-gray-400 text-center">학생이 태블릿으로 QR을 스캔하면 바로 활동을 시작할 수 있어요</p>
       </div>
     );
   }
