@@ -61,14 +61,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST' && action === 'join') {
-      const { code, studentName, studentNumber } = req.body;
+      const { code, studentName, studentNumber, studentId } = req.body;
       if (!code) return res.status(400).json({ error: 'code required' });
+      const joinCode = (code || '').toUpperCase().trim();
 
-      const { rows } = await db.query(
-        `UPDATE qr_sessions SET joined_count = joined_count + 1 WHERE join_code = $1 AND is_active = TRUE AND expires_at > NOW() RETURNING *`,
-        [(code || '').toUpperCase().trim()]
+      const { rows: sessRows } = await db.query(
+        `SELECT * FROM qr_sessions WHERE join_code = $1 AND is_active = TRUE AND expires_at > NOW()`, [joinCode]
       );
-      if (rows.length === 0) return res.status(404).json({ error: 'session_not_found' });
+      if (sessRows.length === 0) return res.status(404).json({ error: 'session_not_found' });
+
+      const participantKey = studentId || studentName || studentNumber || '';
+      if (participantKey) {
+        const { rows: existing } = await db.query(
+          `SELECT 1 FROM qr_session_participants WHERE join_code = $1 AND participant_key = $2`, [joinCode, participantKey]
+        ).catch(() => ({ rows: [] }));
+
+        if (existing.length === 0) {
+          await db.query(
+            `INSERT INTO qr_session_participants (join_code, participant_key, student_name, student_id, joined_at) VALUES ($1,$2,$3,$4,NOW())`,
+            [joinCode, participantKey, studentName || '', studentId || null]
+          ).catch(() => {});
+          await db.query(`UPDATE qr_sessions SET joined_count = joined_count + 1 WHERE join_code = $1`, [joinCode]).catch(() => {});
+        }
+      }
+
+      const { rows } = await db.query(`SELECT * FROM qr_sessions WHERE join_code = $1`, [joinCode]);
       return res.json({ data: rows[0], student: { name: studentName, number: studentNumber } });
     }
 

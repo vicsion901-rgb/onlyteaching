@@ -244,7 +244,7 @@ function TeacherActivityDashboard() {
             <div className="flex justify-center"><QRCodeSVG value={`${window.location.origin}/join?code=${qrModal.join_code}`} size={200} level="M" /></div>
             <p className="text-3xl font-bold tracking-[0.3em] text-gray-800">{qrModal.join_code}</p>
             <div className="text-xs text-gray-400 space-y-0.5">
-              <p>입장 {qrModal.joined_count || 0}명 · 제출 {qrModal.submitted_count || 0}명</p>
+              <p>참여 학생 {qrModal.joined_count || 0}명 · 제출 {qrModal.submitted_count || 0}명</p>
               <p>유효: {qrModal.expires_at ? new Date(qrModal.expires_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '120분'}</p>
             </div>
             <div className="flex gap-2">

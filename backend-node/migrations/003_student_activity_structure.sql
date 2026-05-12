@@ -208,3 +208,17 @@ CREATE INDEX IF NOT EXISTS idx_summary_class_date ON student_activity_summaries(
 -- NestJS TypeORM이 number에 UNIQUE를 걸었으나,
 -- 교사별 학생 격리 구조에서는 number만 unique이면 교사 간 충돌 발생
 ALTER TABLE student_records DROP CONSTRAINT IF EXISTS "UQ_c929de0f2e45322a01904beda5c";
+
+-- ═══════════════════════════════════════
+-- J. qr_session_participants (중복 입장 방지)
+-- ═══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS qr_session_participants (
+  id SERIAL PRIMARY KEY,
+  join_code VARCHAR(8) NOT NULL,
+  participant_key VARCHAR(100) NOT NULL,
+  student_name VARCHAR(50),
+  student_id INTEGER,
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(join_code, participant_key)
+);
+CREATE INDEX IF NOT EXISTS idx_qrp_code ON qr_session_participants(join_code);

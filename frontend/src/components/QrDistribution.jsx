@@ -110,7 +110,7 @@ function QrDistribution({ onClose }) {
         <p className="mt-2 text-sm text-gray-400">화면을 누르면 돌아갑니다</p>
         {statusData && (
           <div className="mt-4 flex gap-6 text-sm text-gray-600">
-            <span>입장 {statusData.joined_count}명</span>
+            <span>참여 {statusData.joined_count}명</span>
             <span>제출 {statusData.submitted_count}명</span>
           </div>
         )}
@@ -197,7 +197,7 @@ function QrDistribution({ onClose }) {
         <div className="flex gap-2 text-center">
           <div className="flex-1 bg-blue-50 rounded-lg p-3">
             <p className="text-xl font-bold text-blue-700">{statusData?.joined_count ?? 0}</p>
-            <p className="text-[10px] text-blue-500">입장</p>
+            <p className="text-[10px] text-blue-500">참여</p>
           </div>
           <div className="flex-1 bg-green-50 rounded-lg p-3">
             <p className="text-xl font-bold text-green-700">{statusData?.submitted_count ?? 0}</p>
@@ -232,7 +232,7 @@ function QrDistribution({ onClose }) {
         <div className="text-4xl">✅</div>
         <h2 className="text-base font-bold text-gray-900">활동이 종료되었습니다</h2>
         {statusData && (
-          <p className="text-sm text-gray-500">입장 {statusData.joined_count}명 · 제출 {statusData.submitted_count}명</p>
+          <p className="text-sm text-gray-500">참여 {statusData.joined_count}명 · 제출 {statusData.submitted_count}명</p>
         )}
         <div className="flex gap-2">
           <button onClick={() => { setSession(null); setStatusData(null); setStep('setup'); }}

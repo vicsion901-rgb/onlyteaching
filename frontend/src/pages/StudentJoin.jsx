@@ -47,6 +47,7 @@ function StudentJoin() {
         code: session.join_code,
         studentName: name,
         studentNumber: number,
+        studentId: studentId || undefined,
       }, { params: { action: 'join' } });
 
       localStorage.setItem('qr_session_code', session.join_code);
