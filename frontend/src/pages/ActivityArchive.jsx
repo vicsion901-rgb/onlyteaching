@@ -194,6 +194,7 @@ function ActivityArchive({ embedded, onSwitchTab }) {
                 {a.accuracy != null && (
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${a.accuracy >= 80 ? 'bg-green-100 text-green-700' : a.accuracy >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{a.accuracy}%</span>
                 )}
+                {a.sessionId && <span className="text-[10px] font-bold text-purple-700">선생님 과제</span>}
                 {badges.map((b, j) => (
                   <span key={j} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${b.color}`}>{b.label}</span>
                 ))}
@@ -291,6 +292,7 @@ function ActivityDetail({ activity, onBack, onSave, onAddToStudio, isInPending, 
               정확도 {activity.accuracy}%
             </span>
           )}
+          {activity.sessionId && <span className="text-xs font-bold text-purple-700">선생님 과제</span>}
           {badges.map((b, j) => (
             <span key={j} className={`text-xs px-2.5 py-1 rounded-full font-medium ${b.color}`}>{b.label}</span>
           ))}

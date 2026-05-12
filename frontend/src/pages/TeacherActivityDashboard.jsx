@@ -95,6 +95,7 @@ function TeacherActivityDashboard() {
           </div>
           <div className="flex flex-wrap gap-1.5 text-xs">
             <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">{TYPE_LABELS[selectedSub.activity_type] || selectedSub.activity_type}</span>
+            {selectedSub.session_id && <span className="font-bold text-purple-700">선생님 과제</span>}
             {selectedSub.accuracy != null && <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700">{selectedSub.accuracy}%</span>}
             <span className="text-gray-400">{selectedSub.submitted_at ? new Date(selectedSub.submitted_at).toLocaleString('ko-KR') : ''}</span>
           </div>
@@ -123,6 +124,7 @@ function TeacherActivityDashboard() {
           <div className="flex items-center gap-2 mb-1">
             <span className="text-lg font-bold text-gray-900">{selectedSession.date}</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">{TYPE_LABELS[selectedSession.type] || selectedSession.type}</span>
+            {selectedSession.sessionId && <span className="text-xs font-bold text-purple-700">선생님 과제</span>}
           </div>
           {selectedSession.className && <p className="text-xs text-gray-400">{selectedSession.className}</p>}
           <div className="grid grid-cols-3 gap-3 mt-3">
@@ -208,6 +210,7 @@ function TeacherActivityDashboard() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-gray-800">{sess.date}</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">{TYPE_LABELS[sess.type] || sess.type}</span>
+                      {sess.sessionId && <span className="text-[10px] font-bold text-purple-700">선생님 과제</span>}
                       {qr && <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>{isActive ? 'QR 사용 가능' : '세션 종료'}</span>}
                     </div>
                     {sess.className && <p className="text-xs text-gray-400 mt-0.5">{sess.className}</p>}

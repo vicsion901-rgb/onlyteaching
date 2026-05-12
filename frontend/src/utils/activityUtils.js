@@ -140,6 +140,7 @@ async function fetchAllActivitiesFromServer() {
         accuracy: r.accuracy,
         sourceType: r.source_type || 'morning',
         feeling: r.feeling || '',
+        sessionId: r.session_id || null,
         originalText: r.original_text || '',
         studentName: r.student_name || '',
         canUseInBook: hint.canUseInBook || false,
