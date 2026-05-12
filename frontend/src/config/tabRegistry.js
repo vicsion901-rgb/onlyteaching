@@ -67,7 +67,7 @@ export const TAB_REGISTRY = [
     id: 'teacher-activities',
     route: '/teacher-activities',
     emoji: '📋',
-    title: '학생 활동 관리',
+    title: '아침 활동 관리',
     section: 'student',
     subtitle: () => '제출 확인 · 활동 관리',
   },
