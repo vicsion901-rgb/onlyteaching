@@ -374,7 +374,7 @@ const SOURCE_TO_CHAPTERS = {
 let _blockIdCounter = 0;
 const generateBlockId = () => `blk_${Date.now()}_${++_blockIdCounter}`;
 
-function createBlock(type, text, source = null, sourceLabel = null) {
+function createBlock(type, text, source = null, sourceLabel = null, meta = {}) {
   return {
     id: generateBlockId(),
     type,
@@ -382,6 +382,12 @@ function createBlock(type, text, source = null, sourceLabel = null) {
     sourceLabel: sourceLabel || (source ? SOURCE_LABELS[source] || source : null),
     originalText: text,
     currentText: text,
+    sourceDate: meta.sourceDate || null,
+    sourceMonth: meta.sourceMonth || null,
+    themeTags: meta.themeTags || [],
+    chapterId: meta.chapterId || null,
+    isFavorite: false,
+    isEdited: false,
   };
 }
 
@@ -1928,6 +1934,7 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
   const [showToc, setShowToc] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showQuestions, setShowQuestions] = useState(false);
+  const [editMode, setEditMode] = useState('chapter');
   const [expandedQ, setExpandedQ] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -2336,6 +2343,17 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
           <button onClick={() => { setShowSearch(!showSearch); setShowToc(false); setShowQuestions(false); }} className="text-xs text-amber-300 hover:text-white border border-amber-800 rounded px-2 py-1" aria-label="검색">🔍 검색</button>
           <button onClick={() => { setShowQuestions(!showQuestions); setShowToc(false); setShowSearch(false); }} className="text-xs text-purple-300 hover:text-white border border-purple-800 rounded px-2 py-1" aria-label="질문">📝 질문</button>
           <span className="text-xs text-stone-400 ml-2">{leftIdx + 1}~{Math.min(rightIdx + 1, chapters.length)} / {chapters.length}장</span>
+          <span className="text-stone-600 mx-1">|</span>
+          {[
+            { id: 'chapter', label: '📖 장별' },
+            { id: 'date', label: '📅 날짜순' },
+            { id: 'theme', label: '🏷️ 주제순' },
+          ].map(m => (
+            <button key={m.id} onClick={() => setEditMode(m.id)}
+              className={`text-[10px] px-2 py-0.5 rounded ${editMode === m.id ? 'bg-purple-600 text-white' : 'text-stone-400 hover:text-white'}`}>
+              {m.label}
+            </button>
+          ))}
         </div>
         <div className="flex items-center gap-2">
           <button
