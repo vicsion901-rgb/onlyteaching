@@ -16,19 +16,24 @@ function TeacherActivityDashboard() {
   const navigate = useNavigate();
   const teacherId = localStorage.getItem('userId') || '';
   const [submissions, setSubmissions] = useState([]);
+  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sourceFilter, setSourceFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [viewMode, setViewMode] = useState('list');
   const [selectedSub, setSelectedSub] = useState(null);
 
   useEffect(() => {
     if (!teacherId) return;
     setLoading(true);
-    client.get('/api/student-submissions', { params: { action: 'list', teacherId, limit: '200' } })
-      .then(res => setSubmissions(res.data?.data || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.all([
+      client.get('/api/student-submissions', { params: { action: 'list', teacherId, limit: '200' } }).then(r => r.data?.data || []).catch(() => []),
+      client.get('/api/students', { params: { userId: teacherId } }).then(r => r.data || []).catch(() => []),
+    ]).then(([subs, studs]) => {
+      setSubmissions(subs);
+      setStudents(studs);
+    }).finally(() => setLoading(false));
   }, [teacherId]);
 
   const classNames = useMemo(() => {
@@ -47,9 +52,25 @@ function TeacherActivityDashboard() {
   const stats = useMemo(() => {
     const total = submissions.length;
     const today = submissions.filter(s => s.submitted_at && new Date(s.submitted_at).toDateString() === new Date().toDateString()).length;
-    const students = new Set(submissions.map(s => s.student_name || s.student_id).filter(Boolean)).size;
-    return { total, today, students };
-  }, [submissions]);
+    const submittedStudents = new Set(submissions.map(s => s.student_name || s.student_id).filter(Boolean)).size;
+    return { total, today, submittedStudents, totalStudents: students.length };
+  }, [submissions, students]);
+
+  const studentChecklist = useMemo(() => {
+    const submittedMap = {};
+    submissions.forEach(s => {
+      const key = s.student_id || s.student_name;
+      if (!key) return;
+      if (!submittedMap[key]) submittedMap[key] = [];
+      submittedMap[key].push(s);
+    });
+    return students.map(s => ({
+      ...s,
+      submissions: submittedMap[s.id] || submittedMap[s.name] || [],
+      status: (submittedMap[s.id] || submittedMap[s.name] || []).some(sub => sub.status === 'submitted') ? 'submitted'
+        : (submittedMap[s.id] || submittedMap[s.name] || []).length > 0 ? 'draft' : 'none',
+    }));
+  }, [students, submissions]);
 
   if (selectedSub) {
     return (
@@ -90,22 +111,53 @@ function TeacherActivityDashboard() {
         <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium text-sm">← 홈으로</button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white shadow rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-purple-600">{stats.total}</p>
-          <p className="text-xs text-gray-400">전체 제출</p>
+      <div className="grid grid-cols-4 gap-3">
+        <div className="bg-white shadow rounded-xl p-3 text-center">
+          <p className="text-xl font-bold text-gray-700">{stats.totalStudents}</p>
+          <p className="text-[10px] text-gray-400">총 학생</p>
         </div>
-        <div className="bg-white shadow rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-green-600">{stats.today}</p>
-          <p className="text-xs text-gray-400">오늘 제출</p>
+        <div className="bg-white shadow rounded-xl p-3 text-center">
+          <p className="text-xl font-bold text-green-600">{studentChecklist.filter(s => s.status === 'submitted').length}</p>
+          <p className="text-[10px] text-gray-400">제출 완료</p>
         </div>
-        <div className="bg-white shadow rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-blue-600">{stats.students}</p>
-          <p className="text-xs text-gray-400">참여 학생</p>
+        <div className="bg-white shadow rounded-xl p-3 text-center">
+          <p className="text-xl font-bold text-amber-600">{studentChecklist.filter(s => s.status === 'draft').length}</p>
+          <p className="text-[10px] text-gray-400">작성 중</p>
+        </div>
+        <div className="bg-white shadow rounded-xl p-3 text-center">
+          <p className="text-xl font-bold text-red-500">{studentChecklist.filter(s => s.status === 'none').length}</p>
+          <p className="text-[10px] text-gray-400">미제출</p>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 items-center">
+      <div className="flex gap-1.5">
+        <button onClick={() => setViewMode('list')} className={`text-[10px] px-3 py-1.5 rounded-full font-medium ${viewMode === 'list' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500'}`}>제출 목록</button>
+        <button onClick={() => setViewMode('checklist')} className={`text-[10px] px-3 py-1.5 rounded-full font-medium ${viewMode === 'checklist' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500'}`}>학생 체크표</button>
+      </div>
+
+      {viewMode === 'checklist' && (
+        <div className="bg-white shadow rounded-xl p-4 space-y-1.5">
+          {studentChecklist.map(s => (
+            <div key={s.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+              <span className="text-xs text-gray-400 w-6 text-right">{s.number}</span>
+              <span className="text-sm font-medium text-gray-800 flex-1">{s.name}</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                s.status === 'submitted' ? 'bg-green-100 text-green-700' :
+                s.status === 'draft' ? 'bg-amber-100 text-amber-700' :
+                'bg-red-50 text-red-500'
+              }`}>
+                {s.status === 'submitted' ? '✅ 제출완료' : s.status === 'draft' ? '⏳ 작성중' : '❌ 미제출'}
+              </span>
+              {s.submissions.length > 0 && (
+                <button onClick={() => setSelectedSub(s.submissions[0])} className="text-[10px] text-purple-600 hover:underline">보기</button>
+              )}
+            </div>
+          ))}
+          {students.length === 0 && <p className="text-xs text-gray-400 text-center py-4">학생명부에 등록된 학생이 없습니다</p>}
+        </div>
+      )}
+
+      {viewMode === 'list' && <div className="flex flex-wrap gap-1.5 items-center">
         {[
           { id: 'all', label: '전체' },
           { id: 'morning', label: '아침 활동' },
@@ -142,9 +194,9 @@ function TeacherActivityDashboard() {
             ))}
           </>
         )}
-      </div>
+      </div>}
 
-      {loading ? (
+      {viewMode === 'list' && (loading ? (
         <div className="text-center py-12 text-gray-400">로딩 중...</div>
       ) : (
         <div className="space-y-2">
@@ -175,7 +227,7 @@ function TeacherActivityDashboard() {
             </div>
           )}
         </div>
-      )}
+      ))}
     </div>
   );
 }
