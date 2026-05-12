@@ -34,11 +34,49 @@ function MorningActivity() {
   const navigate = useNavigate();
   const [activeSubTab, setActiveSubTab] = useState('today');
   const [bookCollectionId, setBookCollectionId] = useState(null);
+  const [studentCount, setStudentCount] = useState(null);
+
+  useState(() => {
+    const userId = localStorage.getItem('userId') || '';
+    if (!userId) return;
+    import('../api/client').then(({ default: client }) => {
+      client.get('/api/students', { params: { userId } })
+        .then(res => setStudentCount((res.data || []).length))
+        .catch(() => setStudentCount(0));
+    });
+  });
 
   const goToBookWithCollection = (collectionId) => {
     setBookCollectionId(collectionId);
     setActiveSubTab('book');
   };
+
+  if (studentCount === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">✏️ 아침 활동</h1>
+            <p className="mt-0.5 text-sm text-gray-500">문해력 성장 · 창작 편찬</p>
+          </div>
+          <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium text-sm">← 홈으로</button>
+        </div>
+        <div className="bg-white shadow rounded-xl p-8 text-center space-y-4">
+          <div className="text-5xl">👥</div>
+          <h2 className="text-lg font-bold text-gray-800">학생 활동을 시작하기 전에 준비가 필요해요</h2>
+          <p className="text-sm text-gray-500 leading-relaxed">
+            학생 이름과 기본 정보를 먼저 등록하면<br />
+            아침 활동, 원고지 연습, 책 만들기 기능을 바로 사용할 수 있어요.
+          </p>
+          <button onClick={() => navigate('/student-records')}
+            className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl text-sm hover:bg-purple-700 transition">
+            학생명부 입력하러 가기
+          </button>
+          <p className="text-[10px] text-gray-400">학생명부를 입력하면 QR 입장과 활동 기록이 자동으로 연결됩니다</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

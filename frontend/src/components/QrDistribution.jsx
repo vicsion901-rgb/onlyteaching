@@ -23,6 +23,13 @@ function QrDistribution({ onClose }) {
   const [error, setError] = useState('');
 
   const teacherId = localStorage.getItem('userId') || localStorage.getItem('user_id') || 'teacher';
+  const [studentCount, setStudentCount] = useState(null);
+
+  useEffect(() => {
+    client.get('/api/students', { params: { userId: teacherId } })
+      .then(res => setStudentCount((res.data || []).length))
+      .catch(() => setStudentCount(0));
+  }, [teacherId]);
 
   const [creating, setCreating] = useState(false);
 
@@ -101,6 +108,18 @@ function QrDistribution({ onClose }) {
             <span>제출 {statusData.submitted_count}명</span>
           </div>
         )}
+      </div>
+    );
+  }
+
+  if (step === 'setup' && studentCount === 0) {
+    return (
+      <div className="bg-white shadow rounded-xl p-6 text-center space-y-4">
+        <div className="text-4xl">👥</div>
+        <h2 className="text-base font-bold text-gray-800">학생명부를 먼저 등록해주세요</h2>
+        <p className="text-xs text-gray-500">QR 입장은 등록된 학생을 기준으로 연결됩니다.<br />학생 정보를 먼저 입력한 뒤 QR을 만들 수 있어요.</p>
+        <a href="/student-records" className="inline-block px-5 py-2.5 bg-purple-600 text-white font-semibold rounded-xl text-sm hover:bg-purple-700 transition">학생명부 입력하러 가기</a>
+        {onClose && <button onClick={onClose} className="block mx-auto text-xs text-gray-400 mt-2">닫기</button>}
       </div>
     );
   }
