@@ -19,10 +19,7 @@ function StudentLayout({ children }) {
           localStorage.removeItem('qr_student_number');
           localStorage.removeItem('qr_class_id');
           localStorage.removeItem('qr_student_id');
-          localStorage.removeItem('morning_activities');
-          localStorage.removeItem('manuscript_activities');
           localStorage.removeItem('pending_for_studio');
-          localStorage.removeItem('creative_collections');
           navigate('/join');
         }} className="text-xs text-gray-400 hover:text-gray-600">나가기</button>
       </header>
