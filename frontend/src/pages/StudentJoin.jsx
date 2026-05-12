@@ -78,16 +78,17 @@ function StudentJoin() {
         <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-sm text-center space-y-5">
           <div className="text-5xl">✏️</div>
           <h1 className="text-xl font-bold text-gray-900">아침 활동 입장</h1>
-          <p className="text-sm text-gray-500">선생님이 알려준 코드를 입력하세요</p>
+          <p className="text-sm text-gray-500">선생님이 보여준 QR을 찍거나,<br />참여 코드를 입력하세요</p>
           {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg p-2">{error}</p>}
           <input type="text" value={code} onChange={e => setCode(e.target.value.toUpperCase())}
             onKeyDown={e => e.key === 'Enter' && code.trim().length >= 4 && lookupSession(code.trim())}
             className="w-full border-2 border-gray-200 rounded-xl p-4 text-center text-2xl font-bold tracking-[0.3em] uppercase focus:border-purple-400 focus:ring-2 focus:ring-purple-200"
-            placeholder="코드 입력" maxLength={8} autoFocus />
+            placeholder="참여 코드" maxLength={8} autoFocus />
           <button onClick={() => lookupSession(code.trim())} disabled={code.trim().length < 4}
             className="w-full py-3 bg-purple-600 text-white font-semibold rounded-xl text-sm hover:bg-purple-700 disabled:bg-gray-300 transition">
             입장하기
           </button>
+          <p className="text-[10px] text-gray-400">QR이 잘 안 되면 코드로 다시 입장할 수 있어요</p>
         </div>
       </div>
     );

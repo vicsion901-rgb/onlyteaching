@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import client from '../api/client';
 
 const TYPE_LABELS = {
@@ -15,10 +16,13 @@ function TeacherActivityDashboard() {
   const teacherId = localStorage.getItem('userId') || '';
   const [submissions, setSubmissions] = useState([]);
   const [students, setStudents] = useState([]);
+  const [qrSessions, setQrSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSessionKey, setSelectedSessionKey] = useState(null);
   const [selectedSub, setSelectedSub] = useState(null);
   const [typeFilter, setTypeFilter] = useState('all');
+  const [qrModal, setQrModal] = useState(null);
+  const [copiedMsg, setCopiedMsg] = useState('');
 
   useEffect(() => {
     if (!teacherId) return;
@@ -26,7 +30,8 @@ function TeacherActivityDashboard() {
     Promise.all([
       client.get('/api/student-submissions', { params: { action: 'list', teacherId, limit: '500' } }).then(r => r.data?.data || []).catch(() => []),
       client.get('/api/students', { params: { userId: teacherId } }).then(r => r.data || []).catch(() => []),
-    ]).then(([subs, studs]) => { setSubmissions(subs); setStudents(studs); })
+      client.get('/api/qr-session', { params: { action: 'my-sessions', teacherId } }).then(r => r.data?.data || []).catch(() => []),
+    ]).then(([subs, studs, qrs]) => { setSubmissions(subs); setStudents(studs); setQrSessions(qrs); })
       .finally(() => setLoading(false));
   }, [teacherId]);
 
@@ -184,28 +189,36 @@ function TeacherActivityDashboard() {
       ) : (
         <div className="space-y-3">
           {filteredSessions.map(sess => {
-            const subCount = sess.subs.length;
             const submittedCount = sess.subs.filter(s => s.status === 'submitted').length;
             const recentNames = [...new Set(sess.subs.slice(0, 3).map(s => s.student_name).filter(Boolean))];
+            const qr = qrSessions.find(q => q.activity_type === sess.type && new Date(q.created_at).toLocaleDateString('ko-KR') === sess.date);
+            const isActive = qr && qr.is_active && new Date(qr.expires_at) > new Date();
             return (
-              <div key={sess.key} onClick={() => setSelectedSessionKey(sess.key)}
-                className="bg-white shadow rounded-xl p-4 hover:shadow-md cursor-pointer transition">
-                <div className="flex items-start justify-between">
+              <div key={sess.key} className="bg-white shadow rounded-xl p-4 hover:shadow-md transition">
+                <div className="flex items-start justify-between cursor-pointer" onClick={() => setSelectedSessionKey(sess.key)}>
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-gray-800">{sess.date}</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">{TYPE_LABELS[sess.type] || sess.type}</span>
+                      {qr && <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>{isActive ? 'QR 사용 가능' : '세션 종료'}</span>}
                     </div>
                     {sess.className && <p className="text-xs text-gray-400 mt-0.5">{sess.className}</p>}
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-green-600">{submittedCount}<span className="text-gray-400 font-normal">/{students.length || subCount}</span></p>
+                    <p className="text-sm font-bold text-green-600">{submittedCount}<span className="text-gray-400 font-normal">/{students.length || sess.subs.length}</span></p>
                     <p className="text-[10px] text-gray-400">제출</p>
                   </div>
                 </div>
-                {recentNames.length > 0 && (
-                  <p className="text-[10px] text-gray-400 mt-2">최근: {recentNames.join(', ')}</p>
+                {qr && (
+                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-50">
+                    <span className="text-xs text-gray-500">코드: <span className="font-bold tracking-wider">{qr.join_code}</span></span>
+                    <div className="flex-1" />
+                    <button onClick={(e) => { e.stopPropagation(); setQrModal(qr); }} className="text-[10px] px-2 py-1 text-purple-600 bg-purple-50 rounded font-medium hover:bg-purple-100">QR 보기</button>
+                    <button onClick={(e) => { e.stopPropagation(); navigator.clipboard?.writeText(`${window.location.origin}/join?code=${qr.join_code}`); setCopiedMsg(qr.join_code); setTimeout(() => setCopiedMsg(''), 1500); }}
+                      className="text-[10px] px-2 py-1 text-gray-500 bg-gray-50 rounded font-medium hover:bg-gray-100">{copiedMsg === qr.join_code ? '복사됨' : '링크 복사'}</button>
+                  </div>
                 )}
+                {recentNames.length > 0 && <p className="text-[10px] text-gray-400 mt-1.5">최근: {recentNames.join(', ')}</p>}
               </div>
             );
           })}
@@ -214,6 +227,26 @@ function TeacherActivityDashboard() {
               <p>아직 활동 세션이 없습니다</p>
             </div>
           )}
+        </div>
+      )}
+      {qrModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setQrModal(null)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-xs text-center space-y-4" onClick={e => e.stopPropagation()}>
+            <p className="text-sm font-semibold text-gray-800">{qrModal.class_name || '학급'} · {TYPE_LABELS[qrModal.activity_type] || qrModal.activity_type || '활동'}</p>
+            <div className="flex justify-center"><QRCodeSVG value={`${window.location.origin}/join?code=${qrModal.join_code}`} size={200} level="M" /></div>
+            <p className="text-3xl font-bold tracking-[0.3em] text-gray-800">{qrModal.join_code}</p>
+            <div className="text-xs text-gray-400 space-y-0.5">
+              <p>입장 {qrModal.joined_count || 0}명 · 제출 {qrModal.submitted_count || 0}명</p>
+              <p>유효: {qrModal.expires_at ? new Date(qrModal.expires_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '120분'}</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => { navigator.clipboard?.writeText(qrModal.join_code); setCopiedMsg('code'); setTimeout(() => setCopiedMsg(''), 1500); }}
+                className="flex-1 py-2 text-xs font-medium bg-gray-100 rounded-lg hover:bg-gray-200">{copiedMsg === 'code' ? '복사됨' : '코드 복사'}</button>
+              <button onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/join?code=${qrModal.join_code}`); setCopiedMsg('link'); setTimeout(() => setCopiedMsg(''), 1500); }}
+                className="flex-1 py-2 text-xs font-medium bg-gray-100 rounded-lg hover:bg-gray-200">{copiedMsg === 'link' ? '복사됨' : '링크 복사'}</button>
+            </div>
+            <button onClick={() => setQrModal(null)} className="text-xs text-gray-400 hover:text-gray-600">닫기</button>
+          </div>
         </div>
       )}
     </div>
