@@ -6,7 +6,6 @@ function ManuscriptGrid({ originalText, userInput, onInputChange, readOnly = fal
   const textareaRef = useRef(null);
   const cursorCellRef = useRef(null);
   const scrollRef = useRef(null);
-  const isPoem = mode === 'poem';
 
   const chars = originalText.replace(/\n/g, '').split('');
   const userChars = (userInput || '').replace(/\n/g, '').split('');
@@ -27,14 +26,16 @@ function ManuscriptGrid({ originalText, userInput, onInputChange, readOnly = fal
     const containerRect = container.getBoundingClientRect();
     const pad = 36;
 
-    const needsHorizontal = cellRect.right > containerRect.right - pad || cellRect.left < containerRect.left + pad;
-    const needsVertical = cellRect.bottom > containerRect.bottom - pad || cellRect.top < containerRect.top + pad;
-
-    if (needsHorizontal) {
-      container.scrollLeft += cellRect.left - containerRect.left - pad;
+    if (cellRect.right > containerRect.right - pad) {
+      container.scrollLeft += cellRect.right - containerRect.right + pad;
+    } else if (cellRect.left < containerRect.left + pad) {
+      container.scrollLeft -= containerRect.left + pad - cellRect.left;
     }
-    if (needsVertical) {
-      container.scrollTop += cellRect.top - containerRect.top - pad;
+
+    if (cellRect.bottom > containerRect.bottom - pad) {
+      container.scrollTop += cellRect.bottom - containerRect.bottom + pad;
+    } else if (cellRect.top < containerRect.top + pad) {
+      container.scrollTop -= containerRect.top + pad - cellRect.top;
     }
   }, [cursorPos]);
 
@@ -52,10 +53,8 @@ function ManuscriptGrid({ originalText, userInput, onInputChange, readOnly = fal
     const user = userChars[cellIdx] || '';
     if (!user) return 'empty';
     if (orig === user) return 'correct';
-    if (isPoem) {
-      if (orig === ' ' && user !== ' ') return 'space-miss';
-      if (orig !== ' ' && user === ' ') return 'space-extra';
-    }
+    if (orig === ' ' && user !== ' ') return 'space-miss';
+    if (orig !== ' ' && user === ' ') return 'space-extra';
     return 'wrong';
   };
 
@@ -116,9 +115,8 @@ function ManuscriptGrid({ originalText, userInput, onInputChange, readOnly = fal
       {!readOnly && (
         <div className="flex flex-wrap gap-3 mt-2 text-[10px] text-gray-400">
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-green-400 bg-green-50 inline-block" /> 맞음</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-red-400 bg-red-50 inline-block" /> {isPoem ? '글자 다름' : '틀림'}</span>
-          {isPoem && <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-amber-400 bg-amber-50 inline-block" /> 공백 차이</span>}
-          {!isPoem && <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-gray-200 bg-gray-50 inline-block" /> 빈칸=띄어쓰기</span>}
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-red-400 bg-red-50 inline-block" /> {mode === 'poem' ? '글자 다름' : '틀림'}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-amber-400 bg-amber-50 inline-block" /> 공백 차이</span>
         </div>
       )}
     </div>
