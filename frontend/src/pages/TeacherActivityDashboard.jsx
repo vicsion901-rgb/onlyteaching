@@ -40,12 +40,21 @@ function TeacherActivityDashboard() {
     submissions.forEach(s => {
       const date = s.submitted_at ? new Date(s.submitted_at).toLocaleDateString('ko-KR') : '날짜 없음';
       const type = s.activity_type || 'unknown';
-      const key = `${date}__${type}__${s.session_id || 'none'}`;
-      if (!map[key]) map[key] = { key, date, type, sessionId: s.session_id, className: s.class_id || '', subs: [] };
-      map[key].subs.push(s);
+      const sid = s.session_id || `${date}__${type}`;
+      const key = `${sid}__${s.class_id || ''}`;
+      if (!map[key]) map[key] = { key, date, type, sessionId: s.session_id, className: s.class_id || '', studentMap: {} };
+      const stKey = s.student_id || s.student_name || `anon_${map[key].studentMap.length}`;
+      if (!map[key].studentMap[stKey] || new Date(s.submitted_at || s.created_at) > new Date(map[key].studentMap[stKey].submitted_at || map[key].studentMap[stKey].created_at)) {
+        map[key].studentMap[stKey] = s;
+      }
     });
-    const list = Object.values(map);
-    list.sort((a, b) => new Date(b.subs[0]?.submitted_at || 0) - new Date(a.subs[0]?.submitted_at || 0));
+    const list = Object.values(map).map(sess => ({
+      ...sess,
+      latestSubs: Object.values(sess.studentMap),
+      uniqueStudentCount: Object.keys(sess.studentMap).length,
+      submittedStudentCount: Object.values(sess.studentMap).filter(s => s.status === 'submitted').length,
+    }));
+    list.sort((a, b) => new Date(b.latestSubs[0]?.submitted_at || 0) - new Date(a.latestSubs[0]?.submitted_at || 0));
     return list;
   }, [submissions]);
 
@@ -63,18 +72,16 @@ function TeacherActivityDashboard() {
 
   const sessionChecklist = useMemo(() => {
     if (!selectedSession) return [];
-    const subMap = {};
-    selectedSession.subs.forEach(s => {
-      const key = s.student_id || s.student_name || 'unknown';
-      if (!subMap[key]) subMap[key] = [];
-      subMap[key].push(s);
+    const latestMap = selectedSession.studentMap || {};
+    return students.map(st => {
+      const sub = latestMap[st.id] || latestMap[st.name] || null;
+      return {
+        ...st,
+        latestSub: sub,
+        status: sub ? (sub.status === 'submitted' ? 'submitted' : 'draft') : 'none',
+        submittedAt: sub?.submitted_at || sub?.created_at || null,
+      };
     });
-    return students.map(st => ({
-      ...st,
-      submissions: subMap[st.id] || subMap[st.name] || [],
-      status: (subMap[st.id] || subMap[st.name] || []).some(s => s.status === 'submitted') ? 'submitted'
-        : (subMap[st.id] || subMap[st.name] || []).length > 0 ? 'draft' : 'none',
-    }));
   }, [selectedSession, students]);
 
   if (selectedSub) {
@@ -129,7 +136,9 @@ function TeacherActivityDashboard() {
           {sessionChecklist.map(s => (
             <div key={s.id} className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
               <span className="text-xs text-gray-400 w-6 text-right">{s.number}</span>
-              <span className="text-sm font-medium text-gray-800 flex-1">{s.name}</span>
+              <span className="text-sm font-medium text-gray-800 flex-1">{s.name}
+                {s.submittedAt && <span className="text-[9px] text-gray-400 ml-1">{new Date(s.submittedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>}
+              </span>
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                 s.status === 'submitted' ? 'bg-green-100 text-green-700' :
                 s.status === 'draft' ? 'bg-amber-100 text-amber-700' :
@@ -137,8 +146,8 @@ function TeacherActivityDashboard() {
               }`}>
                 {s.status === 'submitted' ? '✅ 제출' : s.status === 'draft' ? '⏳ 작성중' : '❌ 미제출'}
               </span>
-              {s.submissions.length > 0 && (
-                <button onClick={() => setSelectedSub(s.submissions[0])} className="text-[10px] text-purple-600 hover:underline">보기</button>
+              {s.latestSub && (
+                <button onClick={() => setSelectedSub(s.latestSub)} className="text-[10px] text-purple-600 hover:underline">보기</button>
               )}
             </div>
           ))}
@@ -189,8 +198,7 @@ function TeacherActivityDashboard() {
       ) : (
         <div className="space-y-3">
           {filteredSessions.map(sess => {
-            const submittedCount = sess.subs.filter(s => s.status === 'submitted').length;
-            const recentNames = [...new Set(sess.subs.slice(0, 3).map(s => s.student_name).filter(Boolean))];
+            const recentNames = [...new Set(sess.latestSubs.slice(0, 3).map(s => s.student_name).filter(Boolean))];
             const qr = qrSessions.find(q => q.activity_type === sess.type && new Date(q.created_at).toLocaleDateString('ko-KR') === sess.date);
             const isActive = qr && qr.is_active && new Date(qr.expires_at) > new Date();
             return (
@@ -205,7 +213,7 @@ function TeacherActivityDashboard() {
                     {sess.className && <p className="text-xs text-gray-400 mt-0.5">{sess.className}</p>}
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-green-600">{submittedCount}<span className="text-gray-400 font-normal">/{students.length || sess.subs.length}</span></p>
+                    <p className="text-sm font-bold text-green-600">{sess.submittedStudentCount}<span className="text-gray-400 font-normal">/{students.length || sess.uniqueStudentCount}</span></p>
                     <p className="text-[10px] text-gray-400">제출</p>
                   </div>
                 </div>
