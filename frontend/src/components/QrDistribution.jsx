@@ -3,31 +3,37 @@ import { QRCodeSVG } from 'qrcode.react';
 import client from '../api/client';
 
 const ACTIVITY_OPTIONS = [
-  { id: '', label: '전체 (학생이 선택)' },
-  { id: 'poem-copy', label: '시 필사' },
-  { id: 'story-continue', label: '이야기 이어쓰기' },
-  { id: 'yesterday-diary', label: '어제 일기' },
-  { id: 'letter', label: '편지쓰기' },
-  { id: 'review', label: '짧은 감상문' },
-  { id: 'free-writing', label: '자유 글쓰기' },
+  { id: '', label: '학생이 직접 활동 고르기' },
+  { id: 'poem-copy', label: '시 필사 바로 시작' },
+  { id: 'story-continue', label: '이야기 이어쓰기 바로 시작' },
+  { id: 'yesterday-diary', label: '어제 일기 바로 시작' },
+  { id: 'letter', label: '편지쓰기 바로 시작' },
+  { id: 'review', label: '짧은 감상문 바로 시작' },
+  { id: 'free-writing', label: '자유 글쓰기 바로 시작' },
 ];
 
 function QrDistribution({ onClose }) {
   const [step, setStep] = useState('setup');
-  const [className, setClassName] = useState('');
   const [activityType, setActivityType] = useState('');
-  const [duration, setDuration] = useState(60);
   const [session, setSession] = useState(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [statusData, setStatusData] = useState(null);
   const [error, setError] = useState('');
+  const [studentCount, setStudentCount] = useState(null);
+  const [classInfo, setClassInfo] = useState({ name: '', id: '' });
 
   const teacherId = localStorage.getItem('userId') || localStorage.getItem('user_id') || 'teacher';
-  const [studentCount, setStudentCount] = useState(null);
 
   useEffect(() => {
     client.get('/api/students', { params: { userId: teacherId } })
-      .then(res => setStudentCount((res.data || []).length))
+      .then(res => {
+        const list = res.data || [];
+        setStudentCount(list.length);
+        if (list.length > 0) {
+          const schoolCode = localStorage.getItem('schoolCode') || '';
+          setClassInfo({ name: schoolCode || `${list.length}명 학급`, id: '' });
+        }
+      })
       .catch(() => setStudentCount(0));
   }, [teacherId]);
 
@@ -39,9 +45,9 @@ function QrDistribution({ onClose }) {
     try {
       const res = await client.post('/api/qr-session', {
         teacherId,
-        className: className.trim(),
+        className: classInfo.name,
         activityType: activityType || null,
-        durationMinutes: duration,
+        durationMinutes: 120,
       }, { params: { action: 'create' } });
       if (res.data?.error === 'schema_not_migrated') {
         setError('서버 설정이 필요합니다. 관리자에게 문의해 주세요.');
@@ -132,31 +138,29 @@ function QrDistribution({ onClose }) {
           {onClose && <button onClick={onClose} className="text-xs text-gray-400 hover:text-gray-600">닫기</button>}
         </div>
 
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">반/학급 이름</label>
-          <input type="text" value={className} onChange={e => setClassName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm" placeholder="예: 3학년 2반" />
+        <div className="bg-gray-50 rounded-lg p-3">
+          <p className="text-[10px] text-gray-400 mb-0.5">대상 학급</p>
+          <p className="text-sm font-semibold text-gray-800">{classInfo.name || '학급 정보 로딩 중...'}</p>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">활동 유형</label>
-          <select value={activityType} onChange={e => setActivityType(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm">
-            {ACTIVITY_OPTIONS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">QR 사용 시간</label>
-          <div className="flex gap-2">
-            {[30, 60, 120].map(m => (
-              <button key={m} onClick={() => setDuration(m)}
-                className={`flex-1 py-2 text-xs rounded-lg font-medium ${duration === m ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                {m}분
+          <label className="block text-xs font-medium text-gray-600 mb-1.5">활동 시작 방식</label>
+          <div className="space-y-1.5">
+            {ACTIVITY_OPTIONS.map(o => (
+              <button key={o.id} onClick={() => setActivityType(o.id)}
+                className={`w-full text-left px-3 py-2.5 rounded-lg border-2 text-sm transition ${
+                  activityType === o.id ? 'border-purple-400 bg-purple-50 font-semibold text-purple-800' : 'border-gray-100 text-gray-700 hover:border-purple-200'
+                }`}>
+                {o.label}
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-gray-400 mt-1">수업이 끝나면 자동 만료되거나 직접 종료할 수 있어요</p>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-3">
+          <p className="text-[10px] text-gray-400 mb-0.5">QR 사용 시간</p>
+          <p className="text-sm font-medium text-gray-700">120분</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">수업이 끝나면 자동 만료되거나 직접 종료할 수 있어요</p>
         </div>
 
         {error && (
