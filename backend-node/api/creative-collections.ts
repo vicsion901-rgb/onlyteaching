@@ -32,7 +32,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'GET' && action === 'list') {
       const userId = req.query.userId as string;
+      const studentId = req.query.studentId as string;
       if (!userId) return res.status(400).json({ error: 'userId required' });
+      if (studentId) {
+        const { rows } = await db.query(
+          'SELECT * FROM creative_collections WHERE user_id = $1 AND student_id = $2 ORDER BY created_at DESC',
+          [userId, Number(studentId)]
+        );
+        return res.json({ data: rows });
+      }
       const { rows } = await db.query(
         'SELECT * FROM creative_collections WHERE user_id = $1 ORDER BY created_at DESC',
         [userId]
@@ -49,13 +57,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST' && action === 'create') {
-      const { userId, title, description, collectionType, itemIds, items } = req.body;
+      const { userId, title, description, collectionType, itemIds, items, studentId } = req.body;
       if (!userId || !title) return res.status(400).json({ error: 'userId, title required' });
       const id = genId();
       const { rows } = await db.query(
-        `INSERT INTO creative_collections (id, user_id, title, description, collection_type, item_ids, items)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-        [id, userId, title, description || '', collectionType || 'general', itemIds || [], JSON.stringify(items || [])]
+        `INSERT INTO creative_collections (id, user_id, title, description, collection_type, item_ids, items, student_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        [id, userId, title, description || '', collectionType || 'general', itemIds || [], JSON.stringify(items || []), studentId || null]
       );
       return res.json({ data: rows[0] });
     }

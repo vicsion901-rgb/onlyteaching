@@ -4,11 +4,23 @@ function getUserId() {
   return localStorage.getItem('userId') || localStorage.getItem('user_id') || '';
 }
 
+function getStudentId() {
+  return localStorage.getItem('qr_student_id') || null;
+}
+
+function getStudentName() {
+  return localStorage.getItem('qr_student_name') || '';
+}
+
 async function fetchCollections() {
   const userId = getUserId();
   if (!userId) return getLocalCollections();
+  const params = { action: 'list', userId };
+  const studentId = getStudentId();
+  if (studentId) params.studentId = studentId;
+
   try {
-    const res = await client.get('/api/creative-collections', { params: { action: 'list', userId } });
+    const res = await client.get('/api/creative-collections', { params });
     const serverData = res.data?.data || [];
     const normalized = serverData.map(c => ({
       id: c.id,
@@ -47,6 +59,7 @@ async function fetchCollectionById(id) {
 
 async function createCollection({ title, description, items }) {
   const userId = getUserId();
+  const studentId = getStudentId();
   const itemIds = items.map(a => a._id).filter(Boolean);
 
   if (userId) {
@@ -57,6 +70,7 @@ async function createCollection({ title, description, items }) {
         description: description || '',
         itemIds,
         items,
+        studentId: studentId ? Number(studentId) : undefined,
       }, { params: { action: 'create' } });
       const c = res.data?.data;
       const result = {
@@ -73,9 +87,7 @@ async function createCollection({ title, description, items }) {
 
   const localCollection = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
-    title,
-    items,
-    itemIds,
+    title, items, itemIds,
     createdAt: new Date().toISOString(),
   };
   syncToLocal(localCollection);
