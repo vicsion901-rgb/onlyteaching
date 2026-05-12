@@ -2457,8 +2457,88 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
         </div>
       )}
 
-      {/* 책 본문 + 좌우 넘김 */}
-      <div className="flex-1 flex items-center justify-center relative">
+      {/* 날짜순 모드 */}
+      {editMode === 'date' && (
+        <div className="flex-1 overflow-auto p-6">
+          <p className="text-xs text-amber-400 mb-4">📅 날짜별 기록을 시간 순서대로 확인하고 정리하는 보기입니다</p>
+          <div className="space-y-4 max-w-3xl mx-auto">
+            {(() => {
+              const allBlocks = Object.entries(chapterBlocks).flatMap(([chId, blocks]) =>
+                blocks.map(b => ({ ...b, _chapterId: chId, _chapterTitle: chapters.find(c => c.id === chId)?.title || '' }))
+              );
+              const dateGroups = {};
+              allBlocks.forEach(b => {
+                const key = b.sourceDate || b.sourceMonth || '날짜 미지정';
+                if (!dateGroups[key]) dateGroups[key] = [];
+                dateGroups[key].push(b);
+              });
+              const sorted = Object.entries(dateGroups).sort((a, b) => a[0].localeCompare(b[0]));
+              if (sorted.length === 0) return <p className="text-sm text-stone-500 text-center py-8">날짜가 지정된 블록이 없습니다.<br />돌봄교실 기록을 연동하면 날짜별 편집이 가능합니다.</p>;
+              return sorted.map(([date, blocks]) => (
+                <div key={date} className="bg-white/90 rounded-xl p-4 shadow">
+                  <h3 className="text-sm font-bold text-amber-800 mb-2">{date}</h3>
+                  <div className="space-y-2">
+                    {blocks.map(b => (
+                      <div key={b.id} className="text-xs text-gray-700 leading-relaxed p-2 rounded bg-amber-50/50 border-l-2 border-amber-300">
+                        <p className="whitespace-pre-wrap">{b.currentText || b.originalText || ''}</p>
+                        <div className="flex gap-1.5 mt-1">
+                          {b.sourceLabel && <span className="text-[9px] text-amber-500">{b.sourceLabel}</span>}
+                          {b._chapterTitle && <span className="text-[9px] text-purple-400">→ {b._chapterTitle}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* 주제순 모드 */}
+      {editMode === 'theme' && (
+        <div className="flex-1 overflow-auto p-6">
+          <p className="text-xs text-amber-400 mb-4">🏷️ 비슷한 감정과 장면을 주제별로 묶어 보는 보기입니다</p>
+          <div className="space-y-4 max-w-3xl mx-auto">
+            {(() => {
+              const allBlocks = Object.entries(chapterBlocks).flatMap(([chId, blocks]) =>
+                blocks.map(b => ({ ...b, _chapterId: chId, _chapterTitle: chapters.find(c => c.id === chId)?.title || '' }))
+              );
+              const themeGroups = {};
+              allBlocks.forEach(b => {
+                const tags = b.themeTags?.length > 0 ? b.themeTags : ['미분류'];
+                tags.forEach(tag => {
+                  if (!themeGroups[tag]) themeGroups[tag] = [];
+                  themeGroups[tag].push(b);
+                });
+              });
+              const entries = Object.entries(themeGroups);
+              if (entries.length === 0 || (entries.length === 1 && entries[0][0] === '미분류')) {
+                return <p className="text-sm text-stone-500 text-center py-8">주제 태그가 지정된 블록이 없습니다.<br />돌봄교실 기록 연동 후 자동으로 주제가 분류됩니다.</p>;
+              }
+              return entries.map(([tag, blocks]) => (
+                <div key={tag} className="bg-white/90 rounded-xl p-4 shadow">
+                  <h3 className="text-sm font-bold text-purple-700 mb-2">🏷️ {tag} <span className="text-[10px] text-gray-400 font-normal">{blocks.length}개</span></h3>
+                  <div className="space-y-2">
+                    {blocks.map(b => (
+                      <div key={b.id} className="text-xs text-gray-700 leading-relaxed p-2 rounded bg-purple-50/50 border-l-2 border-purple-300">
+                        <p className="whitespace-pre-wrap">{b.currentText || b.originalText || ''}</p>
+                        <div className="flex gap-1.5 mt-1">
+                          {b.sourceDate && <span className="text-[9px] text-amber-500">{b.sourceDate}</span>}
+                          {b._chapterTitle && <span className="text-[9px] text-purple-400">→ {b._chapterTitle}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* 장별 모드: 책 본문 + 좌우 넘김 */}
+      {editMode === 'chapter' && <div className="flex-1 flex items-center justify-center relative">
         <button onClick={() => goSpread(spread - 1)} disabled={spread === 0} aria-label="이전 페이지"
           className="absolute left-0 top-0 bottom-0 w-6 flex items-center justify-center z-10 group">
           <span className={`text-2xl transition-opacity ${spread === 0 ? 'opacity-0' : 'opacity-60 group-hover:opacity-100'} text-white`}>‹</span>
@@ -2524,7 +2604,7 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
           className="absolute right-0 top-0 bottom-0 w-6 flex items-center justify-center z-10 group">
           <span className={`text-2xl transition-opacity ${spread === maxSpread ? 'opacity-0' : 'opacity-60 group-hover:opacity-100'} text-white`}>›</span>
         </button>
-      </div>
+      </div>}
 
       {/* conflict resolution UI */}
       {conflictInfo && (
@@ -2565,13 +2645,13 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
         </div>
       )}
 
-      {/* 하단 인디케이터 */}
-      <div className={`flex items-center justify-center gap-1.5 py-2 transition-opacity duration-500 ${controlsVisible ? 'opacity-100' : 'opacity-0'}`}>
+      {/* 하단 인디케이터 (장별 모드만) */}
+      {editMode === 'chapter' && <div className={`flex items-center justify-center gap-1.5 py-2 transition-opacity duration-500 ${controlsVisible ? 'opacity-100' : 'opacity-0'}`}>
         {Array.from({ length: maxSpread + 1 }).map((_, i) => (
           <button key={i} onClick={() => goSpread(i)} aria-label={`${i * 2 + 1}-${i * 2 + 2}장`}
             className={`w-1.5 h-1.5 rounded-full transition ${i === spread ? 'bg-amber-400 scale-150' : 'bg-stone-600 hover:bg-stone-500'}`} />
         ))}
-      </div>
+      </div>}
     </div>
   );
 }
