@@ -19,8 +19,22 @@ function ManuscriptGrid({ originalText, userInput, onInputChange, readOnly = fal
   }, [readOnly]);
 
   useEffect(() => {
-    if (cursorCellRef.current && scrollRef.current) {
-      cursorCellRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    const cell = cursorCellRef.current;
+    const container = scrollRef.current;
+    if (!cell || !container) return;
+
+    const cellRect = cell.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const pad = 36;
+
+    const needsHorizontal = cellRect.right > containerRect.right - pad || cellRect.left < containerRect.left + pad;
+    const needsVertical = cellRect.bottom > containerRect.bottom - pad || cellRect.top < containerRect.top + pad;
+
+    if (needsHorizontal) {
+      container.scrollLeft += cellRect.left - containerRect.left - pad;
+    }
+    if (needsVertical) {
+      container.scrollTop += cellRect.top - containerRect.top - pad;
     }
   }, [cursorPos]);
 
@@ -67,7 +81,7 @@ function ManuscriptGrid({ originalText, userInput, onInputChange, readOnly = fal
         />
       )}
 
-      <div ref={scrollRef} className="overflow-x-auto cursor-text" onClick={handleCellClick}>
+      <div ref={scrollRef} className="overflow-auto max-h-[60vh] cursor-text" onClick={handleCellClick}>
         <div className="inline-block">
           {Array.from({ length: rows }).map((_, row) => (
             <div key={row} className="flex">
