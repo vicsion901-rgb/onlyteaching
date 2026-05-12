@@ -1,9 +1,11 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 
 const COLS = 20;
 
 function ManuscriptGrid({ originalText, userInput, onInputChange, readOnly = false, showOriginal = true, mode = 'default' }) {
   const textareaRef = useRef(null);
+  const cursorCellRef = useRef(null);
+  const scrollRef = useRef(null);
   const isPoem = mode === 'poem';
 
   const chars = originalText.replace(/\n/g, '').split('');
@@ -16,14 +18,20 @@ function ManuscriptGrid({ originalText, userInput, onInputChange, readOnly = fal
     if (textareaRef.current && !readOnly) textareaRef.current.focus();
   }, [readOnly]);
 
-  const handleInput = (e) => {
+  useEffect(() => {
+    if (cursorCellRef.current && scrollRef.current) {
+      cursorCellRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+  }, [cursorPos]);
+
+  const handleInput = useCallback((e) => {
     if (readOnly) return;
     onInputChange(e.target.value);
-  };
+  }, [readOnly, onInputChange]);
 
-  const handleCellClick = () => {
+  const handleCellClick = useCallback(() => {
     if (!readOnly && textareaRef.current) textareaRef.current.focus();
-  };
+  }, [readOnly]);
 
   const getCharStatus = (cellIdx) => {
     const orig = chars[cellIdx] || '';
@@ -59,7 +67,7 @@ function ManuscriptGrid({ originalText, userInput, onInputChange, readOnly = fal
         />
       )}
 
-      <div className="overflow-x-auto cursor-text" onClick={handleCellClick}>
+      <div ref={scrollRef} className="overflow-x-auto cursor-text" onClick={handleCellClick}>
         <div className="inline-block">
           {Array.from({ length: rows }).map((_, row) => (
             <div key={row} className="flex">
@@ -74,7 +82,7 @@ function ManuscriptGrid({ originalText, userInput, onInputChange, readOnly = fal
                 const isCursor = !readOnly && cellIdx === cursorPos;
 
                 return (
-                  <div key={col} className="relative" onClick={handleCellClick}>
+                  <div key={col} ref={isCursor ? cursorCellRef : null} className="relative" onClick={handleCellClick}>
                     {showOriginal && (
                       <div className={`w-9 h-9 border border-gray-200 flex items-center justify-center text-[10px] ${isSpace ? 'bg-gray-50 text-gray-300' : 'text-gray-300'}`}>
                         {isSpace ? '␣' : origChar}
