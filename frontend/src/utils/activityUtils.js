@@ -119,9 +119,15 @@ function getAllActivities() {
 async function fetchAllActivitiesFromServer() {
   const userId = localStorage.getItem('userId') || localStorage.getItem('user_id');
   if (!userId) return getAllActivities();
+
+  const params = { action: 'list', teacherId: userId, limit: '200' };
+  const studentName = localStorage.getItem('qr_student_name');
+  const studentId = localStorage.getItem('qr_student_id');
+  if (studentId) params.studentId = studentId;
+
   try {
-    const res = await client.get('/api/student-submissions', { params: { action: 'list', teacherId: userId, limit: '200' } });
-    const serverRows = (res.data?.data || []).map(r => {
+    const res = await client.get('/api/student-submissions', { params });
+    let serverRows = (res.data?.data || []).map(r => {
       const hint = BOOK_HINTS[r.activity_type] || {};
       return {
         _id: r.id,
@@ -142,6 +148,9 @@ async function fetchAllActivitiesFromServer() {
         memo: '',
       };
     });
+    if (studentName && !studentId) {
+      serverRows = serverRows.filter(r => !r.studentName || r.studentName === studentName);
+    }
     if (serverRows.length > 0) return serverRows;
     return getAllActivities();
   } catch {
