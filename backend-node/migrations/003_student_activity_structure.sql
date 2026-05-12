@@ -201,3 +201,10 @@ CREATE TABLE IF NOT EXISTS student_activity_summaries (
 CREATE INDEX IF NOT EXISTS idx_summary_teacher_date ON student_activity_summaries(teacher_id, summary_date);
 CREATE INDEX IF NOT EXISTS idx_summary_student_date ON student_activity_summaries(student_id, summary_date);
 CREATE INDEX IF NOT EXISTS idx_summary_class_date ON student_activity_summaries(class_id, summary_date);
+
+-- ═══════════════════════════════════════
+-- I. student_records unique constraint 제거
+-- ═══════════════════════════════════════
+-- NestJS TypeORM이 number에 UNIQUE를 걸었으나,
+-- 교사별 학생 격리 구조에서는 number만 unique이면 교사 간 충돌 발생
+ALTER TABLE student_records DROP CONSTRAINT IF EXISTS "UQ_c929de0f2e45322a01904beda5c";
