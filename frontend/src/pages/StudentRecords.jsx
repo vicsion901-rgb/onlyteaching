@@ -288,7 +288,8 @@ function StudentRecords() {
     setIsSaving(true);
     setSaveMessage(mode === 'auto' ? '자동 저장 중...' : '저장 중...');
     try {
-      await client.post('/api/students', buildPayload(list));
+      const userId = localStorage.getItem('userId') || '';
+      await client.post('/api/students', { userId, students: buildPayload(list) });
       // 서버 저장 성공 — 화면은 현재 상태 유지 (덮어쓰지 않음)
       if (seq !== saveSeqRef.current) return;
       setSaveMessage(mode === 'auto' ? '자동 저장되었습니다.' : '저장되었습니다.');
@@ -298,7 +299,8 @@ function StudentRecords() {
       setSaveMessage('서버 저장 재시도 중...');
       // 백그라운드에서 1회 재시도
       setTimeout(() => {
-        client.post('/api/students', buildPayload(students)).catch(() => {});
+        const retryUserId = localStorage.getItem('userId') || '';
+        client.post('/api/students', { userId: retryUserId, students: buildPayload(students) }).catch(() => {});
         setSaveMessage('');
       }, 3000);
     } finally {
