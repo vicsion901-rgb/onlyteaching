@@ -230,36 +230,36 @@ const CHOICE_SENTENCES = {
 };
 
 const STUDENT_QUESTIONS = [
-  { id: 'sq1a', chapter: 0, text: '올해를 시작할 때 어떤 마음이었나요?' },
-  { id: 'sq1b', chapter: 0, text: '올해 학교에서 가장 기대했던 것은 무엇이었나요?' },
-  { id: 'sq1c', chapter: 0, text: '올해를 한마디로 표현하면 무엇인가요?' },
-  { id: 'sq2a', chapter: 1, text: '올해 나의 학교, 반 분위기는 어땠나요?' },
-  { id: 'sq2b', chapter: 1, text: '올해 나를 둘러싼 환경 중 기억나는 것은 무엇인가요?' },
-  { id: 'sq2c', chapter: 1, text: '올해 학교생활의 배경이 된 특별한 상황이 있었나요?' },
-  { id: 'sq3a', chapter: 2, text: '학기 초에 가장 먼저 겪은 일은 무엇이었나요?' },
-  { id: 'sq3b', chapter: 2, text: '올해 초반 가장 긴장되거나 설렜던 순간은 언제인가요?' },
-  { id: 'sq3c', chapter: 2, text: '학기 초에 가장 어려웠던 것은 무엇이었나요?' },
-  { id: 'sq4a', chapter: 3, text: '학교생활에 익숙해진 것은 언제쯤이었나요?' },
-  { id: 'sq4b', chapter: 3, text: '처음엔 어려웠지만 나중엔 잘하게 된 것이 있나요?' },
-  { id: 'sq4c', chapter: 3, text: '학교에서 편해졌다고 느낀 순간은 언제인가요?' },
-  { id: 'sq5a', chapter: 4, text: '올해 가장 좋았던 친구 관계는 무엇이었나요?' },
-  { id: 'sq5b', chapter: 4, text: '올해 함께해서 즐거웠던 활동이나 사람은 누구인가요?' },
-  { id: 'sq5c', chapter: 4, text: '친구나 선생님과의 관계에서 기억에 남는 장면은 무엇인가요?' },
-  { id: 'sq6a', chapter: 5, text: '올해 내가 맡았던 역할 중 기억에 남는 것은 무엇인가요?' },
-  { id: 'sq6b', chapter: 5, text: '내가 책임감을 느꼈던 순간은 언제인가요?' },
-  { id: 'sq6c', chapter: 5, text: '나에게 맡겨진 일 중 끝까지 해낸 것은 무엇인가요?' },
-  { id: 'sq7a', chapter: 6, text: '올해 나에게 일어난 가장 큰 변화는 무엇인가요?' },
-  { id: 'sq7b', chapter: 6, text: '힘들었지만 결국 성장하게 된 경험이 있나요?' },
-  { id: 'sq7c', chapter: 6, text: '올해 나를 바꾼 사건이나 순간은 무엇인가요?' },
-  { id: 'sq8a', chapter: 7, text: '올해를 떠올리면 가장 먼저 생각나는 장면은 무엇인가요?' },
-  { id: 'sq8b', chapter: 7, text: '지금의 나는 올해 초와 어떻게 달라졌나요?' },
-  { id: 'sq8c', chapter: 7, text: '올해 가장 뿌듯했던 순간은 언제인가요?' },
-  { id: 'sq9a', chapter: 8, text: '앞으로 하고 싶은 것이 있나요?' },
-  { id: 'sq9b', chapter: 8, text: '내년에 되고 싶은 모습은 어떤 모습인가요?' },
-  { id: 'sq9c', chapter: 8, text: '앞으로도 계속하고 싶은 것은 무엇인가요?' },
-  { id: 'sq10a', chapter: 9, text: '올해의 나에게 해주고 싶은 말이 있다면 무엇인가요?' },
-  { id: 'sq10b', chapter: 9, text: '내년의 나에게 건네고 싶은 한마디는 무엇인가요?' },
-  { id: 'sq10c', chapter: 9, text: '마지막으로 꼭 남기고 싶은 말은 무엇인가요?' },
+  { id: 'sq1a', chapter: 0, text: '올해 시작할 때 어떤 마음이었어?' },
+  { id: 'sq1b', chapter: 0, text: '학교에서 가장 기대한 건 뭐였어?' },
+  { id: 'sq1c', chapter: 0, text: '올해를 한마디로 하면?' },
+  { id: 'sq2a', chapter: 1, text: '우리 반 분위기는 어땠어?' },
+  { id: 'sq2b', chapter: 1, text: '학교에서 기억나는 환경이 있어?' },
+  { id: 'sq2c', chapter: 1, text: '특별한 상황이 있었어?' },
+  { id: 'sq3a', chapter: 2, text: '학기 초에 처음 겪은 일은?' },
+  { id: 'sq3b', chapter: 2, text: '초반에 긴장되거나 설렜던 순간은?' },
+  { id: 'sq3c', chapter: 2, text: '학기 초에 어려웠던 건?' },
+  { id: 'sq4a', chapter: 3, text: '학교가 익숙해진 건 언제쯤이야?' },
+  { id: 'sq4b', chapter: 3, text: '어려웠다가 잘하게 된 게 있어?' },
+  { id: 'sq4c', chapter: 3, text: '편해졌다고 느낀 순간은?' },
+  { id: 'sq5a', chapter: 4, text: '올해 가장 좋았던 친구 관계는?' },
+  { id: 'sq5b', chapter: 4, text: '함께해서 즐거웠던 사람이나 활동은?' },
+  { id: 'sq5c', chapter: 4, text: '기억에 남는 관계 장면은?' },
+  { id: 'sq6a', chapter: 5, text: '맡았던 역할 중 기억나는 건?' },
+  { id: 'sq6b', chapter: 5, text: '책임감을 느낀 순간은?' },
+  { id: 'sq6c', chapter: 5, text: '끝까지 해낸 일이 있어?' },
+  { id: 'sq7a', chapter: 6, text: '올해 가장 큰 변화는 뭐야?' },
+  { id: 'sq7b', chapter: 6, text: '힘들었지만 성장한 경험은?' },
+  { id: 'sq7c', chapter: 6, text: '나를 바꾼 사건이나 순간은?' },
+  { id: 'sq8a', chapter: 7, text: '올해 가장 먼저 떠오르는 장면은?' },
+  { id: 'sq8b', chapter: 7, text: '올해 초와 지금, 뭐가 달라졌어?' },
+  { id: 'sq8c', chapter: 7, text: '가장 뿌듯했던 순간은?' },
+  { id: 'sq9a', chapter: 8, text: '앞으로 하고 싶은 건?' },
+  { id: 'sq9b', chapter: 8, text: '되고 싶은 모습은?' },
+  { id: 'sq9c', chapter: 8, text: '계속하고 싶은 건 뭐야?' },
+  { id: 'sq10a', chapter: 9, text: '올해의 나에게 해주고 싶은 말은?' },
+  { id: 'sq10b', chapter: 9, text: '내년의 나에게 한마디?' },
+  { id: 'sq10c', chapter: 9, text: '꼭 남기고 싶은 말은?' },
 ];
 
 const FOLLOW_UP_RULES = [
@@ -336,7 +336,7 @@ const SOURCE_CHAPTER_KEYWORDS = {
 };
 
 // ─── 고정 챕터 구조 (연간 자서전) ───
-const FIXED_CHAPTERS = [
+const TEACHER_CHAPTERS = [
   { id: 'opening', title: '시작하는 글', period: '올해를 여는 마음', placeholder: '올해의 전체 분위기와 시작점을 정리하는 프롤로그입니다.' },
   { id: 'environment', title: '올해의 환경과 현실', period: '환경과 분위기', placeholder: '올해의 조건, 학교 분위기, 업무 현실을 설명합니다.' },
   { id: 'early', title: '학교생활의 초반', period: '시작과 긴장', placeholder: '연초 적응기, 첫 업무, 초반의 긴장과 몰입을 담습니다.' },
@@ -348,6 +348,25 @@ const FIXED_CHAPTERS = [
   { id: 'future', title: '앞으로의 마음', period: '내년을 향한 시선', placeholder: '미래 시선, 다음 해를 향한 다짐, 후배/동료에게 남기는 말을 담습니다.' },
   { id: 'closing', title: '맺는 글', period: '올해를 닫으며', placeholder: '에필로그, 올해의 마무리, 마지막 문장을 정리합니다.' },
 ];
+
+const STUDENT_CHAPTERS = [
+  { id: 'opening', title: '나는 이런 사람', period: '올해를 여는 마음', placeholder: '나를 소개하고 올해를 시작하는 마음을 담아요.' },
+  { id: 'environment', title: '나의 학교와 반', period: '올해의 배경', placeholder: '학교와 반 분위기, 나를 둘러싼 환경을 기록해요.' },
+  { id: 'early', title: '처음 학교생활', period: '시작과 설렘', placeholder: '학기 초 첫 경험과 긴장, 설렘을 담아요.' },
+  { id: 'settling', title: '익숙해지는 날들', period: '적응과 성장', placeholder: '학교에 익숙해지는 과정을 기록해요.' },
+  { id: 'relations', title: '친구들과의 기억', period: '함께한 순간', placeholder: '친구, 선생님과의 추억을 담아요.' },
+  { id: 'responsibility', title: '내가 맡은 역할', period: '책임과 보람', placeholder: '역할과 활동에서 느낀 책임감을 기록해요.' },
+  { id: 'turning', title: '나를 바꾼 순간', period: '변화와 성장', placeholder: '성장하게 된 경험, 나를 바꾼 사건을 담아요.' },
+  { id: 'present', title: '좋아하는 나', period: '지금의 나', placeholder: '달라진 나, 자랑스러운 점을 기록해요.' },
+  { id: 'future', title: '앞으로의 나', period: '미래를 향해', placeholder: '되고 싶은 모습과 꿈을 담아요.' },
+  { id: 'closing', title: '나에게 보내는 편지', period: '올해를 닫으며', placeholder: '올해의 나에게 보내는 마지막 말을 담아요.' },
+];
+
+const FIXED_CHAPTERS = TEACHER_CHAPTERS;
+
+function getChaptersForTab(tab) {
+  return tab === 'student' ? STUDENT_CHAPTERS : TEACHER_CHAPTERS;
+}
 
 // ─── 블록 관련 상수 ───
 const SOURCE_LABELS = {
@@ -977,7 +996,7 @@ function AutobiographyCompilation() {
               {genMode === 'quick' ? (
                 <QuickModePanel quickAnswers={quickAnswers} setQuickAnswers={setQuickAnswers} quickChoices={quickChoices} setQuickChoices={setQuickChoices} />
               ) : (
-                <QuestionsSection questions={STUDENT_QUESTIONS} questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} followUps={followUps} setFollowUps={setFollowUps} followUpAnswers={followUpAnswers} setFollowUpAnswers={setFollowUpAnswers} expandedQ={expandedQ} setExpandedQ={setExpandedQ} isOpen={isQuestionsOpen} setIsOpen={setIsQuestionsOpen} />
+                <QuestionsSection questions={STUDENT_QUESTIONS} questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} followUps={followUps} setFollowUps={setFollowUps} followUpAnswers={followUpAnswers} setFollowUpAnswers={setFollowUpAnswers} expandedQ={expandedQ} setExpandedQ={setExpandedQ} isOpen={isQuestionsOpen} setIsOpen={setIsQuestionsOpen} chaptersConfig={STUDENT_CHAPTERS} />
               )}
             </div>
           ) : (
@@ -1087,7 +1106,7 @@ function AutobiographyCompilation() {
               {genMode === 'quick' ? (
                 <QuickModePanel quickAnswers={quickAnswers} setQuickAnswers={setQuickAnswers} quickChoices={quickChoices} setQuickChoices={setQuickChoices} />
               ) : (
-                <QuestionsSection questions={TEACHER_QUESTIONS} questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} followUps={followUps} setFollowUps={setFollowUps} followUpAnswers={followUpAnswers} setFollowUpAnswers={setFollowUpAnswers} expandedQ={expandedQ} setExpandedQ={setExpandedQ} isOpen={isQuestionsOpen} setIsOpen={setIsQuestionsOpen} />
+                <QuestionsSection questions={TEACHER_QUESTIONS} questionAnswers={questionAnswers} setQuestionAnswers={setQuestionAnswers} followUps={followUps} setFollowUps={setFollowUps} followUpAnswers={followUpAnswers} setFollowUpAnswers={setFollowUpAnswers} expandedQ={expandedQ} setExpandedQ={setExpandedQ} isOpen={isQuestionsOpen} setIsOpen={setIsQuestionsOpen} chaptersConfig={TEACHER_CHAPTERS} />
               )}
             </div>
           )}
@@ -1298,7 +1317,7 @@ function QuickModePanel({ quickAnswers, setQuickAnswers, quickChoices, setQuickC
 
 // ─── 질문 섹션 컴포넌트 (정밀 모드) ───
 
-function QuestionsSection({ questions, questionAnswers, setQuestionAnswers, followUps, setFollowUps, followUpAnswers, setFollowUpAnswers, expandedQ, setExpandedQ, isOpen, setIsOpen }) {
+function QuestionsSection({ questions, questionAnswers, setQuestionAnswers, followUps, setFollowUps, followUpAnswers, setFollowUpAnswers, expandedQ, setExpandedQ, isOpen, setIsOpen, chaptersConfig }) {
   const answeredCount = questions.filter(q => questionAnswers[q.id]?.trim()).length;
   const chapterGroups = useMemo(() => {
     const groups = {};
@@ -1321,7 +1340,7 @@ function QuestionsSection({ questions, questionAnswers, setQuestionAnswers, foll
       {isOpen && (
         <div className="mt-3 space-y-3">
           {chapterGroups.map(([chIdx, qs]) => {
-            const ch = FIXED_CHAPTERS[Number(chIdx)];
+            const ch = (chaptersConfig || FIXED_CHAPTERS)[Number(chIdx)];
             if (!ch) return null;
             const groupAnswered = qs.filter(q => questionAnswers[q.id]?.trim()).length;
             const isGroupExpanded = qs.some(q => expandedQ === q.id);
@@ -1931,13 +1950,12 @@ function ChapterContent({ ch, idx, blocks, onAddBlock, onUpdateBlock, onDeleteBl
 
 function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sourceData, questionAnswers, setQuestionAnswers, followUps, setFollowUps, followUpAnswers, setFollowUpAnswers }) {
   const [spread, setSpread] = useState(0);
-  const [showToc, setShowToc] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [showQuestions, setShowQuestions] = useState(false);
+  const [activePanel, setActivePanel] = useState('none');
   const [editMode, setEditMode] = useState('chapter');
   const [expandedQ, setExpandedQ] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [searchCategory, setSearchCategory] = useState('all');
   const [pageInput, setPageInput] = useState('');
   const [highlight, setHighlight] = useState('');
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -1949,12 +1967,18 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
   const [proofreadResults, setProofreadResults] = useState({});
   const [isProofreading, setIsProofreading] = useState(false);
 
+  const tabChapters = getChaptersForTab(activeTab);
   const allChapters = useMemo(() => parseResponseToChapters(response), [response]);
   const chapters = useMemo(() => {
-    if (chapterOrder && chapterOrder.length === allChapters.length) {
-      return chapterOrder.map(i => allChapters[i]);
-    }
-    return allChapters;
+    const base = (chapterOrder && chapterOrder.length === allChapters.length)
+      ? chapterOrder.map(i => allChapters[i])
+      : allChapters;
+    return base.map((ch, i) => ({
+      ...ch,
+      title: tabChapters[i]?.title || ch.title,
+      period: tabChapters[i]?.period || ch.period,
+      placeholder: tabChapters[i]?.placeholder || ch.placeholder,
+    }));
   }, [allChapters, chapterOrder]);
   const maxSpread = Math.ceil(chapters.length / 2) - 1;
   const leftIdx = spread * 2;
@@ -2299,30 +2323,111 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
 
   // ── 검색 ──
 
+  const makeSnippet = (text, query, contextLen = 30) => {
+    const lower = text.toLowerCase();
+    const idx = lower.indexOf(query.toLowerCase());
+    if (idx < 0) return text.slice(0, 80) + (text.length > 80 ? '...' : '');
+    const start = Math.max(0, idx - contextLen);
+    const end = Math.min(text.length, idx + query.length + contextLen);
+    const before = (start > 0 ? '...' : '') + text.slice(start, idx);
+    const match = text.slice(idx, idx + query.length);
+    const after = text.slice(idx + query.length, end) + (end < text.length ? '...' : '');
+    return { before, match, after };
+  };
+
   const doSearch = () => {
     if (!searchQuery.trim()) { setSearchResults([]); return; }
     const q = searchQuery.trim().toLowerCase();
     const results = [];
-    chapters.forEach((ch, i) => {
-      const blocks = chapterBlocks[ch.id] || [];
-      const blockTexts = blocks.map(b => b.currentText).join(' ');
-      const searchable = [`제${i + 1}장`, `${i + 1}`, ch.title, ch.period, ch.content || '', blockTexts, ch.placeholder || ''].join(' ');
-      const idx = searchable.toLowerCase().indexOf(q);
-      if (idx >= 0) {
-        const textSource = blockTexts || ch.content || ch.placeholder || ch.title;
-        const srcIdx = textSource.toLowerCase().indexOf(q);
-        const start = Math.max(0, srcIdx - 20);
-        const snippet = srcIdx >= 0 ? '...' + textSource.slice(start, srcIdx + q.length + 30) + '...' : ch.title;
-        results.push({ page: i, title: ch.title, snippet });
-      }
-    });
+    const cat = searchCategory;
+    const allQs = activeTab === 'student' ? STUDENT_QUESTIONS : TEACHER_QUESTIONS;
+
+    if (cat === 'all' || cat === 'block') {
+      chapters.forEach((ch, i) => {
+        const blocks = chapterBlocks[ch.id] || [];
+        blocks.forEach((b, bIdx) => {
+          const text = b.currentText || '';
+          if (text.toLowerCase().includes(q)) {
+            results.push({
+              page: i, title: ch.title, type: 'block',
+              typeLabel: b.sourceLabel || '본문',
+              snippet: makeSnippet(text, searchQuery.trim()),
+              blockId: b.id, chapterId: ch.id,
+            });
+          }
+        });
+      });
+    }
+
+    if (cat === 'all' || cat === 'question') {
+      allQs.forEach(qItem => {
+        const chTitle = tabChapters[qItem.chapter]?.title || '';
+        const ans = questionAnswers?.[qItem.id] || '';
+        if (ans.toLowerCase().includes(q)) {
+          results.push({
+            page: qItem.chapter, title: chTitle, type: 'question',
+            typeLabel: '질문 답변',
+            questionText: qItem.text,
+            snippet: makeSnippet(ans, searchQuery.trim()),
+            questionId: qItem.id,
+          });
+        } else if (qItem.text.toLowerCase().includes(q)) {
+          results.push({
+            page: qItem.chapter, title: chTitle, type: 'question',
+            typeLabel: '질문',
+            snippet: makeSnippet(qItem.text, searchQuery.trim()),
+            questionId: qItem.id,
+          });
+        }
+      });
+    }
+
+    if (cat === 'all' || cat === 'date') {
+      Object.entries(chapterBlocks).forEach(([chId, blocks]) => {
+        const chIdx = chapters.findIndex(c => c.id === chId);
+        blocks.forEach(b => {
+          if (b.sourceDate || b.sourceMonth) {
+            const dateStr = b.sourceDate || b.sourceMonth || '';
+            const text = b.currentText || '';
+            if (dateStr.toLowerCase().includes(q) || text.toLowerCase().includes(q)) {
+              results.push({
+                page: chIdx >= 0 ? chIdx : undefined,
+                title: dateStr, type: 'date',
+                typeLabel: dateStr,
+                snippet: makeSnippet(text || dateStr, searchQuery.trim()),
+                blockId: b.id, chapterId: chId,
+              });
+            }
+          }
+        });
+      });
+    }
+
+    if (cat === 'all' || cat === 'block') {
+      chapters.forEach((ch, i) => {
+        if (ch.title.toLowerCase().includes(q) || ch.period.toLowerCase().includes(q)) {
+          if (!results.some(r => r.page === i && r.type === 'block')) {
+            results.push({
+              page: i, title: ch.title, type: 'chapter',
+              typeLabel: '장',
+              snippet: makeSnippet(`제${i + 1}장 ${ch.title} — ${ch.period}`, searchQuery.trim()),
+            });
+          }
+        }
+      });
+    }
+
     setSearchResults(results);
     setHighlight(searchQuery.trim());
   };
 
+  useEffect(() => {
+    if (searchQuery.trim()) doSearch();
+  }, [searchCategory]);
+
   const goToPage = () => {
     const n = Number(pageInput);
-    if (n >= 1 && n <= chapters.length) { goPage(n - 1); setShowSearch(false); setPageInput(''); }
+    if (n >= 1 && n <= chapters.length) { goPage(n - 1); setActivePanel('none'); setPageInput(''); }
   };
 
   // 블록 수 요약
@@ -2339,17 +2444,17 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
       {/* 상단 바 */}
       <div className={`flex items-center justify-between px-4 py-2 bg-black/60 transition-opacity duration-500 ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="flex items-center gap-2">
-          <button onClick={() => { setShowToc(!showToc); setShowSearch(false); setShowQuestions(false); }} className="text-xs text-amber-300 hover:text-white border border-amber-800 rounded px-2 py-1" aria-label="목차">☰ 목차</button>
-          <button onClick={() => { setShowSearch(!showSearch); setShowToc(false); setShowQuestions(false); }} className="text-xs text-amber-300 hover:text-white border border-amber-800 rounded px-2 py-1" aria-label="검색">🔍 검색</button>
-          <button onClick={() => { setShowQuestions(!showQuestions); setShowToc(false); setShowSearch(false); }} className="text-xs text-purple-300 hover:text-white border border-purple-800 rounded px-2 py-1" aria-label="질문">📝 질문</button>
+          <button onClick={() => setActivePanel(activePanel === 'toc' ? 'none' : 'toc')} className={`text-xs border rounded px-2 py-1 transition ${activePanel === 'toc' ? 'bg-amber-600 text-white border-amber-500' : 'text-amber-300 hover:text-white border-amber-800'}`} aria-label="목차">☰ 목차</button>
+          <button onClick={() => setActivePanel(activePanel === 'search' ? 'none' : 'search')} className={`text-xs border rounded px-2 py-1 transition ${activePanel === 'search' ? 'bg-amber-600 text-white border-amber-500' : 'text-amber-300 hover:text-white border-amber-800'}`} aria-label="검색">🔍 검색</button>
+          <button onClick={() => setActivePanel(activePanel === 'question' ? 'none' : 'question')} className={`text-xs border rounded px-2 py-1 transition ${activePanel === 'question' ? 'bg-purple-600 text-white border-purple-500' : 'text-purple-300 hover:text-white border-purple-800'}`} aria-label="질문">📝 질문</button>
           <span className="text-xs text-stone-400 ml-2">{leftIdx + 1}~{Math.min(rightIdx + 1, chapters.length)} / {chapters.length}장</span>
           <span className="text-stone-600 mx-1">|</span>
           {[
-            { id: 'chapter', label: '📖 장별' },
-            { id: 'date', label: '📅 날짜순' },
-            { id: 'theme', label: '🏷️ 주제순' },
+            { id: 'chapter', label: '📖 장별', tip: '최종 책 흐름' },
+            { id: 'date', label: '📅 날짜순', tip: '원본 시간 순서' },
+            { id: 'theme', label: '🏷️ 주제순', tip: '감정·주제 묶음' },
           ].map(m => (
-            <button key={m.id} onClick={() => setEditMode(m.id)}
+            <button key={m.id} onClick={() => setEditMode(m.id)} title={m.tip}
               className={`text-[10px] px-2 py-0.5 rounded ${editMode === m.id ? 'bg-purple-600 text-white' : 'text-stone-400 hover:text-white'}`}>
               {m.label}
             </button>
@@ -2383,84 +2488,224 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
       </div>
 
       {/* 목차 패널 */}
-      {showToc && (
-        <div className="absolute left-2 top-12 z-20 w-64 bg-white/95 rounded-lg shadow-2xl border border-amber-200 py-1 max-h-[75vh] overflow-y-auto backdrop-blur">
-          <div className="px-3 py-1.5 text-xs font-bold text-amber-800 border-b border-amber-100">목차</div>
+      {activePanel === 'toc' && (
+        <div className="absolute left-2 top-12 z-20 w-72 bg-white/95 rounded-lg shadow-2xl border border-amber-200 py-1 max-h-[75vh] overflow-y-auto backdrop-blur">
+          <div className="px-3 py-2 border-b border-amber-100">
+            <div className="text-xs font-bold text-amber-800">☰ 목차 패널</div>
+            <p className="text-[10px] text-gray-400 mt-0.5">책의 흐름을 따라 이동합니다</p>
+          </div>
           {chapters.map((c, i) => {
             const summary = getBlockSummary(c.id);
+            const questions = (activeTab === 'student' ? STUDENT_QUESTIONS : TEACHER_QUESTIONS).filter(q => q.chapter === i);
+            const answeredQs = questions.filter(q => questionAnswers?.[q.id]?.trim()).length;
+            const isCurrent = Math.floor(i / 2) === spread;
+            const status = summary.total > 0 ? 'draft' : answeredQs > 0 ? 'question' : 'empty';
             return (
-              <button key={c.id} onClick={() => { goPage(i); setShowToc(false); }}
-                className={`w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-amber-50 ${Math.floor(i / 2) === spread ? 'bg-amber-100 font-semibold text-amber-900' : 'text-gray-700'}`}>
-                <span className="text-[10px] text-amber-500 w-4">{i + 1}</span>
-                <span className="flex-1 truncate">{c.title}</span>
-                <div className="flex items-center gap-1">
-                  {summary.total > 0 && (
-                    <span className="text-[9px] text-gray-400">{summary.total}블록</span>
-                  )}
-                  <span className={`w-1.5 h-1.5 rounded-full ${summary.total > 0 || c.status === 'filled' ? 'bg-emerald-400' : 'bg-gray-300'}`} />
+              <button key={c.id} onClick={() => { goPage(i); setActivePanel('none'); }}
+                className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-amber-50 transition ${isCurrent ? 'bg-amber-100 border-l-3 border-amber-500' : ''}`}>
+                <span className={`text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold ${isCurrent ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-500'}`}>{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <span className={`block truncate ${isCurrent ? 'font-semibold text-amber-900' : 'text-gray-700'}`}>{c.title}</span>
+                  <span className="text-[9px] text-gray-400">{c.period}</span>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {status === 'draft' && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-600 font-medium">초안 {summary.total}</span>}
+                  {status === 'question' && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600 font-medium">질문 {answeredQs}/{questions.length}</span>}
+                  {status === 'empty' && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400">비어있음</span>}
+                  {status === 'draft' && answeredQs > 0 && <span className="text-[9px] px-1 py-0.5 rounded-full bg-purple-100 text-purple-500">Q{answeredQs}</span>}
                 </div>
               </button>
             );
           })}
+          <div className="px-3 py-2 border-t border-amber-100 mt-1">
+            <div className="flex items-center justify-between text-[10px] text-gray-400">
+              <span>전체 {chapters.length}장</span>
+              <span>초안 {chapters.filter((c) => (chapterBlocks[c.id] || []).length > 0).length}장 작성</span>
+            </div>
+          </div>
         </div>
       )}
 
       {/* 검색 패널 */}
-      {showSearch && (
-        <div className="absolute right-2 top-12 z-20 w-72 bg-white/95 rounded-lg shadow-2xl border border-amber-200 p-3 backdrop-blur">
-          <div className="text-xs font-bold text-gray-800 mb-2">단어 검색</div>
-          <div className="flex gap-1 mb-2">
-            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && doSearch()}
-              className="flex-1 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400" placeholder="검색어 입력" autoFocus />
-            <button onClick={doSearch} className="text-xs bg-amber-500 text-white rounded px-2 py-1 hover:bg-amber-600">검색</button>
-          </div>
-          {searchResults.length > 0 && (
-            <div className="max-h-40 overflow-y-auto space-y-1">
-              {searchResults.map((r, i) => (
-                <button key={i} onClick={() => { goPage(r.page); setShowSearch(false); }}
-                  className="w-full text-left px-2 py-1.5 text-xs bg-gray-50 hover:bg-amber-50 rounded border border-gray-100">
-                  <span className="font-semibold text-amber-700">{r.page + 1}장 {r.title}</span>
-                  <p className="text-gray-500 mt-0.5 truncate">{r.snippet}</p>
+      {activePanel === 'search' && (
+        <div className="absolute right-2 top-12 z-20 w-80 bg-white/95 rounded-lg shadow-2xl border border-amber-200 backdrop-blur max-h-[75vh] flex flex-col">
+          <div className="px-3 pt-3 pb-2 border-b border-gray-100 flex-shrink-0">
+            <div className="text-xs font-bold text-gray-800 mb-0.5">🔍 편찬 재료 통합 검색</div>
+            <p className="text-[10px] text-gray-400">본문, 질문, 날짜 기록을 함께 찾습니다</p>
+            <div className="flex gap-1 mt-2">
+              <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && doSearch()}
+                className="flex-1 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400" placeholder="검색어 입력..." autoFocus />
+              <button onClick={doSearch} className="text-xs bg-amber-500 text-white rounded px-2 py-1 hover:bg-amber-600">검색</button>
+            </div>
+            <div className="flex gap-1 mt-1.5">
+              {[
+                { id: 'all', label: '전체', icon: '' },
+                { id: 'block', label: '본문', icon: '📄' },
+                { id: 'question', label: '질문', icon: '📝' },
+                { id: 'date', label: '날짜', icon: '📅' },
+              ].map(catItem => (
+                <button key={catItem.id} onClick={() => setSearchCategory(catItem.id)}
+                  className={`text-[10px] px-2 py-0.5 rounded-full border transition ${searchCategory === catItem.id ? 'bg-amber-500 text-white border-amber-500' : 'text-gray-500 border-gray-200 hover:border-amber-300'}`}>
+                  {catItem.icon} {catItem.label}
                 </button>
               ))}
             </div>
-          )}
-          {searchQuery && searchResults.length === 0 && <p className="text-xs text-gray-400">결과 없음</p>}
-          <div className="border-t border-gray-200 mt-2 pt-2">
-            <div className="text-xs font-bold text-gray-800 mb-1">페이지 이동</div>
-            <div className="flex gap-1">
+          </div>
+          <div className="flex-1 overflow-y-auto px-3 py-2">
+            {searchResults.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-gray-400 mb-1">{searchResults.length}건</p>
+                {searchResults.map((r, i) => {
+                  const snippet = r.snippet;
+                  const isStructured = snippet && typeof snippet === 'object';
+                  const TYPE_ICON = { block: '📄', question: '📝', date: '📅', chapter: '📖' };
+                  const TYPE_COLOR = { block: 'bg-amber-100 text-amber-700', question: 'bg-purple-100 text-purple-600', date: 'bg-blue-100 text-blue-600', chapter: 'bg-gray-100 text-gray-600' };
+                  return (
+                    <button key={i} onClick={() => {
+                      if (r.page !== undefined) goPage(r.page);
+                      if (r.questionId) { setExpandedQ(r.questionId); setActivePanel('question'); }
+                      else { setActivePanel('none'); }
+                      setHighlight(searchQuery.trim());
+                    }}
+                      className="w-full text-left px-2.5 py-2 text-xs rounded-lg border border-gray-100 hover:border-amber-200 hover:bg-amber-50/50 transition group">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${TYPE_COLOR[r.type] || 'bg-gray-100 text-gray-600'}`}>
+                          {TYPE_ICON[r.type] || ''} {r.typeLabel}
+                        </span>
+                        {r.page !== undefined && <span className="text-[9px] text-gray-400">{r.page + 1}장</span>}
+                        <span className="text-[10px] font-medium text-gray-600 truncate flex-1">{r.title}</span>
+                      </div>
+                      {r.questionText && <p className="text-[10px] text-purple-500 mt-0.5 truncate">{r.questionText}</p>}
+                      <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">
+                        {isStructured ? (
+                          <>{snippet.before}<mark className="bg-amber-200 text-amber-900 rounded px-0.5">{snippet.match}</mark>{snippet.after}</>
+                        ) : snippet}
+                      </p>
+                      <span className="text-[9px] text-amber-500 opacity-0 group-hover:opacity-100 transition mt-0.5 block">클릭하여 이동 →</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {searchQuery && searchResults.length === 0 && (
+              <div className="text-center py-6">
+                <p className="text-xs text-gray-400">'{searchQuery}' 검색 결과 없음</p>
+              </div>
+            )}
+            {!searchQuery && (
+              <div className="text-center py-6 space-y-2">
+                <p className="text-xs text-gray-400">검색어를 입력하세요</p>
+                <div className="text-[10px] text-gray-300 space-y-0.5">
+                  <p>📄 본문 블록 · 📝 질문 답변</p>
+                  <p>📅 날짜 기록 · 📖 장 제목</p>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="px-3 py-2 border-t border-gray-100 flex-shrink-0">
+            <div className="flex gap-1 items-center">
               <input value={pageInput} onChange={e => setPageInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && goToPage()}
-                className="w-16 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400" placeholder="장 번호" type="number" min="1" max={chapters.length} />
+                className="w-14 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400" placeholder="장" type="number" min="1" max={chapters.length} />
               <button onClick={goToPage} className="text-xs bg-gray-200 text-gray-700 rounded px-2 py-1 hover:bg-gray-300">이동</button>
-              <span className="text-[10px] text-gray-400 self-center ml-1">1~{chapters.length}</span>
+              <span className="text-[10px] text-gray-400 ml-1">1~{chapters.length}장</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* 질문 패널 */}
-      {showQuestions && (
-        <div className="absolute left-2 top-12 z-20 w-80 bg-white/95 rounded-lg shadow-2xl border border-purple-200 max-h-[75vh] overflow-y-auto backdrop-blur p-3">
-          <QuestionsSection
-            questions={activeTab === 'student' ? STUDENT_QUESTIONS : TEACHER_QUESTIONS}
-            questionAnswers={questionAnswers || {}}
-            setQuestionAnswers={setQuestionAnswers || (() => {})}
-            followUps={followUps || {}}
-            setFollowUps={setFollowUps || (() => {})}
-            followUpAnswers={followUpAnswers || {}}
-            setFollowUpAnswers={setFollowUpAnswers || (() => {})}
-            expandedQ={expandedQ}
-            setExpandedQ={setExpandedQ}
-            isOpen={true}
-            setIsOpen={() => setShowQuestions(false)}
-          />
-        </div>
-      )}
+      {/* 질문 패널 — 현재 장 중심 */}
+      {activePanel === 'question' && (() => {
+        const allQuestions = activeTab === 'student' ? STUDENT_QUESTIONS : TEACHER_QUESTIONS;
+        const currentChapterIdx = leftIdx;
+        const currentChapter = tabChapters[currentChapterIdx];
+        const currentQs = allQuestions.filter(q => q.chapter === currentChapterIdx);
+        const currentAnswered = currentQs.filter(q => questionAnswers?.[q.id]?.trim()).length;
+        const totalAnswered = allQuestions.filter(q => questionAnswers?.[q.id]?.trim()).length;
+        return (
+          <div className="absolute left-2 top-12 z-20 w-[320px] bg-white/95 rounded-lg shadow-2xl border border-purple-200 max-h-[75vh] flex flex-col backdrop-blur">
+            {/* 헤더 */}
+            <div className="px-3 py-2 border-b border-purple-100 bg-purple-50/50 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-bold text-purple-800">📝 질문 패널</div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-600 text-white font-bold">{totalAnswered}/{allQuestions.length}</span>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-0.5">현재 장에 필요한 재료를 답해주세요</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {/* 현재 장 질문 (우선 표시) */}
+              {currentChapter && currentQs.length > 0 && (
+                <div className="px-3 py-2">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-white font-bold">{currentChapterIdx + 1}장</span>
+                    <span className="text-xs font-semibold text-gray-800 truncate">{currentChapter.title}</span>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ml-auto flex-shrink-0 ${currentAnswered === currentQs.length ? 'bg-green-100 text-green-600' : 'bg-purple-100 text-purple-600'}`}>
+                      {currentAnswered}/{currentQs.length}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {currentQs.map(q => {
+                      const hasAns = !!questionAnswers?.[q.id]?.trim();
+                      const isExp = expandedQ === q.id;
+                      return (
+                        <div key={q.id} className={`rounded-lg border transition ${isExp ? 'border-purple-300 bg-purple-50/50' : hasAns ? 'border-green-200 bg-green-50/30' : 'border-gray-100'}`}>
+                          <button type="button" onClick={() => setExpandedQ(isExp ? null : q.id)} className="w-full text-left px-2 py-1.5 flex items-center gap-1.5">
+                            <span className={`w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center flex-shrink-0 ${hasAns ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                              {hasAns ? '✓' : '·'}
+                            </span>
+                            <span className="text-[11px] text-gray-700 flex-1 line-clamp-1">{q.text}</span>
+                          </button>
+                          {isExp && (
+                            <div className="px-2 pb-2">
+                              <textarea
+                                value={questionAnswers?.[q.id] || ''}
+                                onChange={(e) => setQuestionAnswers?.(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                onBlur={() => {
+                                  const ans = questionAnswers?.[q.id];
+                                  if (ans && ans.trim().length >= 5) {
+                                    setFollowUps?.(prev => ({ ...prev, [q.id]: generateFollowUps(ans) }));
+                                  }
+                                }}
+                                rows={3}
+                                className="w-full text-xs border border-gray-200 rounded p-1.5 resize-none focus:ring-1 focus:ring-purple-400"
+                                placeholder="답변을 입력하세요..."
+                              />
+                              {hasAns && <p className="text-[9px] text-green-500 mt-0.5">저장됨 · 본문 초안에 반영</p>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 다른 장 질문 — 접힌 상태 기본 */}
+              <div className="border-t border-gray-100">
+                <QuestionsSection
+                  questions={allQuestions}
+                  questionAnswers={questionAnswers || {}}
+                  setQuestionAnswers={setQuestionAnswers || (() => {})}
+                  followUps={followUps || {}}
+                  setFollowUps={setFollowUps || (() => {})}
+                  followUpAnswers={followUpAnswers || {}}
+                  setFollowUpAnswers={setFollowUpAnswers || (() => {})}
+                  expandedQ={expandedQ}
+                  setExpandedQ={setExpandedQ}
+                  isOpen={false}
+                  setIsOpen={() => {}}
+                  chaptersConfig={tabChapters}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 날짜순 모드 */}
       {editMode === 'date' && (
         <div className="flex-1 overflow-auto p-6">
-          <p className="text-xs text-amber-400 mb-4">📅 날짜별 기록을 시간 순서대로 확인하고 정리하는 보기입니다</p>
+          <p className="text-xs text-amber-400 mb-4">📅 날짜순 보기 — 원본 기록의 시간 순서로 봅니다 <span className="text-stone-500">(장별 보기 = 최종 책 흐름)</span></p>
           <div className="space-y-4 max-w-3xl mx-auto">
             {(() => {
               const allBlocks = Object.entries(chapterBlocks).flatMap(([chId, blocks]) =>
@@ -2498,7 +2743,7 @@ function EbookModal({ response, activeTab, usedModel, onClose, chapterOrder, sou
       {/* 주제순 모드 */}
       {editMode === 'theme' && (
         <div className="flex-1 overflow-auto p-6">
-          <p className="text-xs text-amber-400 mb-4">🏷️ 비슷한 감정과 장면을 주제별로 묶어 보는 보기입니다</p>
+          <p className="text-xs text-amber-400 mb-4">🏷️ 주제순 보기 — 감정·관계·업무 등 주제별로 묶어 봅니다 <span className="text-stone-500">(장별 보기 = 최종 책 흐름)</span></p>
           <div className="space-y-4 max-w-3xl mx-auto">
             {(() => {
               const allBlocks = Object.entries(chapterBlocks).flatMap(([chId, blocks]) =>
