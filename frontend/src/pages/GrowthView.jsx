@@ -7,7 +7,6 @@ import StatCard from '../components/StatCard';
 function GrowthView({ embedded, onSwitchTab }) {
   const navigate = useNavigate();
   const { activities, isLoading } = useActivities();
-
   const { stats, recentActivities } = useMemo(() => {
     const total = activities.length;
     const submitted = activities.filter(a => a.status === 'submitted').length;

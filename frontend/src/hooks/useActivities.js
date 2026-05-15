@@ -1,46 +1,56 @@
-import { useState, useEffect, useRef } from 'react';
+import { useSyncExternalStore } from 'react';
 import { getAllActivities, fetchAllActivitiesFromServer } from '../utils/activityUtils';
 
-let sharedCache = null;
-let sharedCacheTime = 0;
-const CACHE_TTL = 30_000;
+let store = {
+  data: null,
+  serverDone: false,
+  listeners: new Set(),
+};
+
+function initFromLocal() {
+  const local = getAllActivities();
+  if (local.length > 0) {
+    store.data = local;
+  }
+}
+
+initFromLocal();
+
+let fetchPromise = null;
+
+function notify() {
+  store.listeners.forEach(fn => fn());
+}
+
+function ensureFetched() {
+  if (fetchPromise) return;
+  fetchPromise = fetchAllActivitiesFromServer()
+    .then(data => {
+      store = { data: data.length > 0 ? data : (store.data ?? []), serverDone: true, listeners: store.listeners };
+      notify();
+    })
+    .catch(() => {
+      store = { data: store.data ?? [], serverDone: true, listeners: store.listeners };
+      notify();
+    });
+}
+
+ensureFetched();
+
+function subscribe(listener) {
+  store.listeners.add(listener);
+  return () => store.listeners.delete(listener);
+}
+
+function getSnapshot() {
+  return store;
+}
 
 export default function useActivities() {
-  const [activities, setActivities] = useState(() => {
-    if (sharedCache && Date.now() - sharedCacheTime < CACHE_TTL) return sharedCache;
-    const local = getAllActivities();
-    return local.length > 0 ? local : null;
-  });
-  const [serverLoaded, setServerLoaded] = useState(() => {
-    return !!(sharedCache && Date.now() - sharedCacheTime < CACHE_TTL);
-  });
-  const mounted = useRef(true);
+  const snap = useSyncExternalStore(subscribe, getSnapshot);
 
-  useEffect(() => {
-    mounted.current = true;
-    if (sharedCache && Date.now() - sharedCacheTime < CACHE_TTL) {
-      setActivities(sharedCache);
-      setServerLoaded(true);
-      return;
-    }
-    fetchAllActivitiesFromServer()
-      .then(data => {
-        if (!mounted.current) return;
-        sharedCache = data;
-        sharedCacheTime = Date.now();
-        setActivities(data);
-        setServerLoaded(true);
-      })
-      .catch(() => {
-        if (!mounted.current) return;
-        const local = getAllActivities();
-        setActivities(local);
-        setServerLoaded(true);
-      });
-    return () => { mounted.current = false; };
-  }, []);
+  const hasLocalData = snap.data !== null && snap.data.length > 0;
+  const isLoading = !hasLocalData && !snap.serverDone;
 
-  const isLoading = activities === null;
-
-  return { activities: activities ?? [], isLoading, serverLoaded };
+  return { activities: snap.data ?? [], isLoading, serverLoaded: snap.serverDone };
 }
