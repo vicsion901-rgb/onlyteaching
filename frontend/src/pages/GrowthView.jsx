@@ -1,14 +1,12 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAllActivities, getTypeInfo, fetchAllActivitiesFromServer } from '../utils/activityUtils';
+import { getTypeInfo } from '../utils/activityUtils';
+import useActivities from '../hooks/useActivities';
+import StatCard from '../components/StatCard';
 
 function GrowthView({ embedded, onSwitchTab }) {
   const navigate = useNavigate();
-  const [activities, setActivities] = useState([]);
-
-  useEffect(() => {
-    fetchAllActivitiesFromServer().then(setActivities).catch(() => setActivities(getAllActivities()));
-  }, []);
+  const { activities, isLoading } = useActivities();
 
   const { stats, recentActivities } = useMemo(() => {
     const total = activities.length;
@@ -38,7 +36,7 @@ function GrowthView({ embedded, onSwitchTab }) {
     });
 
     const topType = Object.entries(types).sort((a, b) => b[1] - a[1])[0];
-    const avgLength = total > 0 ? Math.round(totalLength / total) : 0;
+    const avgLength = total > 0 ? Math.round(totalLength / total) : null;
     const avgAccuracy = accuracyCount > 0 ? Math.round(totalAccuracy / accuracyCount) : null;
     const manuscriptTotal = Object.values(manuscriptModes).reduce((s, v) => s + v, 0);
 
@@ -47,6 +45,26 @@ function GrowthView({ embedded, onSwitchTab }) {
       recentActivities: activities.slice(0, 5),
     };
   }, [activities]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {!embedded && (<div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">🌱 성장 보기</h1>
+            <p className="mt-1 text-sm text-gray-500">나의 문해력 성장을 확인합니다</p>
+          </div>
+          <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium">← 홈으로</button>
+        </div>)}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard emoji="📝" label="총 활동 수" />
+          <StatCard emoji="✅" label="제출 완료" />
+          <StatCard emoji="📏" label="평균 글 길이" />
+          <StatCard emoji="⭐" label="가장 많이 한 활동" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -153,17 +171,6 @@ function GrowthView({ embedded, onSwitchTab }) {
             className="mt-3 px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition">첫 활동 시작</button>
         </div>
       )}
-    </div>
-  );
-}
-
-function StatCard({ emoji, label, value, unit }) {
-  return (
-    <div className="bg-white shadow rounded-xl p-4 text-center">
-      <span className="text-2xl">{emoji}</span>
-      <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
-      <p className="text-xs text-gray-400">{unit}</p>
-      <p className="text-xs text-gray-500 mt-1">{label}</p>
     </div>
   );
 }

@@ -196,11 +196,19 @@ function QrDistribution({ onClose }) {
 
         <div className="flex gap-2 text-center">
           <div className="flex-1 bg-blue-50 rounded-lg p-3">
-            <p className="text-xl font-bold text-blue-700">{statusData?.joined_count ?? 0}</p>
+            {statusData ? (
+              <p className="text-xl font-bold text-blue-700">{statusData.joined_count}</p>
+            ) : (
+              <div className="h-7 w-10 mx-auto bg-blue-100 rounded animate-pulse" />
+            )}
             <p className="text-[10px] text-blue-500">참여</p>
           </div>
           <div className="flex-1 bg-green-50 rounded-lg p-3">
-            <p className="text-xl font-bold text-green-700">{statusData?.submitted_count ?? 0}</p>
+            {statusData ? (
+              <p className="text-xl font-bold text-green-700">{statusData.submitted_count}</p>
+            ) : (
+              <div className="h-7 w-10 mx-auto bg-green-100 rounded animate-pulse" />
+            )}
             <p className="text-[10px] text-green-500">제출</p>
           </div>
         </div>

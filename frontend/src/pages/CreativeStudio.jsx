@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAllActivities, getTypeInfo, getBadges } from '../utils/activityUtils';
+import { getTypeInfo, getBadges } from '../utils/activityUtils';
 import { fetchCollections, createCollection } from '../utils/collectionApi';
+import useActivities from '../hooks/useActivities';
 
 function CreativeStudio({ embedded, onSwitchTab, onGoToBookWithCollection }) {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ function CreativeStudio({ embedded, onSwitchTab, onGoToBookWithCollection }) {
   const [pendingRefresh, setPendingRefresh] = useState(0);
   const [collections, setCollections] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const { activities: allActivities } = useActivities();
 
   useEffect(() => {
     fetchCollections().then(setCollections).catch(() => {});
@@ -28,14 +30,14 @@ function CreativeStudio({ embedded, onSwitchTab, onGoToBookWithCollection }) {
   };
 
   const activities = useMemo(() => {
-    const all = getAllActivities().filter(a => {
+    const all = allActivities.filter(a => {
       if (a.status !== 'submitted' && a.sourceType !== 'manuscript') return false;
       return a.canUseInBook;
     });
     if (sourceFilter === 'morning') return all.filter(a => a.sourceType === 'morning');
     if (sourceFilter === 'manuscript') return all.filter(a => a.sourceType === 'manuscript');
     return all;
-  }, [sourceFilter]);
+  }, [sourceFilter, allActivities]);
 
   const toggleSelect = (idx) => {
     setSelectedIds(prev => {
@@ -112,6 +114,7 @@ function CreativeStudio({ embedded, onSwitchTab, onGoToBookWithCollection }) {
               ))}
             </div>
           </div>
+          {activities.length > 0 && <SelectAllBar activities={activities} selectedIds={selectedIds} setSelectedIds={setSelectedIds} />}
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
             {activities.map((a, i) => {
               const info = getTypeInfo(a);
@@ -174,6 +177,53 @@ function ExistingCollections({ collections, navigate, onSwitchTab, onGoToBookWit
             className="text-[10px] text-purple-600 mt-1 hover:underline">→ 책으로 만들기</button>
         </div>
       ))}
+    </div>
+  );
+}
+
+function SelectAllBar({ activities, selectedIds, setSelectedIds }) {
+  const checkRef = useRef(null);
+  const allIndices = useMemo(() => activities.map((_, i) => i), [activities]);
+  const selectedCount = allIndices.filter(i => selectedIds.has(i)).length;
+  const allSelected = selectedCount === allIndices.length && allIndices.length > 0;
+  const someSelected = selectedCount > 0 && !allSelected;
+
+  useEffect(() => {
+    if (checkRef.current) checkRef.current.indeterminate = someSelected;
+  }, [someSelected]);
+
+  const handleToggleAll = useCallback(() => {
+    if (allSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        allIndices.forEach(i => next.delete(i));
+        return next;
+      });
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        allIndices.forEach(i => next.add(i));
+        return next;
+      });
+    }
+  }, [allSelected, allIndices, setSelectedIds]);
+
+  return (
+    <div className="flex items-center gap-3 mb-2 px-1 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <input
+          ref={checkRef}
+          type="checkbox"
+          checked={allSelected}
+          onChange={handleToggleAll}
+          className="h-4 w-4 rounded"
+          aria-label="현재 보이는 항목 전체 선택"
+        />
+        <span className="text-xs text-gray-600 font-medium">전체 선택</span>
+      </label>
+      <span className="text-[11px] text-gray-400">
+        {selectedCount > 0 ? `${selectedCount} / ${allIndices.length}개 선택됨` : `${allIndices.length}개 항목`}
+      </span>
     </div>
   );
 }

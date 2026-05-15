@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getBookableActivities, getAllActivities, getTypeInfo, buildActivityMap } from '../utils/activityUtils';
+import { getBookableActivities, getTypeInfo, buildActivityMap } from '../utils/activityUtils';
+import useActivities from '../hooks/useActivities';
 import { generateBookPdf } from '../utils/bookPdfGenerator';
 import { fetchCollections, fetchCollectionById } from '../utils/collectionApi';
 
@@ -13,6 +14,7 @@ const BOOK_TYPES = [
 
 function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialCollection }) {
   const navigate = useNavigate();
+  const { activities: allActivityData } = useActivities();
   const [step, setStep] = useState(1);
   const [bookType, setBookType] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -62,7 +64,7 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
 
   const growthStats = useMemo(() => {
     if (bookType?.id !== 'growth') return null;
-    const all = getAllActivities();
+    const all = allActivityData;
     const total = all.length;
     const submitted = all.filter(a => a.status === 'submitted').length;
     const manuscript = all.filter(a => a.sourceType === 'manuscript');
@@ -75,7 +77,7 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
       types[label] = (types[label] || 0) + 1;
     });
     return { total, submitted, manuscriptCount: manuscript.length, avgAccuracy, types };
-  }, [bookType]);
+  }, [bookType, allActivityData]);
 
   const selectedItems = useMemo(() => {
     return [...selectedIds].map(id => activityMap.get(id) || recommendedActivities[id]).filter(Boolean);

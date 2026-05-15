@@ -46,7 +46,7 @@ function ManuscriptActivity({ embedded }) {
       title: `${MODES.find(m => m.id === mode)?.label} - ${selectedContent.title}`,
       contentTitle: selectedContent.title,
       author: selectedContent.author,
-      accuracy: activityResult?.accuracy || 0,
+      accuracy: activityResult?.accuracy ?? null,
       completedAt: new Date().toISOString(),
       difficulty,
       userText,
