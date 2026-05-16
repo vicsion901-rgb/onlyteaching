@@ -5,46 +5,56 @@ import client from '../api/client';
 const STORAGE_KEY = 'careClassroomRecords';
 
 const MOOD_OPTIONS = [
-  { value: 'very-good', label: '매우 좋음', emoji: '😄' },
-  { value: 'good', label: '좋음', emoji: '🙂' },
+  { value: 'very-good', label: '매우 좋음', emoji: '✨' },
+  { value: 'good', label: '좋음', emoji: '😊' },
   { value: 'calm', label: '보통', emoji: '😌' },
-  { value: 'tired', label: '지침', emoji: '😪' },
-  { value: 'sensitive', label: '예민함', emoji: '😣' },
+  { value: 'tired', label: '지침', emoji: '💤' },
+  { value: 'sensitive', label: '예민함', emoji: '🍂' },
   { value: 'happy', label: '행복함', emoji: '🥰' },
-  { value: 'excited', label: '신남', emoji: '🤩' },
-  { value: 'proud', label: '뿌듯함', emoji: '😎' },
-  { value: 'thankful', label: '고마움', emoji: '🙏' },
-  { value: 'peaceful', label: '평온함', emoji: '🫠' },
+  { value: 'excited', label: '신남', emoji: '🎉' },
+  { value: 'proud', label: '뿌듯함', emoji: '⭐' },
+  { value: 'thankful', label: '고마움', emoji: '💐' },
+  { value: 'peaceful', label: '평온함', emoji: '☁️' },
   { value: 'energetic', label: '에너지 넘침', emoji: '⚡' },
   { value: 'focused', label: '집중 잘됨', emoji: '🧠' },
   { value: 'motivated', label: '의욕적임', emoji: '🔥' },
-  { value: 'fun', label: '즐거움', emoji: '🎉' },
-  { value: 'playful', label: '장난기 있음', emoji: '😜' },
+  { value: 'fun', label: '즐거움', emoji: '🎈' },
+  { value: 'playful', label: '장난기 있음', emoji: '🙃' },
   { value: 'curious', label: '궁금함', emoji: '🤔' },
-  { value: 'surprised', label: '놀람', emoji: '😲' },
-  { value: 'sleepy', label: '졸림', emoji: '😴' },
-  { value: 'worried', label: '걱정됨', emoji: '😟' },
+  { value: 'surprised', label: '놀람', emoji: '🎇' },
+  { value: 'sleepy', label: '졸림', emoji: '🌙' },
+  { value: 'worried', label: '걱정됨', emoji: '🌧️' },
   { value: 'anxious', label: '불안함', emoji: '😰' },
   { value: 'sad', label: '슬픔', emoji: '😢' },
-  { value: 'lonely', label: '외로움', emoji: '🥲' },
-  { value: 'upset', label: '속상함', emoji: '☹️' },
+  { value: 'lonely', label: '외로움', emoji: '🌫️' },
+  { value: 'upset', label: '속상함', emoji: '💧' },
   { value: 'angry', label: '화남', emoji: '😠' },
-  { value: 'frustrated', label: '답답함', emoji: '😤' },
-  { value: 'confused', label: '혼란스러움', emoji: '😵' },
-  { value: 'embarrassed', label: '민망함', emoji: '😳' },
-  { value: 'shy', label: '수줍음', emoji: '🫣' },
-  { value: 'bored', label: '지루함', emoji: '🥱' },
+  { value: 'frustrated', label: '답답함', emoji: '🌀' },
+  { value: 'confused', label: '혼란스러움', emoji: '❓' },
+  { value: 'embarrassed', label: '민망함', emoji: '🫧' },
+  { value: 'shy', label: '수줍음', emoji: '🌸' },
+  { value: 'bored', label: '지루함', emoji: '⏳' },
   { value: 'relieved', label: '안도감', emoji: '😮‍💨' },
   { value: 'sick', label: '몸이 안 좋음', emoji: '🤒' },
-  { value: 'overwhelmed', label: '버거움', emoji: '😵‍💫' },
-  { value: 'grumpy', label: '투덜거림', emoji: '😒' },
-  { value: 'silly', label: '실실 웃김', emoji: '🤪' },
+  { value: 'overwhelmed', label: '버거움', emoji: '🌪️' },
+  { value: 'grumpy', label: '투덜거림', emoji: '🥀' },
+  { value: 'silly', label: '실실 웃김', emoji: '😜' },
   { value: 'brave', label: '용기남', emoji: '🦁' },
   { value: 'kind', label: '따뜻함', emoji: '💗' },
   { value: 'creative', label: '창의적임', emoji: '🎨' },
-  { value: 'curled', label: '혼자 있고 싶음', emoji: '🫥' },
+  { value: 'curled', label: '혼자 있고 싶음', emoji: '🌑' },
   { value: 'hopeful', label: '기대됨', emoji: '🌈' },
   { value: 'custom', label: '직접 입력', emoji: '✍️' },
+];
+
+const MOOD_GROUPS = [
+  { key: 'calm', label: '편안함 · 안정', bg: 'bg-emerald-50/60', values: ['good', 'calm', 'peaceful', 'relieved', 'bored'] },
+  { key: 'joy', label: '기쁨 · 따뜻함', bg: 'bg-rose-50/60', values: ['very-good', 'happy', 'kind', 'thankful', 'hopeful', 'creative', 'brave'] },
+  { key: 'energy', label: '에너지 · 의욕', bg: 'bg-amber-50/60', values: ['excited', 'fun', 'energetic', 'motivated', 'proud'] },
+  { key: 'curious', label: '호기심 · 발견', bg: 'bg-indigo-50/60', values: ['focused', 'curious', 'surprised', 'playful', 'silly'] },
+  { key: 'tired', label: '피곤함 · 지침', bg: 'bg-sky-50/60', values: ['tired', 'sleepy', 'sensitive', 'sick'] },
+  { key: 'sad', label: '속상함 · 불안', bg: 'bg-slate-50', values: ['sad', 'lonely', 'upset', 'anxious', 'worried'] },
+  { key: 'complex', label: '복잡함 · 답답함', bg: 'bg-violet-50/60', values: ['frustrated', 'confused', 'overwhelmed', 'embarrassed', 'shy', 'curled', 'angry', 'grumpy'] },
 ];
 
 const PRIMARY_MOOD_OPTIONS = MOOD_OPTIONS.slice(0, 5);
@@ -745,26 +755,37 @@ function CareClassroom() {
                       />
                     </div>
                     {isMoodPickerOpen && (
-                      <div className="absolute left-0 top-14 z-20 w-[22rem] max-w-[calc(100vw-4rem)] rounded-2xl border border-gray-200 bg-white p-3 shadow-xl">
+                      <div className="absolute left-0 top-14 z-20 w-[22rem] max-w-[calc(100vw-4rem)] max-h-[26rem] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-3 shadow-xl">
                         <div className="mb-2 text-sm font-semibold text-gray-700">감정 이모지 빠른 선택</div>
-                        <div className="grid grid-cols-6 gap-2">
-                          {MOOD_OPTIONS.filter((option) => option.value !== 'custom').map((option) => (
-                            <button
-                              key={`quick-${option.value}`}
-                              type="button"
-                              onClick={() => {
-                                setMood(option.value);
-                                setIsMoodPickerOpen(false);
-                              }}
-                              className={`flex h-10 w-10 items-center justify-center rounded-xl border text-lg transition ${
-                                mood === option.value
-                                  ? 'border-primary-300 bg-primary-50'
-                                  : 'border-gray-200 bg-white hover:bg-gray-50'
-                              }`}
-                              title={option.label}
-                            >
-                              {option.emoji}
-                            </button>
+                        <div className="space-y-2">
+                          {MOOD_GROUPS.map((group) => (
+                            <div key={group.key} className={`rounded-xl ${group.bg} p-2`}>
+                              <p className="mb-1 px-1 text-[10px] font-medium text-gray-500">{group.label}</p>
+                              <div className="grid grid-cols-6 gap-1.5">
+                                {group.values.map((value) => {
+                                  const option = MOOD_OPTIONS.find((o) => o.value === value);
+                                  if (!option) return null;
+                                  return (
+                                    <button
+                                      key={`quick-${option.value}`}
+                                      type="button"
+                                      onClick={() => {
+                                        setMood(option.value);
+                                        setIsMoodPickerOpen(false);
+                                      }}
+                                      className={`flex h-9 w-9 items-center justify-center rounded-lg border text-lg transition ${
+                                        mood === option.value
+                                          ? 'border-primary-400 bg-white shadow-sm'
+                                          : 'border-transparent bg-white/70 hover:bg-white'
+                                      }`}
+                                      title={option.label}
+                                    >
+                                      {option.emoji}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           ))}
                         </div>
                       </div>
