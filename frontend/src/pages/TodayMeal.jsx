@@ -53,7 +53,8 @@ function TodayMeal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [likingMealId, setLikingMealId] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [rankTab, setRankTab] = useState('monthly');
+  const [showMonthlyMore, setShowMonthlyMore] = useState(false);
+  const [showWeeklyMore, setShowWeeklyMore] = useState(false);
   const [feedSort, setFeedSort] = useState('latest');
 
   const { weekStart, weekEnd } = useMemo(() => getWeekRange(), []);
@@ -140,11 +141,11 @@ function TodayMeal() {
   };
 
   const monthlyTop = monthlyBoard[0] || null;
+  const weeklyTop = weeklyBoard[0] || null;
   const monthlyTotalCheers = monthlyBoard.reduce((s, x) => s + (x.totalLikes || 0), 0);
   const participatingSchools = monthlyBoard.length;
-  const currentBoard = rankTab === 'weekly' ? weeklyBoard
-    : rankTab === 'monthly' ? monthlyBoard
-    : monthlyBoard.filter((x) => x.schoolCode === schoolCode);
+  const ourMonthlyIndex = schoolCode ? monthlyBoard.findIndex((x) => x.schoolCode === schoolCode) : -1;
+  const ourMonthly = ourMonthlyIndex >= 0 ? monthlyBoard[ourMonthlyIndex] : null;
   const sortedFeed = useMemo(() => {
     const arr = [...meals];
     if (feedSort === 'popular') arr.sort((a, b) => (b.likes || 0) - (a.likes || 0));
@@ -185,10 +186,11 @@ function TodayMeal() {
           </div>
         </section>
 
-        {/* ② 이번 달 주인공 */}
+        {/* ② 이번 달 급식상 (월간 — 시상) */}
         <section className="rounded-3xl bg-white border border-amber-100 shadow-sm overflow-hidden">
           <div className="px-5 pt-5 sm:px-7 sm:pt-7">
-            <p className="text-[11px] sm:text-xs font-semibold tracking-[0.2em] text-amber-700 uppercase">🥇 이번 달 주인공</p>
+            <p className="text-[11px] sm:text-xs font-semibold tracking-[0.25em] text-amber-700 uppercase">🏆 이번 달 급식상</p>
+            <p className="mt-0.5 text-[10px] sm:text-[11px] text-amber-700/60">월간 누적 응원 · 상장 시상 기준</p>
           </div>
           {monthlyTop ? (
             <>
@@ -202,7 +204,7 @@ function TodayMeal() {
               ) : (
                 <div className="mx-5 mt-3 sm:mx-7 flex aspect-[16/9] items-center justify-center rounded-2xl bg-amber-50 text-5xl">🍱</div>
               )}
-              <div className="px-5 py-5 sm:px-7 sm:py-6">
+              <div className="px-5 pt-5 sm:px-7 sm:pt-6">
                 <h2 className="text-xl sm:text-2xl font-bold text-amber-900">{monthlyTop.schoolCode}</h2>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-amber-800/80">
                   <span className="font-semibold text-amber-700">👏 응원 {monthlyTop.totalLikes}</span>
@@ -211,74 +213,151 @@ function TodayMeal() {
                   {monthlyTop.lastMealDate && (
                     <>
                       <span className="text-amber-300">·</span>
-                      <span>최근 게시 {formatShortDate(monthlyTop.lastMealDate)}</span>
+                      <span>최근 {formatShortDate(monthlyTop.lastMealDate)}</span>
                     </>
                   )}
                 </div>
-                <p className="mt-3 text-xs sm:text-sm font-medium text-orange-700">"이번 달 급식상 유력 후보예요"</p>
+                <p className="mt-3 text-xs sm:text-sm font-medium text-orange-700">"이번 달 상장 유력 후보예요"</p>
+                {ourMonthly && ourMonthlyIndex > 0 && (
+                  <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] sm:text-xs font-medium text-amber-700">
+                    🏫 우리 학교 {ourMonthlyIndex + 1}위 · 👏 {ourMonthly.totalLikes}
+                  </div>
+                )}
+              </div>
+              {/* 월간 Top 3 시상대 */}
+              <div className="px-5 py-5 sm:px-7 sm:py-6">
+                <p className="mb-2 text-[10px] sm:text-[11px] font-semibold tracking-wider text-amber-700/70 uppercase">월간 Top 3</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[0, 1, 2].map((i) => {
+                    const item = monthlyBoard[i];
+                    if (!item) return (
+                      <div key={i} className="rounded-2xl bg-amber-50/40 px-2 py-3 text-center text-[10px] text-amber-400/70">-</div>
+                    );
+                    const bg = i === 0 ? 'bg-gradient-to-b from-amber-100 to-amber-50' : i === 1 ? 'bg-gradient-to-b from-gray-100 to-gray-50' : 'bg-gradient-to-b from-orange-100 to-orange-50';
+                    return (
+                      <div key={i} className={`rounded-2xl ${bg} px-2 py-3 text-center`}>
+                        <div className="text-2xl sm:text-3xl">{MEDAL[i]}</div>
+                        <p className="mt-1 truncate text-[11px] sm:text-xs font-semibold text-amber-900">{item.schoolCode}</p>
+                        <p className="text-[10px] sm:text-[11px] font-medium text-amber-700">👏 {item.totalLikes}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                {monthlyBoard.length > 3 && (
+                  <>
+                    <button type="button" onClick={() => setShowMonthlyMore(!showMonthlyMore)}
+                      className="mt-3 inline-flex items-center gap-1 text-[11px] sm:text-xs font-medium text-amber-700 hover:text-amber-900">
+                      {showMonthlyMore ? '접기 ▴' : `+ 4~${Math.min(monthlyBoard.length, 10)}위 더보기 ▾`}
+                    </button>
+                    {showMonthlyMore && (
+                      <div className="mt-2 space-y-1.5">
+                        {monthlyBoard.slice(3, 10).map((item, idx) => {
+                          const rank = idx + 4;
+                          const isOurs = item.schoolCode === schoolCode;
+                          return (
+                            <div key={`m-${item.schoolCode}-${rank}`}
+                              className={`flex items-center gap-2 rounded-xl px-3 py-2 ${isOurs ? 'bg-amber-100/70 ring-1 ring-amber-300/60' : 'bg-amber-50/40'}`}>
+                              <span className="w-5 text-center text-[11px] font-bold text-amber-700/70">{rank}</span>
+                              <span className="min-w-0 flex-1 truncate text-xs sm:text-sm font-medium text-amber-900">
+                                {item.schoolCode}
+                                {isOurs && <span className="ml-1.5 text-[10px] font-medium text-amber-600">우리 학교</span>}
+                              </span>
+                              <span className="text-xs font-bold text-amber-700">👏 {item.totalLikes}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </>
           ) : (
-            <div className="px-5 py-8 sm:px-7 sm:py-10 text-center">
+            <div className="px-5 py-10 sm:px-7 sm:py-12 text-center">
               <div className="text-4xl sm:text-5xl mb-2">🌷</div>
-              <p className="text-sm sm:text-base font-semibold text-amber-900">첫 주인공을 기다리고 있어요</p>
-              <p className="mt-1 text-xs sm:text-sm text-amber-700/70">오늘 첫 게시물이 곧 이번 달의 1위가 됩니다</p>
+              <p className="text-sm sm:text-base font-semibold text-amber-900">첫 급식상 후보를 기다리고 있어요</p>
+              <p className="mt-1 text-xs sm:text-sm text-amber-700/70">오늘 첫 게시물이 곧 이번 달의 1위 후보가 됩니다</p>
             </div>
           )}
         </section>
 
-        {/* ③ 응원 순위 보드 */}
-        <section className="rounded-3xl bg-gradient-to-br from-white to-amber-50/40 border border-amber-100 p-5 sm:p-7 shadow-sm">
-          <div className="flex items-center justify-between gap-2 mb-4">
-            <div>
-              <p className="text-[11px] sm:text-xs font-semibold tracking-[0.2em] text-amber-700 uppercase">응원 순위</p>
-              <p className="mt-0.5 text-[10px] sm:text-[11px] text-amber-700/60">학교별 응원 합산</p>
-            </div>
-            <div className="inline-flex rounded-full bg-amber-100/70 p-0.5 text-[10px] sm:text-[11px] font-medium">
-              {[
-                { key: 'weekly', label: '이번 주' },
-                { key: 'monthly', label: '이번 달' },
-                { key: 'ours', label: '우리 학교' },
-              ].map((t) => (
-                <button key={t.key} type="button" onClick={() => setRankTab(t.key)}
-                  className={`rounded-full px-2.5 sm:px-3 py-1 transition ${rankTab === t.key ? 'bg-white text-amber-900 shadow-sm' : 'text-amber-700 hover:text-amber-900'}`}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
+        {/* ③ 이번 주 인기 급식 (주간 — 화제) */}
+        <section className="rounded-3xl bg-gradient-to-br from-rose-50/60 via-pink-50/40 to-orange-50/60 border border-pink-100 shadow-sm overflow-hidden">
+          <div className="px-5 pt-5 sm:px-7 sm:pt-7">
+            <p className="text-[11px] sm:text-xs font-semibold tracking-[0.25em] text-rose-600 uppercase">🌶️ 이번 주 인기 급식</p>
+            <p className="mt-0.5 text-[10px] sm:text-[11px] text-rose-500/70">{formatDateLabel(weekStart)} ~ {formatDateLabel(weekEnd)} · 주간 화제</p>
           </div>
-          {currentBoard.length === 0 ? (
-            <div className="rounded-2xl bg-white/60 px-3 py-8 text-center text-xs sm:text-sm text-amber-700/60">
-              {rankTab === 'ours' ? '우리 학교의 이번 달 기록이 아직 없어요.' : '아직 응원 순위가 비어 있어요.'}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {currentBoard.slice(0, 8).map((item, idx) => {
-                const isOurs = item.schoolCode === schoolCode;
-                const isTop3 = rankTab !== 'ours' && idx < 3;
-                return (
-                  <div key={`${rankTab}-${item.schoolCode}-${idx}`}
-                    className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 transition ${
-                      isOurs ? 'bg-amber-100/70 ring-1 ring-amber-300/60'
-                      : isTop3 ? 'bg-gradient-to-r from-orange-50 to-amber-50'
-                      : 'bg-white/70'
-                    }`}>
-                    <div className="w-8 shrink-0 text-center text-xl sm:text-2xl">
-                      {isTop3 ? MEDAL[idx] : <span className="text-xs font-bold text-amber-700/60">{idx + 1}</span>}
-                    </div>
-                    {item.topImageUrl && (
-                      <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-xl bg-amber-50">
-                        <img src={item.topImageUrl} alt="" className="h-full w-full object-cover" />
+          {weeklyTop ? (
+            <>
+              <div className="px-5 pt-3 sm:px-7">
+                <div className="flex items-stretch gap-3">
+                  <div className="relative h-24 w-24 sm:h-28 sm:w-28 shrink-0 overflow-hidden rounded-2xl bg-rose-50">
+                    {weeklyTop.topImageUrl ? (
+                      <img src={weeklyTop.topImageUrl} alt={`${weeklyTop.schoolCode} 주간 인기`} className="absolute inset-0 h-full w-full object-cover" />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-3xl text-rose-300">🍜</div>
+                    )}
+                    <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-500/95 px-2 py-0.5 text-[10px] font-bold text-white shadow">🔥 HOT</span>
+                  </div>
+                  <div className="min-w-0 flex-1 flex flex-col justify-center">
+                    <p className="text-base sm:text-lg font-bold text-rose-900 truncate">{weeklyTop.schoolCode}</p>
+                    <p className="mt-0.5 text-[11px] sm:text-xs text-rose-700/80">👏 {weeklyTop.totalLikes} · 게시 {weeklyTop.postCount}개</p>
+                    <p className="mt-1 text-[11px] sm:text-xs font-medium text-orange-700">"이번 주 가장 응원받은 한 그릇"</p>
+                  </div>
+                </div>
+              </div>
+              {/* 주간 Top 3 */}
+              <div className="px-5 py-5 sm:px-7 sm:py-6">
+                <p className="mb-2 text-[10px] sm:text-[11px] font-semibold tracking-wider text-rose-600/70 uppercase">주간 Top 3</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[0, 1, 2].map((i) => {
+                    const item = weeklyBoard[i];
+                    if (!item) return (
+                      <div key={i} className="rounded-2xl bg-white/40 px-2 py-3 text-center text-[10px] text-rose-300">-</div>
+                    );
+                    return (
+                      <div key={i} className="rounded-2xl bg-white/70 px-2 py-3 text-center">
+                        <div className="text-xl sm:text-2xl">{MEDAL[i]}</div>
+                        <p className="mt-1 truncate text-[11px] sm:text-xs font-semibold text-rose-900">{item.schoolCode}</p>
+                        <p className="text-[10px] sm:text-[11px] font-medium text-rose-700">👏 {item.totalLikes}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                {weeklyBoard.length > 3 && (
+                  <>
+                    <button type="button" onClick={() => setShowWeeklyMore(!showWeeklyMore)}
+                      className="mt-3 inline-flex items-center gap-1 text-[11px] sm:text-xs font-medium text-rose-600 hover:text-rose-800">
+                      {showWeeklyMore ? '접기 ▴' : `+ 4~${Math.min(weeklyBoard.length, 10)}위 더보기 ▾`}
+                    </button>
+                    {showWeeklyMore && (
+                      <div className="mt-2 space-y-1.5">
+                        {weeklyBoard.slice(3, 10).map((item, idx) => {
+                          const rank = idx + 4;
+                          const isOurs = item.schoolCode === schoolCode;
+                          return (
+                            <div key={`w-${item.schoolCode}-${rank}`}
+                              className={`flex items-center gap-2 rounded-xl px-3 py-2 ${isOurs ? 'bg-rose-100/70 ring-1 ring-rose-300/60' : 'bg-white/50'}`}>
+                              <span className="w-5 text-center text-[11px] font-bold text-rose-600/70">{rank}</span>
+                              <span className="min-w-0 flex-1 truncate text-xs sm:text-sm font-medium text-rose-900">
+                                {item.schoolCode}
+                                {isOurs && <span className="ml-1.5 text-[10px] font-medium text-rose-500">우리 학교</span>}
+                              </span>
+                              <span className="text-xs font-bold text-rose-700">👏 {item.totalLikes}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm sm:text-base font-semibold text-amber-900">{item.schoolCode}{isOurs && <span className="ml-1.5 text-[10px] font-medium text-amber-600">우리 학교</span>}</p>
-                      <p className="text-[10px] sm:text-[11px] text-amber-700/60">게시 {item.postCount}개</p>
-                    </div>
-                    <div className="shrink-0 text-sm sm:text-base font-bold text-amber-700">👏 {item.totalLikes}</div>
-                  </div>
-                );
-              })}
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="px-5 py-10 sm:px-7 sm:py-12 text-center">
+              <div className="text-4xl sm:text-5xl mb-2">🌼</div>
+              <p className="text-sm sm:text-base font-semibold text-rose-900">이번 주 첫 화제 급식을 기다리고 있어요</p>
+              <p className="mt-1 text-xs sm:text-sm text-rose-600/70">아래에서 우리 학교 급식을 올려보세요</p>
             </div>
           )}
         </section>
