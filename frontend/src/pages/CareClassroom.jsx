@@ -180,6 +180,7 @@ function CareClassroom() {
   const [positiveScore, setPositiveScore] = useState(5);
   const [negativeScore, setNegativeScore] = useState(5);
   const [isMoodPickerOpen, setIsMoodPickerOpen] = useState(false);
+  const [moodView, setMoodView] = useState('grouped');
   const [isSourcePickerOpen, setIsSourcePickerOpen] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedSources, setSelectedSources] = useState({
@@ -755,39 +756,91 @@ function CareClassroom() {
                       />
                     </div>
                     {isMoodPickerOpen && (
-                      <div className="absolute left-0 top-14 z-20 w-[22rem] max-w-[calc(100vw-4rem)] max-h-[26rem] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-3 shadow-xl">
-                        <div className="mb-2 text-sm font-semibold text-gray-700">감정 이모지 빠른 선택</div>
-                        <div className="space-y-2">
-                          {MOOD_GROUPS.map((group) => (
-                            <div key={group.key} className={`rounded-xl ${group.bg} p-2`}>
-                              <p className="mb-1 px-1 text-[10px] font-medium text-gray-500">{group.label}</p>
-                              <div className="grid grid-cols-6 gap-1.5">
-                                {group.values.map((value) => {
-                                  const option = MOOD_OPTIONS.find((o) => o.value === value);
-                                  if (!option) return null;
-                                  return (
-                                    <button
-                                      key={`quick-${option.value}`}
-                                      type="button"
-                                      onClick={() => {
-                                        setMood(option.value);
-                                        setIsMoodPickerOpen(false);
-                                      }}
-                                      className={`flex h-9 w-9 items-center justify-center rounded-lg border text-lg transition ${
-                                        mood === option.value
-                                          ? 'border-primary-400 bg-white shadow-sm'
-                                          : 'border-transparent bg-white/70 hover:bg-white'
-                                      }`}
-                                      title={option.label}
-                                    >
-                                      {option.emoji}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ))}
+                      <div className="absolute left-0 top-14 z-20 w-[24rem] max-w-[calc(100vw-4rem)] max-h-[24rem] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-3 shadow-xl">
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className="text-xs font-medium tracking-tight text-gray-600">감정 이모지</p>
+                          <div className="inline-flex rounded-full bg-gray-100 p-0.5 text-[10px] font-medium">
+                            <button
+                              type="button"
+                              onClick={() => setMoodView('grouped')}
+                              className={`rounded-full px-2.5 py-0.5 transition ${moodView === 'grouped' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                              그룹별
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setMoodView('all')}
+                              className={`rounded-full px-2.5 py-0.5 transition ${moodView === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                              전체
+                            </button>
+                          </div>
                         </div>
+                        {moodView === 'grouped' ? (
+                          <div className="space-y-1.5">
+                            {MOOD_GROUPS.map((group) => (
+                              <div key={group.key} className={`rounded-lg ${group.bg} px-2 py-1.5`}>
+                                <p className="mb-1 text-[10px] font-medium tracking-tight text-gray-500/90">{group.label}</p>
+                                <div className="grid grid-cols-8 gap-1">
+                                  {group.values.map((value) => {
+                                    const option = MOOD_OPTIONS.find((o) => o.value === value);
+                                    if (!option) return null;
+                                    return (
+                                      <button
+                                        key={`quick-${option.value}`}
+                                        type="button"
+                                        onClick={() => {
+                                          setMood(option.value);
+                                          setIsMoodPickerOpen(false);
+                                        }}
+                                        className={`flex h-7 w-7 items-center justify-center rounded-md text-base leading-none transition ${
+                                          mood === option.value
+                                            ? 'bg-white shadow-sm ring-1 ring-primary-300'
+                                            : 'bg-white/70 hover:bg-white'
+                                        }`}
+                                        title={option.label}
+                                      >
+                                        {option.emoji}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {MOOD_GROUPS.map((group) => (
+                              <div key={group.key}>
+                                <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-gray-400">{group.label}</p>
+                                <div className="grid grid-cols-9 gap-1">
+                                  {group.values.map((value) => {
+                                    const option = MOOD_OPTIONS.find((o) => o.value === value);
+                                    if (!option) return null;
+                                    return (
+                                      <button
+                                        key={`all-${option.value}`}
+                                        type="button"
+                                        onClick={() => {
+                                          setMood(option.value);
+                                          setIsMoodPickerOpen(false);
+                                        }}
+                                        className={`flex h-7 w-7 items-center justify-center rounded-md text-base leading-none transition ${
+                                          mood === option.value
+                                            ? 'bg-gray-50 shadow-sm ring-1 ring-primary-300'
+                                            : 'hover:bg-gray-50'
+                                        }`}
+                                        title={option.label}
+                                      >
+                                        {option.emoji}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
