@@ -153,6 +153,7 @@ function TodayMeal() {
   const currentBoard = rankTab === 'weekly' ? weeklyBoard
     : rankTab === 'monthly' ? monthlyBoard
     : monthlyBoard.filter((x) => x.schoolCode === schoolCode);
+  const ourRankInCurrent = schoolCode ? currentBoard.findIndex((x) => x.schoolCode === schoolCode) : -1;
 
   const sortedFeed = useMemo(() => {
     const arr = [...meals];
@@ -194,6 +195,11 @@ function TodayMeal() {
           <span className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-pink-800 shadow-sm border border-pink-100">🏫 {participatingSchools}</span>
         </div>
 
+        {/* 짧은 안내 — 이벤트 성격 명시 */}
+        <div className="rounded-xl bg-amber-50/60 border border-amber-100 px-3 py-2 text-[11px] sm:text-xs text-amber-800/90 leading-relaxed">
+          🍱 급식상은 실제 시식 평가가 아니라, 학교에서 올린 사진과 소개를 보고 따뜻한 응원을 보내는 이벤트예요
+        </div>
+
         {/* B. 월간 1위 큰 카드 */}
         <section className="overflow-hidden rounded-3xl bg-white border border-amber-100 shadow-sm">
           {monthlyTop ? (
@@ -229,18 +235,26 @@ function TodayMeal() {
           )}
         </section>
 
-        {/* C. TOP 3 보드 (탭 + 더보기) */}
+        {/* C. TOP 3 보드 (탭 + 전체 보기) */}
         <section className="rounded-2xl bg-white border border-amber-100 p-3.5 sm:p-4 shadow-sm">
           <div className="flex items-center justify-between gap-2 mb-2.5">
-            <h3 className="text-sm sm:text-base font-bold text-amber-900">TOP 3</h3>
-            <div className="inline-flex rounded-full bg-amber-50 p-0.5 text-[11px] font-medium">
+            <div className="flex items-center gap-2 min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-amber-900 shrink-0">TOP 3</h3>
+              {ourRankInCurrent >= 0 && rankTab !== 'ours' && (
+                <button type="button" onClick={() => setShowRankMore(true)}
+                  className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold text-amber-800 hover:bg-amber-200 transition truncate">
+                  📌 우리 학교 {ourRankInCurrent + 1}위
+                </button>
+              )}
+            </div>
+            <div className="inline-flex rounded-full bg-amber-50 p-0.5 text-[11px] font-medium shrink-0">
               {[
                 { key: 'weekly', label: '이번 주' },
                 { key: 'monthly', label: '이번 달' },
                 { key: 'ours', label: '우리 학교' },
               ].map((t) => (
                 <button key={t.key} type="button" onClick={() => { setRankTab(t.key); setShowRankMore(false); }}
-                  className={`rounded-full px-2.5 sm:px-3 py-1 transition ${rankTab === t.key ? 'bg-white text-amber-900 shadow-sm' : 'text-amber-700 hover:text-amber-900'}`}>
+                  className={`rounded-full px-2 sm:px-2.5 py-1 transition ${rankTab === t.key ? 'bg-white text-amber-900 shadow-sm' : 'text-amber-700 hover:text-amber-900'}`}>
                   {t.label}
                 </button>
               ))}
@@ -282,11 +296,11 @@ function TodayMeal() {
                 <>
                   <button type="button" onClick={() => setShowRankMore(!showRankMore)}
                     className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 hover:text-amber-900">
-                    {showRankMore ? '접기 ▴' : `+ 4~${Math.min(currentBoard.length, 10)}위 더보기 ▾`}
+                    {showRankMore ? '접기 ▴' : `+ 전체 ${currentBoard.length}개 학교 보기 ▾`}
                   </button>
                   {showRankMore && (
-                    <div className="mt-1.5 space-y-1">
-                      {currentBoard.slice(3, 10).map((item, idx) => {
+                    <div className="mt-1.5 space-y-1 max-h-[18rem] overflow-y-auto pr-1">
+                      {currentBoard.slice(3).map((item, idx) => {
                         const rank = idx + 4;
                         const isOurs = item.schoolCode === schoolCode;
                         return (
@@ -401,6 +415,8 @@ function TodayMeal() {
             <li>🍙 학교당 하루 1번 올릴 수 있어요</li>
             <li>👏 게시물마다 1번 응원할 수 있어요</li>
             <li>🏆 이번 달 가장 많은 응원을 받은 학교의 영양선생님께 상장을 보내드려요</li>
+            <li>👀 게시물의 사진과 소개 문구를 보고 따뜻한 응원을 보내주세요</li>
+            <li>💡 실제 시식 평가나 현장 만족도가 아닌, 커뮤니티 응원 이벤트입니다</li>
           </ul>
         </section>
       </div>

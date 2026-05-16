@@ -50,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
          WHERE m."mealDate" BETWEEN $1 AND $2
          GROUP BY m."schoolCode"
          ORDER BY "totalLikes" DESC NULLS LAST, "postCount" DESC
-         LIMIT 20`,
+         LIMIT 100`,
         [startDate, endDate],
       );
       return res.status(200).json(rows);
