@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import client from '../api/client';
+import useTeacherDashboard from '../hooks/useTeacherDashboard';
 
 const TYPE_LABELS = {
   'poem-copy': '시 필사', 'story-continue': '이어쓰기', 'yesterday-diary': '일기',
@@ -14,26 +14,12 @@ const TYPE_LABELS = {
 function TeacherActivityDashboard() {
   const navigate = useNavigate();
   const teacherId = localStorage.getItem('userId') || '';
-  const [submissions, setSubmissions] = useState([]);
-  const [students, setStudents] = useState([]);
-  const [qrSessions, setQrSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { submissions, students, qrSessions, ready } = useTeacherDashboard(teacherId);
   const [selectedSessionKey, setSelectedSessionKey] = useState(null);
   const [selectedSub, setSelectedSub] = useState(null);
   const [typeFilter, setTypeFilter] = useState('all');
   const [qrModal, setQrModal] = useState(null);
   const [copiedMsg, setCopiedMsg] = useState('');
-
-  useEffect(() => {
-    if (!teacherId) return;
-    setLoading(true);
-    Promise.all([
-      client.get('/api/student-submissions', { params: { action: 'list', teacherId, limit: '500' } }).then(r => r.data?.data || []).catch(() => []),
-      client.get('/api/students', { params: { userId: teacherId } }).then(r => r.data || []).catch(() => []),
-      client.get('/api/qr-session', { params: { action: 'my-sessions', teacherId } }).then(r => r.data?.data || []).catch(() => []),
-    ]).then(([subs, studs, qrs]) => { setSubmissions(subs); setStudents(studs); setQrSessions(qrs); })
-      .finally(() => setLoading(false));
-  }, [teacherId]);
 
   const sessions = useMemo(() => {
     const map = {};
@@ -171,15 +157,15 @@ function TeacherActivityDashboard() {
 
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-white shadow rounded-xl p-3 text-center">
-          <p className="text-xl font-bold text-purple-600">{sessions.length}</p>
+          <p className="text-xl font-bold text-purple-600 min-h-[1.75rem]">{ready ? sessions.length : ''}</p>
           <p className="text-[10px] text-gray-400">총 세션</p>
         </div>
         <div className="bg-white shadow rounded-xl p-3 text-center">
-          <p className="text-xl font-bold text-green-600">{submissions.filter(s => s.status === 'submitted').length}</p>
+          <p className="text-xl font-bold text-green-600 min-h-[1.75rem]">{ready ? submissions.filter(s => s.status === 'submitted').length : ''}</p>
           <p className="text-[10px] text-gray-400">제출 완료</p>
         </div>
         <div className="bg-white shadow rounded-xl p-3 text-center">
-          <p className="text-xl font-bold text-gray-700">{students.length}</p>
+          <p className="text-xl font-bold text-gray-700 min-h-[1.75rem]">{ready ? students.length : ''}</p>
           <p className="text-[10px] text-gray-400">총 학생</p>
         </div>
       </div>
@@ -195,8 +181,8 @@ function TeacherActivityDashboard() {
         </div>
       )}
 
-      {loading ? (
-        <div className="text-center py-12 text-gray-400">로딩 중...</div>
+      {!ready ? (
+        <div className="text-center py-12 text-gray-400">&nbsp;</div>
       ) : (
         <div className="space-y-3">
           {filteredSessions.map(sess => {
