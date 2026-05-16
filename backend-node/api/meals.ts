@@ -32,12 +32,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(rows);
     }
 
-    // GET /api/meals?action=leaderboard
+    // GET /api/meals?action=leaderboard&period=weekly|monthly&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
     if (req.method === 'GET' && action === 'leaderboard') {
-      const { schoolCode } = req.query;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
+      if (!startDate || !endDate) return res.status(400).json({ message: 'startDate, endDate 필요' });
       const { rows } = await db.query(
-        'SELECT * FROM meals WHERE "schoolCode" = $1 ORDER BY likes DESC LIMIT 10',
-        [schoolCode || ''],
+        `SELECT "schoolCode",
+                COUNT(*)::int as "postCount",
+                COALESCE(SUM(likes), 0)::int as "totalLikes",
+                MAX("mealDate") as "lastMealDate"
+         FROM meals
+         WHERE "mealDate" BETWEEN $1 AND $2
+         GROUP BY "schoolCode"
+         ORDER BY "totalLikes" DESC NULLS LAST, "postCount" DESC
+         LIMIT 20`,
+        [startDate, endDate],
       );
       return res.status(200).json(rows);
     }
