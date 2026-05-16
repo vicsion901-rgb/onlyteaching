@@ -217,6 +217,7 @@ function CareClassroom() {
                 mood: r.mood, customMood: r.custom_mood, todos: r.todo_items,
                 importantEvents: r.free_memo, moodIntensity: 3,
                 moodReasonTags: r.emotion_reason_tags || [],
+                emotionReasonNote: r.emotion_reason_note || '',
                 keyScene: r.key_scene, supportSource: r.support_source,
                 supportMemo: r.support_memo,
                 positiveEmotionScore: r.positive_emotion_score,
@@ -319,7 +320,7 @@ function CareClassroom() {
       client.post('/api/care-classroom', {
         userId, recordDate: selectedDate, mood, customMood,
         positiveEmotionScore: positiveScore, negativeEmotionScore: negativeScore,
-        emotionReasonTags: moodReasonTags, todoItems, keyScene,
+        emotionReasonTags: moodReasonTags, emotionReasonNote, todoItems, keyScene,
         supportSource, supportMemo, freeMemo: importantEvents,
         linkedStudentIds: [], linkedContextSummary: linkedContext?.date === selectedDate ? linkedContext : null,
         computedEmotionLabel: emotionResult?.label, computedEmotionSummary: emotionResult?.summary,
@@ -877,10 +878,16 @@ function CareClassroom() {
               </div>
               {/* ③ 감정 이유 태그 */}
               <EmotionReasonTags moodReasonTags={moodReasonTags} setMoodReasonTags={setMoodReasonTags} suggestedTags={linkedContext?.suggestedEmotionTags} />
-              <div className="mt-2">
-                <input type="text" value={emotionReasonNote} onChange={(e) => setEmotionReasonNote(e.target.value)}
-                  className="block w-full rounded-lg border border-gray-200 p-2 text-sm focus:border-primary-500 focus:ring-primary-500"
-                  placeholder="태그로 표현되지 않는 감정 이유를 적어주세요" />
+              <div className="mt-2.5">
+                <p className="mb-1 text-[11px] font-medium tracking-tight text-gray-400">또는 직접 적기</p>
+                <textarea
+                  value={emotionReasonNote}
+                  onChange={(e) => setEmotionReasonNote(e.target.value)}
+                  rows={2}
+                  maxLength={200}
+                  className="block w-full resize-none rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2 text-sm leading-relaxed text-gray-700 placeholder:text-gray-300 focus:border-primary-300 focus:bg-white focus:ring-1 focus:ring-primary-200"
+                  placeholder="예) 출근하자마자 업무 메시지가 많아서 마음이 급했다"
+                />
               </div>
 
               {/* ④ 오늘의 한 장면 */}

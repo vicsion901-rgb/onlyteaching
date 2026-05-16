@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS care_classroom_records (
   positive_emotion_score SMALLINT,
   negative_emotion_score SMALLINT,
   emotion_reason_tags TEXT[] DEFAULT '{}',
+  emotion_reason_note TEXT,
   todo_items JSONB DEFAULT '[]',
   key_scene TEXT,
   support_source VARCHAR(30),
@@ -33,6 +34,7 @@ CREATE TABLE IF NOT EXISTS care_classroom_records (
   UNIQUE(user_id, record_date)
 );
 CREATE INDEX IF NOT EXISTS idx_care_user_date ON care_classroom_records(user_id, record_date);
+ALTER TABLE care_classroom_records ADD COLUMN IF NOT EXISTS emotion_reason_note TEXT;
 `;
 
 let initialized = false;
@@ -83,17 +85,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let body: any = req.body;
       if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
 
-      const { userId, recordDate, mood, customMood, positiveEmotionScore, negativeEmotionScore, emotionReasonTags, todoItems, keyScene, supportSource, supportMemo, freeMemo, linkedStudentIds, linkedContextSummary, computedEmotionLabel, computedEmotionSummary } = body;
+      const { userId, recordDate, mood, customMood, positiveEmotionScore, negativeEmotionScore, emotionReasonTags, emotionReasonNote, todoItems, keyScene, supportSource, supportMemo, freeMemo, linkedStudentIds, linkedContextSummary, computedEmotionLabel, computedEmotionSummary } = body;
 
       if (!userId || !recordDate) return res.status(400).json({ message: 'userId, recordDate 필요' });
 
       const { rows } = await db.query(`
-        INSERT INTO care_classroom_records (user_id, record_date, mood, custom_mood, positive_emotion_score, negative_emotion_score, emotion_reason_tags, todo_items, key_scene, support_source, support_memo, free_memo, linked_student_ids, linked_context_summary, computed_emotion_label, computed_emotion_summary, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
+        INSERT INTO care_classroom_records (user_id, record_date, mood, custom_mood, positive_emotion_score, negative_emotion_score, emotion_reason_tags, emotion_reason_note, todo_items, key_scene, support_source, support_memo, free_memo, linked_student_ids, linked_context_summary, computed_emotion_label, computed_emotion_summary, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW())
         ON CONFLICT (user_id, record_date)
-        DO UPDATE SET mood=$3, custom_mood=$4, positive_emotion_score=$5, negative_emotion_score=$6, emotion_reason_tags=$7, todo_items=$8, key_scene=$9, support_source=$10, support_memo=$11, free_memo=$12, linked_student_ids=$13, linked_context_summary=$14, computed_emotion_label=$15, computed_emotion_summary=$16, updated_at=NOW()
+        DO UPDATE SET mood=$3, custom_mood=$4, positive_emotion_score=$5, negative_emotion_score=$6, emotion_reason_tags=$7, emotion_reason_note=$8, todo_items=$9, key_scene=$10, support_source=$11, support_memo=$12, free_memo=$13, linked_student_ids=$14, linked_context_summary=$15, computed_emotion_label=$16, computed_emotion_summary=$17, updated_at=NOW()
         RETURNING *
-      `, [userId, recordDate, mood || null, customMood || null, positiveEmotionScore ?? null, negativeEmotionScore ?? null, emotionReasonTags || [], JSON.stringify(todoItems || []), keyScene || null, supportSource || null, supportMemo || null, freeMemo || null, linkedStudentIds || [], linkedContextSummary ? JSON.stringify(linkedContextSummary) : null, computedEmotionLabel || null, computedEmotionSummary || null]);
+      `, [userId, recordDate, mood || null, customMood || null, positiveEmotionScore ?? null, negativeEmotionScore ?? null, emotionReasonTags || [], emotionReasonNote || null, JSON.stringify(todoItems || []), keyScene || null, supportSource || null, supportMemo || null, freeMemo || null, linkedStudentIds || [], linkedContextSummary ? JSON.stringify(linkedContextSummary) : null, computedEmotionLabel || null, computedEmotionSummary || null]);
 
       // 응답 먼저 반환 (표준 구조)
       res.status(200).json({ success: true, saved: 1, data: rows[0], errors: [] });
