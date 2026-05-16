@@ -38,13 +38,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const endDate = req.query.endDate as string;
       if (!startDate || !endDate) return res.status(400).json({ message: 'startDate, endDate 필요' });
       const { rows } = await db.query(
-        `SELECT "schoolCode",
+        `SELECT m."schoolCode",
                 COUNT(*)::int as "postCount",
-                COALESCE(SUM(likes), 0)::int as "totalLikes",
-                MAX("mealDate") as "lastMealDate"
-         FROM meals
-         WHERE "mealDate" BETWEEN $1 AND $2
-         GROUP BY "schoolCode"
+                COALESCE(SUM(m.likes), 0)::int as "totalLikes",
+                MAX(m."mealDate") as "lastMealDate",
+                (SELECT m2."imageUrl" FROM meals m2
+                 WHERE m2."schoolCode" = m."schoolCode"
+                   AND m2."mealDate" BETWEEN $1 AND $2
+                 ORDER BY m2.likes DESC NULLS LAST, m2."mealDate" DESC LIMIT 1) as "topImageUrl"
+         FROM meals m
+         WHERE m."mealDate" BETWEEN $1 AND $2
+         GROUP BY m."schoolCode"
          ORDER BY "totalLikes" DESC NULLS LAST, "postCount" DESC
          LIMIT 20`,
         [startDate, endDate],
