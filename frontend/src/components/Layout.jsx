@@ -161,24 +161,18 @@ function Layout({ children }) {
         {isWorkTimeOpen && (
           <div className="space-y-3">
             <div className="space-y-1">
-              <button type="button" onClick={() => setIsToolOpen(!isToolOpen)} className={navSectionButton}>
-                <span className="mr-2 text-base leading-none">{isToolOpen ? '▾' : '▸'}</span>
-                <span>수업 보조 도구</span>
+              <button type="button" onClick={() => setIsStudentOpen(!isStudentOpen)} className={navSectionButton}>
+                <span className="mr-2 text-base leading-none">{isStudentOpen ? '▾' : '▸'}</span>
+                <span>학생</span>
               </button>
-              {isToolOpen && (
+              {isStudentOpen && (
                 <>
-                  <Link to="/presenter-picker" onClick={() => handleSidebarClick('presenter-picker')}
-                    className={`${navChild} ${location.pathname === '/presenter-picker' ? 'bg-primary-50 text-primary-700' : 'text-gray-900 hover:bg-gray-50'}`}>
-                    <span className="mr-2">🎤</span>발표자 정하기
-                  </Link>
-                  <Link to="/seat-arrangement" onClick={() => handleSidebarClick('seat-arrangement')}
-                    className={`${navChild} ${location.pathname === '/seat-arrangement' ? 'bg-primary-50 text-primary-700' : 'text-gray-900 hover:bg-gray-50'}`}>
-                    <span className="mr-2">🪑</span>자리 정하기
-                  </Link>
-                  <Link to="/role-assignment" onClick={() => handleSidebarClick('role-assignment')}
-                    className={`${navChild} ${location.pathname === '/role-assignment' ? 'bg-primary-50 text-primary-700' : 'text-gray-900 hover:bg-gray-50'}`}>
-                    <span className="mr-2">🎭</span>1인 1역 정하기
-                  </Link>
+                  {studentTabs.map((tab) => (
+                    <Link key={tab.id} to={tab.route} onClick={() => handleSidebarClick(tab.id)}
+                      className={`${navChild} ${location.pathname === tab.route ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                      <span className="mr-2">{tab.emoji}</span>{tab.title}
+                    </Link>
+                  ))}
                 </>
               )}
             </div>
@@ -199,18 +193,24 @@ function Layout({ children }) {
               )}
             </div>
             <div className="space-y-1">
-              <button type="button" onClick={() => setIsStudentOpen(!isStudentOpen)} className={navSectionButton}>
-                <span className="mr-2 text-base leading-none">{isStudentOpen ? '▾' : '▸'}</span>
-                <span>학생</span>
+              <button type="button" onClick={() => setIsToolOpen(!isToolOpen)} className={navSectionButton}>
+                <span className="mr-2 text-base leading-none">{isToolOpen ? '▾' : '▸'}</span>
+                <span>수업 보조 도구</span>
               </button>
-              {isStudentOpen && (
+              {isToolOpen && (
                 <>
-                  {studentTabs.map((tab) => (
-                    <Link key={tab.id} to={tab.route} onClick={() => handleSidebarClick(tab.id)}
-                      className={`${navChild} ${location.pathname === tab.route ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                      <span className="mr-2">{tab.emoji}</span>{tab.title}
-                    </Link>
-                  ))}
+                  <Link to="/presenter-picker" onClick={() => handleSidebarClick('presenter-picker')}
+                    className={`${navChild} ${location.pathname === '/presenter-picker' ? 'bg-primary-50 text-primary-700' : 'text-gray-900 hover:bg-gray-50'}`}>
+                    <span className="mr-2">🎤</span>발표자 정하기
+                  </Link>
+                  <Link to="/seat-arrangement" onClick={() => handleSidebarClick('seat-arrangement')}
+                    className={`${navChild} ${location.pathname === '/seat-arrangement' ? 'bg-primary-50 text-primary-700' : 'text-gray-900 hover:bg-gray-50'}`}>
+                    <span className="mr-2">🪑</span>자리 정하기
+                  </Link>
+                  <Link to="/role-assignment" onClick={() => handleSidebarClick('role-assignment')}
+                    className={`${navChild} ${location.pathname === '/role-assignment' ? 'bg-primary-50 text-primary-700' : 'text-gray-900 hover:bg-gray-50'}`}>
+                    <span className="mr-2">🎭</span>1인 1역 정하기
+                  </Link>
                 </>
               )}
             </div>
