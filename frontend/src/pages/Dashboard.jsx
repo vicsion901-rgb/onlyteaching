@@ -11,55 +11,72 @@ const GREETING_TEXT = 'On1yTeaching';
 const KEYWORD_MAP = [
   { id: 'life-records', title: '생활기록부 작성', emoji: '📝', route: '/life-records',
     reason: '생기부 문장 초안을 만들 수 있어요',
-    keywords: ['생기부', '생활기록부', '생활기록', '기록부', '행발', '발표력', '예의범절', '서술', '기록 문장'] },
+    keywords: ['생기부', '생활기록부', '생활기록', '기록부', '행발', '발표력', '예의범절', '서술', '기록 문장', '서술형', '평가문장'],
+    aliases: ['생기브', '생긱부', '생기부쓰', '행바', '행발문장', '생기부문장', '생기부써', '생기부써줘'] },
   { id: 'counseling', title: '상담 기록', emoji: '💬', route: '/counseling',
     reason: '상담 내용과 관찰을 정리할 수 있어요',
-    keywords: ['상담', '학부모', '갈등', '관찰', '생활지도', '학생 관계', '또래'] },
+    keywords: ['상담', '학부모', '갈등', '관찰', '생활지도', '학생 관계', '또래', '친구관계', '정서', '문제행동', '행동'],
+    aliases: ['상담기록', '상듬', '학생관계', '친구갈등', '학부모상담', '지도기록'] },
   { id: 'today-meal', title: '오늘의 급식', emoji: '🍱', route: '/today-meal',
     reason: '급식 사진 업로드 + 학교별 응원 순위를 볼 수 있어요',
-    keywords: ['급식', '응원', '영양선생님', '급식상', '식판', '점심'] },
+    keywords: ['급식', '응원', '영양선생님', '급식상', '식판', '점심', '식단', '오늘의급식'],
+    aliases: ['오늘밥', '급싣', '급시', '영양쌤', '급식사진', '급식응원', '밥올려', '밥올리'] },
   { id: 'student-records', title: '학생 명부', emoji: '👥', route: '/student-records',
     reason: '학생 명부와 출결을 관리할 수 있어요',
-    keywords: ['학생명부', '명부', '출석', '학생기록'] },
+    keywords: ['학생명부', '명부', '출석', '학생기록'],
+    aliases: ['학생리스트', '학생목록', '명부확인'] },
   { id: 'schedule', title: '학사일정', emoji: '📅', route: '/schedule',
     reason: '일정을 등록하고 월간 흐름을 볼 수 있어요',
-    keywords: ['일정', '학사', '스케줄', '학사일정'] },
+    keywords: ['일정', '학사', '스케줄', '학사일정', '회의'],
+    aliases: ['스케쥴', '스케줄링', '일정등록', '일정정리'] },
   { id: 'newsletter', title: '가정통신문', emoji: '📢', route: '/newsletter',
     reason: '안내문/공지 초안을 만들 수 있어요',
-    keywords: ['가정통신문', '안내문', '통신문', '공지', '안내'] },
+    keywords: ['가정통신문', '안내문', '통신문', '공지', '안내'],
+    aliases: ['공지문', '가통문', '안내문구', '공지사항'] },
   { id: 'autobiography-compilation', title: '자서전 편찬', emoji: '📖', route: '/autobiography-compilation',
     reason: '자서전 챕터와 질문을 확인하고 편집할 수 있어요',
-    keywords: ['자서전', '편찬', '챕터', '회고', '회고록'] },
+    keywords: ['자서전', '편찬', '챕터', '회고', '회고록', '책만들기', '원고', '질문답변'],
+    aliases: ['자서전쓰기', '챱터', '책편찬', '질문정리', '원고지편찬', '자서전편집'] },
   { id: 'creative-studio', title: '창작 편찬실', emoji: '🎨', route: '/creative-studio',
     reason: '창작 활동과 챕터 질문을 관리할 수 있어요',
-    keywords: ['창작', '편찬실'] },
+    keywords: ['창작', '편찬실'],
+    aliases: ['편찬싫', '편찬슬', '창작실'] },
   { id: 'subject-evaluation', title: '교과 평가', emoji: '📊', route: '/subject-evaluation',
     reason: '교과별 성취와 평가를 정리할 수 있어요',
-    keywords: ['교과평가', '성적', '평가', '성취'] },
+    keywords: ['교과평가', '성적', '평가', '성취'],
+    aliases: ['교과성적', '평가정리', '성적정리'] },
   { id: 'exam-grading', title: '시험 채점', emoji: '✏️', route: '/exam-grading',
     reason: '시험지 채점을 도와드려요',
-    keywords: ['채점', '시험지', '시험채점'] },
+    keywords: ['채점', '시험지', '시험채점'],
+    aliases: ['시험점수', '시험검토', '채점해줘'] },
   { id: 'presenter-picker', title: '발표자 정하기', emoji: '🎤', route: '/presenter-picker',
     reason: '발표자를 뽑거나 순서를 정할 수 있어요',
-    keywords: ['발표자', '발표 정하기', '발표 뽑기', '뽑기'] },
+    keywords: ['발표자', '발표 정하기', '발표 뽑기', '뽑기', '추첨', '랜덤', '모둠'],
+    aliases: ['발표자뽑기', '발표자뽑고십어', '발표자뽑고싶어', '발표자정해줘', '랜덤뽑기', '추첨도구'] },
   { id: 'seat-arrangement', title: '자리 정하기', emoji: '🪑', route: '/seat-arrangement',
     reason: '자리 배치를 자동으로 정할 수 있어요',
-    keywords: ['자리', '자리 배치', '좌석'] },
+    keywords: ['자리', '자리 배치', '좌석'],
+    aliases: ['자리배치', '자리뽑기', '좌석배치', '자리정해줘'] },
   { id: 'role-assignment', title: '1인 1역', emoji: '🎭', route: '/role-assignment',
     reason: '1인 1역 분담을 만들 수 있어요',
-    keywords: ['1인 1역', '역할', '분담', '1인1역'] },
+    keywords: ['1인 1역', '역할', '분담', '1인1역'],
+    aliases: ['역할분담', '일인일역', '역할정해줘'] },
   { id: 'absence-report', title: '결석계', emoji: '🏥', route: '/absence-report',
     reason: '결석/출결 신고를 처리할 수 있어요',
-    keywords: ['결석', '출결', '결석계'] },
+    keywords: ['결석', '출결', '결석계'],
+    aliases: ['결석신고', '결석처리', '결석사유'] },
   { id: 'care-classroom', title: '돌봄교실', emoji: '🏫', route: '/care-classroom',
     reason: '돌봄교실 일지와 감정 기록을 남길 수 있어요',
-    keywords: ['돌봄', '감정 기록', '돌봄교실'] },
+    keywords: ['돌봄', '감정 기록', '돌봄교실'],
+    aliases: ['돌봄일지', '돌봄기록', '돌붐교실'] },
   { id: 'teacher-activities', title: '학생 활동 관리', emoji: '📋', route: '/teacher-activities',
     reason: '학생 제출과 세션 현황을 볼 수 있어요',
-    keywords: ['활동 관리', '제출 현황', '세션', '학생 활동'] },
+    keywords: ['활동 관리', '제출 현황', '세션', '학생 활동'],
+    aliases: ['활동현황', '제출확인', '활동관리'] },
   { id: 'qr-distribution', title: 'QR 배포', emoji: '📱', route: '#qr', action: 'showQr',
     reason: '아침 활동 링크를 QR 코드로 배포할 수 있어요',
-    keywords: ['qr', '배포', '활동지', '링크 보내기', '큐알'] },
+    keywords: ['qr', '배포', '활동지', '링크 보내기', '큐알', '아침활동배포'],
+    aliases: ['큐알로', '큐알배포', 'qr배포', 'qr코드', '큐알코드', '링크보내기', '큐알로보내'] },
 ];
 
 function Dashboard() {
@@ -213,7 +230,7 @@ function Dashboard() {
       setUsedModel(res.data.ai_model);
     } catch (error) {
       console.error("Failed to submit prompt", error);
-      setResponse("오류가 발생했습니다. 다시 시도해주세요.");
+      setResponse("결과 생성에 실패했어요. 아래 추천 작업 중 하나로 바로 이동할 수 있어요.");
     } finally {
       setIsLoading(false);
     }
@@ -341,13 +358,16 @@ function Dashboard() {
               {/* Right: result */}
               <div className="flex flex-col min-h-[100px]">
                 <div className="bg-white border border-gray-300 rounded-md p-3 flex-1 overflow-y-auto shadow-sm space-y-3">
-                  {routeInfo.primary && (
+                  {routeInfo.confidence === 'high' && routeInfo.primary && (
                     <RecommendationCard primary={routeInfo.primary} secondary={routeInfo.secondary} onSelect={handleRecommendClick} />
                   )}
-                  {!routeInfo.primary && routeInfo.isAmbiguous && (
+                  {(routeInfo.confidence === 'medium' || routeInfo.confidence === 'low') && routeInfo.primary && (
+                    <DidYouMeanCard primary={routeInfo.primary} secondary={routeInfo.secondary} onSelect={handleRecommendClick} />
+                  )}
+                  {routeInfo.confidence === 'unknown' && !routeInfo.primary && (
                     <AmbiguousHint suggestions={KEYWORD_MAP.slice(0, 6)} onSelect={handleRecommendClick} />
                   )}
-                  {!routeInfo.primary && !routeInfo.isAmbiguous && !response && (
+                  {routeInfo.confidence === 'none' && !response && (
                     <EmptyHint onSelect={handleRecommendClick} />
                   )}
                   <ResultRenderer text={response} />
@@ -424,29 +444,68 @@ function ResultRenderer({ text }) {
   );
 }
 
+function editDistance(a, b) {
+  if (a === b) return 0;
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  if (Math.abs(m - n) > 2) return 99;
+  let prev = new Array(n + 1);
+  let curr = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= n; j++) {
+      curr[j] = a[i - 1] === b[j - 1] ? prev[j - 1] : Math.min(prev[j - 1], curr[j - 1], prev[j]) + 1;
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[n];
+}
+
+function hasFuzzyMatch(input, keyword, threshold = 1) {
+  if (!keyword || keyword.length < 2) return false;
+  const lo = Math.max(2, keyword.length - 1);
+  const hi = keyword.length + 1;
+  for (let len = lo; len <= hi; len++) {
+    for (let i = 0; i + len <= input.length; i++) {
+      if (editDistance(input.slice(i, i + len), keyword) <= threshold) return true;
+    }
+  }
+  return false;
+}
+
 function detectRoutesFromPrompt(text) {
-  if (!text || !text.trim()) return { primary: null, secondary: [], isAmbiguous: false };
+  if (!text || !text.trim()) return { primary: null, secondary: [], confidence: 'none' };
   const normalized = text.toLowerCase().replace(/\s+/g, '');
 
   const scored = KEYWORD_MAP.map((entry) => {
-    let score = 0;
-    for (const kw of entry.keywords) {
+    let score = 0, exactHit = 0, aliasHit = 0, fuzzyHit = 0;
+    for (const kw of (entry.keywords || [])) {
       const k = kw.toLowerCase().replace(/\s+/g, '');
       if (!k) continue;
-      if (normalized.includes(k)) score += k.length >= 4 ? 3 : 2;
+      if (normalized.includes(k)) { score += k.length >= 4 ? 3 : 2; exactHit++; }
+      else if (hasFuzzyMatch(normalized, k)) { score += 1; fuzzyHit++; }
     }
-    return { ...entry, score };
+    for (const al of (entry.aliases || [])) {
+      const k = al.toLowerCase().replace(/\s+/g, '');
+      if (!k) continue;
+      if (normalized.includes(k)) { score += 2; aliasHit++; }
+      else if (hasFuzzyMatch(normalized, k)) { score += 1; fuzzyHit++; }
+    }
+    return { ...entry, score, exactHit, aliasHit, fuzzyHit };
   }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score);
 
   if (scored.length === 0) {
-    return { primary: null, secondary: [], isAmbiguous: text.trim().length >= 2 };
+    return { primary: null, secondary: [], confidence: text.trim().length >= 2 ? 'unknown' : 'none' };
   }
   const [primary, ...rest] = scored;
-  return {
-    primary,
-    secondary: rest.slice(0, 3),
-    isAmbiguous: primary.score <= 2 && rest.length > 0,
-  };
+  const secondary = rest.slice(0, 3);
+  let confidence;
+  if (primary.exactHit >= 1) confidence = 'high';
+  else if (primary.aliasHit >= 1 || primary.fuzzyHit >= 1) confidence = 'medium';
+  else confidence = 'low';
+  return { primary, secondary, confidence };
 }
 
 function RecommendationCard({ primary, secondary, onSelect }) {
@@ -468,6 +527,34 @@ function RecommendationCard({ primary, secondary, onSelect }) {
           {secondary.map((s) => (
             <button key={s.id} type="button" onClick={() => onSelect(s)}
               className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:border-indigo-300 hover:text-indigo-700 transition">
+              <span>{s.emoji}</span>{s.title}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DidYouMeanCard({ primary, secondary, onSelect }) {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 space-y-2">
+      <p className="text-[11px] font-semibold tracking-wider text-amber-800 uppercase">혹시 이건가요?</p>
+      <button type="button" onClick={() => onSelect(primary)}
+        className="w-full text-left flex items-center gap-3 rounded-lg bg-white border border-amber-200 p-3 hover:border-amber-400 hover:shadow-sm transition">
+        <span className="text-2xl shrink-0">{primary.emoji}</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-gray-900">{primary.title}</p>
+          <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{primary.reason}</p>
+        </div>
+        <span className="text-amber-700 text-sm font-semibold shrink-0">맞아요 →</span>
+      </button>
+      {secondary && secondary.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+          <span className="text-[11px] text-gray-500">아니면:</span>
+          {secondary.map((s) => (
+            <button key={s.id} type="button" onClick={() => onSelect(s)}
+              className="inline-flex items-center gap-1 rounded-full bg-white border border-amber-200 px-2 py-0.5 text-[11px] font-medium text-amber-800 hover:border-amber-400 transition">
               <span>{s.emoji}</span>{s.title}
             </button>
           ))}
