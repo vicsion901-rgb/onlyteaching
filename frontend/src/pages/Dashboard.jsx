@@ -585,15 +585,13 @@ function DidYouMeanCard({ primary, secondary, onSelect }) {
 }
 
 function ResultPanel({ submitted, routeInfo, response, isLoading, onSelect }) {
-  // 1) 제출 전 — 기본 안내문만
+  // 1) 제출 전 — 기본 안내문 (좌상단, 입력창 placeholder와 같은 시작점)
   if (!submitted) {
     return (
-      <div className="flex h-full min-h-[120px] items-center justify-center px-4 py-6 text-center">
-        <p className="text-sm text-gray-500 leading-relaxed">
-          업무 요청을 입력하고 <span className="font-semibold text-gray-700">생성하기</span>를 누르면,<br />
-          바로 답변하거나 관련 작업으로 안내해드려요.
-        </p>
-      </div>
+      <p className="text-sm text-gray-400 leading-relaxed">
+        업무 요청을 입력하고 <span className="font-medium text-gray-600">생성하기</span>를 누르면,
+        바로 답변하거나 관련 작업으로 안내해드려요.
+      </p>
     );
   }
 
