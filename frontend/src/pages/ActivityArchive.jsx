@@ -18,10 +18,16 @@ function ActivityArchive({ embedded, onSwitchTab }) {
   const [detailIdx, setDetailIdx] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const [allActivities, setAllActivities] = useState([]);
+  const [allActivities, setAllActivities] = useState(() => {
+    try { return getAllActivities() || []; } catch { return []; }
+  });
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetchAllActivitiesFromServer().then(setAllActivities).catch(() => setAllActivities(getAllActivities()));
+    fetchAllActivitiesFromServer()
+      .then((data) => setAllActivities(Array.isArray(data) ? data : []))
+      .catch(() => { try { setAllActivities(getAllActivities() || []); } catch {} })
+      .finally(() => setLoaded(true));
   }, [refreshKey]);
 
   const activities = useMemo(() => {
@@ -212,7 +218,23 @@ function ActivityArchive({ embedded, onSwitchTab }) {
             </div>
           );
         })}
-        {activities.length === 0 && (
+        {activities.length === 0 && !loaded && (
+          <>
+            {[0, 1, 2, 3].map((i) => (
+              <div key={`skel-${i}`} className="rounded-xl bg-white border border-gray-100 p-4 space-y-2 animate-pulse">
+                <div className="h-3 w-1/3 rounded bg-gray-200" />
+                <div className="h-4 w-2/3 rounded bg-gray-200" />
+                <div className="h-3 w-full rounded bg-gray-100" />
+                <div className="h-3 w-5/6 rounded bg-gray-100" />
+                <div className="flex gap-2 pt-1">
+                  <div className="h-4 w-12 rounded-full bg-gray-100" />
+                  <div className="h-4 w-10 rounded-full bg-gray-100" />
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+        {activities.length === 0 && loaded && (
           <div className="col-span-2 text-center py-14 text-gray-400">
             <div className="text-5xl mb-4">📝</div>
             <p className="text-base font-medium text-gray-600">아직 쓴 글이 없습니다</p>
