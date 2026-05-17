@@ -8,6 +8,60 @@ import QrDistribution from '../components/QrDistribution';
 
 const GREETING_TEXT = 'On1yTeaching';
 
+const KEYWORD_MAP = [
+  { id: 'life-records', title: '생활기록부 작성', emoji: '📝', route: '/life-records',
+    reason: '생기부 문장 초안을 만들 수 있어요',
+    keywords: ['생기부', '생활기록부', '생활기록', '기록부', '행발', '발표력', '예의범절', '서술', '기록 문장'] },
+  { id: 'counseling', title: '상담 기록', emoji: '💬', route: '/counseling',
+    reason: '상담 내용과 관찰을 정리할 수 있어요',
+    keywords: ['상담', '학부모', '갈등', '관찰', '생활지도', '학생 관계', '또래'] },
+  { id: 'today-meal', title: '오늘의 급식', emoji: '🍱', route: '/today-meal',
+    reason: '급식 사진 업로드 + 학교별 응원 순위를 볼 수 있어요',
+    keywords: ['급식', '응원', '영양선생님', '급식상', '식판', '점심'] },
+  { id: 'student-records', title: '학생 명부', emoji: '👥', route: '/student-records',
+    reason: '학생 명부와 출결을 관리할 수 있어요',
+    keywords: ['학생명부', '명부', '출석', '학생기록'] },
+  { id: 'schedule', title: '학사일정', emoji: '📅', route: '/schedule',
+    reason: '일정을 등록하고 월간 흐름을 볼 수 있어요',
+    keywords: ['일정', '학사', '스케줄', '학사일정'] },
+  { id: 'newsletter', title: '가정통신문', emoji: '📢', route: '/newsletter',
+    reason: '안내문/공지 초안을 만들 수 있어요',
+    keywords: ['가정통신문', '안내문', '통신문', '공지', '안내'] },
+  { id: 'autobiography-compilation', title: '자서전 편찬', emoji: '📖', route: '/autobiography-compilation',
+    reason: '자서전 챕터와 질문을 확인하고 편집할 수 있어요',
+    keywords: ['자서전', '편찬', '챕터', '회고', '회고록'] },
+  { id: 'creative-studio', title: '창작 편찬실', emoji: '🎨', route: '/creative-studio',
+    reason: '창작 활동과 챕터 질문을 관리할 수 있어요',
+    keywords: ['창작', '편찬실'] },
+  { id: 'subject-evaluation', title: '교과 평가', emoji: '📊', route: '/subject-evaluation',
+    reason: '교과별 성취와 평가를 정리할 수 있어요',
+    keywords: ['교과평가', '성적', '평가', '성취'] },
+  { id: 'exam-grading', title: '시험 채점', emoji: '✏️', route: '/exam-grading',
+    reason: '시험지 채점을 도와드려요',
+    keywords: ['채점', '시험지', '시험채점'] },
+  { id: 'presenter-picker', title: '발표자 정하기', emoji: '🎤', route: '/presenter-picker',
+    reason: '발표자를 뽑거나 순서를 정할 수 있어요',
+    keywords: ['발표자', '발표 정하기', '발표 뽑기', '뽑기'] },
+  { id: 'seat-arrangement', title: '자리 정하기', emoji: '🪑', route: '/seat-arrangement',
+    reason: '자리 배치를 자동으로 정할 수 있어요',
+    keywords: ['자리', '자리 배치', '좌석'] },
+  { id: 'role-assignment', title: '1인 1역', emoji: '🎭', route: '/role-assignment',
+    reason: '1인 1역 분담을 만들 수 있어요',
+    keywords: ['1인 1역', '역할', '분담', '1인1역'] },
+  { id: 'absence-report', title: '결석계', emoji: '🏥', route: '/absence-report',
+    reason: '결석/출결 신고를 처리할 수 있어요',
+    keywords: ['결석', '출결', '결석계'] },
+  { id: 'care-classroom', title: '돌봄교실', emoji: '🏫', route: '/care-classroom',
+    reason: '돌봄교실 일지와 감정 기록을 남길 수 있어요',
+    keywords: ['돌봄', '감정 기록', '돌봄교실'] },
+  { id: 'teacher-activities', title: '학생 활동 관리', emoji: '📋', route: '/teacher-activities',
+    reason: '학생 제출과 세션 현황을 볼 수 있어요',
+    keywords: ['활동 관리', '제출 현황', '세션', '학생 활동'] },
+  { id: 'qr-distribution', title: 'QR 배포', emoji: '📱', route: '#qr', action: 'showQr',
+    reason: '아침 활동 링크를 QR 코드로 배포할 수 있어요',
+    keywords: ['qr', '배포', '활동지', '링크 보내기', '큐알'] },
+];
+
 function Dashboard() {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState('');
@@ -80,7 +134,13 @@ function Dashboard() {
   }, [allTabs, tabUsage]);
 
 
-  const activeTabId = useMemo(() => detectTopicFromPrompt(prompt, allTabs), [prompt, allTabs]);
+  const routeInfo = useMemo(() => detectRoutesFromPrompt(prompt), [prompt]);
+
+  const handleRecommendClick = (item) => {
+    if (!item) return;
+    if (item.action === 'showQr') { setShowQr(true); return; }
+    handleTabClick(item.id, item.route);
+  };
 
   // Fetch events from backend
   useEffect(() => {
@@ -247,9 +307,9 @@ function Dashboard() {
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-medium leading-6 text-gray-900">결과</h3>
-                  {activeTabId === 'life-records' && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">
-                      생활기록부
+                  {routeInfo.primary && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-800">
+                      <span>{routeInfo.primary.emoji}</span>{routeInfo.primary.title}
                     </span>
                   )}
                 </div>
@@ -280,7 +340,16 @@ function Dashboard() {
 
               {/* Right: result */}
               <div className="flex flex-col min-h-[100px]">
-                <div className="bg-white border border-gray-300 rounded-md p-3 flex-1 overflow-y-auto shadow-sm">
+                <div className="bg-white border border-gray-300 rounded-md p-3 flex-1 overflow-y-auto shadow-sm space-y-3">
+                  {routeInfo.primary && (
+                    <RecommendationCard primary={routeInfo.primary} secondary={routeInfo.secondary} onSelect={handleRecommendClick} />
+                  )}
+                  {!routeInfo.primary && routeInfo.isAmbiguous && (
+                    <AmbiguousHint suggestions={KEYWORD_MAP.slice(0, 6)} onSelect={handleRecommendClick} />
+                  )}
+                  {!routeInfo.primary && !routeInfo.isAmbiguous && !response && (
+                    <EmptyHint onSelect={handleRecommendClick} />
+                  )}
                   <ResultRenderer text={response} />
                 </div>
               </div>
@@ -355,39 +424,89 @@ function ResultRenderer({ text }) {
   );
 }
 
-function detectTopicFromPrompt(text, tabs) {
-  if (!text || !text.trim()) return null;
+function detectRoutesFromPrompt(text) {
+  if (!text || !text.trim()) return { primary: null, secondary: [], isAmbiguous: false };
   const normalized = text.toLowerCase().replace(/\s+/g, '');
 
-  const keywordMap = [
-    { id: 'schedule', keywords: ['학사일정', '학사', '일정', '스케줄'] },
-    { id: 'creative-activities', keywords: ['창의적체험활동', '창체', '창의적', '동아리', '봉사'] },
-    { id: 'life-records', keywords: ['생활기록부', '생기부', '생활기록', '기록부'] },
-    { id: 'autobiography-compilation', keywords: ['자서전편찬', '자서전', '편찬', '회고록'] },
-    { id: 'subject-evaluation', keywords: ['교과평가', '성적', '평가', '성취'] },
-    { id: 'newsletter', keywords: ['가정통신문', '안내문', '통신문'] },
-    { id: 'student-records', keywords: ['학생명부', '명부', '학생기록'] },
-    { id: 'neis', keywords: ['neis', '나이스'] },
-    { id: 'counseling', keywords: ['상담', '상담기록', '상담일지'] },
-    { id: 'exam-grading', keywords: ['채점', '시험지', '시험채점'] },
-  ];
-
-  for (const entry of keywordMap) {
-    if (entry.keywords.some((k) => normalized.includes(k.replace(/\s+/g, '').toLowerCase()))) {
-      return entry.id;
+  const scored = KEYWORD_MAP.map((entry) => {
+    let score = 0;
+    for (const kw of entry.keywords) {
+      const k = kw.toLowerCase().replace(/\s+/g, '');
+      if (!k) continue;
+      if (normalized.includes(k)) score += k.length >= 4 ? 3 : 2;
     }
-  }
+    return { ...entry, score };
+  }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score);
 
-  // Fallback: try to match by title similarity
-  if (tabs && Array.isArray(tabs)) {
-    for (const tab of tabs) {
-      const titleNorm = (tab.title || '').toLowerCase().replace(/\s+/g, '');
-      if (!titleNorm) continue;
-      if (normalized.includes(titleNorm) || titleNorm.includes(normalized)) {
-        return tab.id;
-      }
-    }
+  if (scored.length === 0) {
+    return { primary: null, secondary: [], isAmbiguous: text.trim().length >= 2 };
   }
+  const [primary, ...rest] = scored;
+  return {
+    primary,
+    secondary: rest.slice(0, 3),
+    isAmbiguous: primary.score <= 2 && rest.length > 0,
+  };
+}
 
-  return null;
+function RecommendationCard({ primary, secondary, onSelect }) {
+  return (
+    <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3 space-y-2">
+      <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">추천 작업</p>
+      <button type="button" onClick={() => onSelect(primary)}
+        className="w-full text-left flex items-center gap-3 rounded-lg bg-white border border-indigo-200 p-3 hover:border-indigo-400 hover:shadow-sm transition">
+        <span className="text-2xl shrink-0">{primary.emoji}</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-gray-900">{primary.title}</p>
+          <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{primary.reason}</p>
+        </div>
+        <span className="text-indigo-600 text-sm font-semibold shrink-0">이동 →</span>
+      </button>
+      {secondary && secondary.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+          <span className="text-[11px] text-gray-500">비슷한 작업:</span>
+          {secondary.map((s) => (
+            <button key={s.id} type="button" onClick={() => onSelect(s)}
+              className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:border-indigo-300 hover:text-indigo-700 transition">
+              <span>{s.emoji}</span>{s.title}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AmbiguousHint({ suggestions, onSelect }) {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 space-y-2">
+      <p className="text-xs text-amber-800">어떤 작업을 하시려는지 아래에서 골라보세요</p>
+      <div className="flex flex-wrap gap-1.5">
+        {suggestions.map((s) => (
+          <button key={s.id} type="button" onClick={() => onSelect(s)}
+            className="inline-flex items-center gap-1 rounded-full bg-white border border-amber-200 px-2.5 py-0.5 text-[11px] font-medium text-amber-800 hover:border-amber-400 transition">
+            <span>{s.emoji}</span>{s.title}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EmptyHint({ onSelect }) {
+  const popular = KEYWORD_MAP.slice(0, 6);
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-gray-500">자연어로 업무를 적으면 추천 탭을 알려드려요.</p>
+      <div className="grid grid-cols-2 gap-2">
+        {popular.map((p) => (
+          <button key={p.id} type="button" onClick={() => onSelect(p)}
+            className="flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-200 p-2 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition">
+            <span className="text-lg shrink-0">{p.emoji}</span>
+            <span className="text-xs font-medium text-gray-800 truncate">{p.title}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
