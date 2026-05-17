@@ -10,12 +10,22 @@ function CreativeStudio({ embedded, onSwitchTab, onGoToBookWithCollection }) {
   const [collectionTitle, setCollectionTitle] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [pendingRefresh, setPendingRefresh] = useState(0);
-  const [collections, setCollections] = useState([]);
+  const [collections, setCollections] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cs_collections') || '[]'); } catch { return []; }
+  });
+  const [collectionsLoaded, setCollectionsLoaded] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const { activities: allActivities } = useActivities();
+  const { activities: allActivities, isLoading: activitiesLoading } = useActivities();
 
   useEffect(() => {
-    fetchCollections().then(setCollections).catch(() => {});
+    fetchCollections()
+      .then((data) => {
+        const arr = Array.isArray(data) ? data : [];
+        setCollections(arr);
+        try { localStorage.setItem('cs_collections', JSON.stringify(arr)); } catch {}
+      })
+      .catch(() => {})
+      .finally(() => setCollectionsLoaded(true));
   }, [refreshKey]);
 
   const pendingItems = useMemo(() => {
@@ -138,7 +148,12 @@ function CreativeStudio({ embedded, onSwitchTab, onGoToBookWithCollection }) {
                 </label>
               );
             })}
-            {activities.length === 0 && <p className="text-xs text-gray-400 text-center py-8">편찬 가능한 글이 없습니다</p>}
+            {activities.length === 0 && activitiesLoading && (
+              <div className="space-y-2 py-2">
+                {[0,1,2].map(i => (<div key={i} className="h-10 rounded-lg bg-gray-100 animate-pulse" />))}
+              </div>
+            )}
+            {activities.length === 0 && !activitiesLoading && <p className="text-xs text-gray-400 text-center py-8">편찬 가능한 글이 없습니다</p>}
           </div>
         </div>
 
@@ -156,7 +171,7 @@ function CreativeStudio({ embedded, onSwitchTab, onGoToBookWithCollection }) {
 
           <div className="border-t border-gray-100 pt-4">
             <h3 className="text-xs font-semibold text-gray-500 mb-2">만든 묶음</h3>
-            <ExistingCollections collections={collections} navigate={navigate} onSwitchTab={onSwitchTab} onGoToBookWithCollection={onGoToBookWithCollection} />
+            <ExistingCollections collections={collections} loaded={collectionsLoaded} navigate={navigate} onSwitchTab={onSwitchTab} onGoToBookWithCollection={onGoToBookWithCollection} />
           </div>
         </div>
       </div>
@@ -164,7 +179,14 @@ function CreativeStudio({ embedded, onSwitchTab, onGoToBookWithCollection }) {
   );
 }
 
-function ExistingCollections({ collections, navigate, onSwitchTab, onGoToBookWithCollection }) {
+function ExistingCollections({ collections, loaded, navigate, onSwitchTab, onGoToBookWithCollection }) {
+  if (!loaded && collections.length === 0) {
+    return (
+      <div className="space-y-1.5">
+        {[0,1].map(i => (<div key={i} className="h-9 rounded-lg bg-gray-100 animate-pulse" />))}
+      </div>
+    );
+  }
   if (collections.length === 0) return <p className="text-xs text-gray-400">아직 묶음이 없습니다</p>;
 
   return (

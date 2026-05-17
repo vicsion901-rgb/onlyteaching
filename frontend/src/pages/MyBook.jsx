@@ -14,7 +14,7 @@ const BOOK_TYPES = [
 
 function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialCollection }) {
   const navigate = useNavigate();
-  const { activities: allActivityData } = useActivities();
+  const { activities: allActivityData, isLoading: activitiesLoading } = useActivities();
   const [step, setStep] = useState(1);
   const [bookType, setBookType] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -25,10 +25,20 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
   const [useCollection, setUseCollection] = useState(false);
   const [selectedCollectionId, setSelectedCollectionId] = useState(null);
   const [selectedCollection, setSelectedCollection] = useState(null);
-  const [collections, setCollections] = useState([]);
+  const [collections, setCollections] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('mb_collections') || '[]'); } catch { return []; }
+  });
+  const [collectionsLoaded, setCollectionsLoaded] = useState(false);
 
   useEffect(() => {
-    fetchCollections().then(setCollections).catch(() => {});
+    fetchCollections()
+      .then((data) => {
+        const arr = Array.isArray(data) ? data : [];
+        setCollections(arr);
+        try { localStorage.setItem('mb_collections', JSON.stringify(arr)); } catch {}
+      })
+      .catch(() => {})
+      .finally(() => setCollectionsLoaded(true));
   }, []);
 
   useEffect(() => {
@@ -224,7 +234,12 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
                   </label>
                 );
               })}
-              {recommendedActivities.length === 0 && (
+              {recommendedActivities.length === 0 && activitiesLoading && (
+                <div className="space-y-2 py-2">
+                  {[0,1,2].map(i => (<div key={i} className="h-12 rounded-lg bg-gray-100 animate-pulse" />))}
+                </div>
+              )}
+              {recommendedActivities.length === 0 && !activitiesLoading && (
                 <div className="text-center py-8 text-gray-400">
                   <p className="text-sm">{bookType.id === 'growth' ? '대표 글을 넣으려면 활동을 먼저 해 보세요' : '이 유형에 맞는 글이 아직 없습니다'}</p>
                   <button onClick={() => onSwitchTab ? onSwitchTab('today') : navigate('/morning-activity')} className="mt-2 text-purple-600 text-xs underline">활동하러 가기</button>

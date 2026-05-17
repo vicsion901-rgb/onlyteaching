@@ -53,9 +53,16 @@ function TodayMeal() {
   const [caption, setCaption] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
-  const [meals, setMeals] = useState([]);
-  const [weeklyBoard, setWeeklyBoard] = useState([]);
-  const [monthlyBoard, setMonthlyBoard] = useState([]);
+  const [meals, setMeals] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`tm_meals_${schoolCode}`) || '[]'); } catch { return []; }
+  });
+  const [weeklyBoard, setWeeklyBoard] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tm_weekly') || '[]'); } catch { return []; }
+  });
+  const [monthlyBoard, setMonthlyBoard] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tm_monthly') || '[]'); } catch { return []; }
+  });
+  const [boardLoaded, setBoardLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [likingMealId, setLikingMealId] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -70,26 +77,32 @@ function TodayMeal() {
     if (!schoolCode) { setMeals([]); return; }
     try {
       const res = await client.get('/api/meals', { params: { schoolCode, startDate: weekStart, endDate: weekEnd } });
-      setMeals(Array.isArray(res.data) ? res.data : []);
+      const data = Array.isArray(res.data) ? res.data : [];
+      setMeals(data);
+      try { localStorage.setItem(`tm_meals_${schoolCode}`, JSON.stringify(data)); } catch {}
     } catch (err) {
       console.error('Failed to fetch meals', err);
       setErrorMsg('급식 목록을 불러오지 못했습니다.');
     }
   };
-  const fetchBoard = async (period, startDate, endDate, setter) => {
+  const fetchBoard = async (period, startDate, endDate, setter, cacheKey) => {
     try {
       const res = await client.get('/api/meals', { params: { action: 'leaderboard', period, startDate, endDate } });
-      setter(Array.isArray(res.data) ? res.data : []);
+      const data = Array.isArray(res.data) ? res.data : [];
+      setter(data);
+      if (cacheKey) { try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch {} }
     } catch (err) {
       console.error('Failed to fetch leaderboard', err);
-      setter([]);
     }
   };
 
   useEffect(() => {
-    fetchMeals();
-    fetchBoard('weekly', weekStart, weekEnd, setWeeklyBoard);
-    fetchBoard('monthly', monthStart, monthEnd, setMonthlyBoard);
+    setBoardLoaded(false);
+    Promise.all([
+      fetchMeals(),
+      fetchBoard('weekly', weekStart, weekEnd, setWeeklyBoard, 'tm_weekly'),
+      fetchBoard('monthly', monthStart, monthEnd, setMonthlyBoard, 'tm_monthly'),
+    ]).finally(() => setBoardLoaded(true));
   }, [schoolCode, weekStart, weekEnd, monthStart, monthEnd]);
 
   const handleFileChange = (event) => {
@@ -117,8 +130,8 @@ function TodayMeal() {
       setCaption(''); setSelectedFile(null); setPreviewUrl('');
       await Promise.all([
         fetchMeals(),
-        fetchBoard('weekly', weekStart, weekEnd, setWeeklyBoard),
-        fetchBoard('monthly', monthStart, monthEnd, setMonthlyBoard),
+        fetchBoard('weekly', weekStart, weekEnd, setWeeklyBoard, 'tm_weekly'),
+        fetchBoard('monthly', monthStart, monthEnd, setMonthlyBoard, 'tm_monthly'),
       ]);
     } catch (err) {
       console.error('Failed to save meal post', err);
@@ -135,8 +148,8 @@ function TodayMeal() {
       await client.post(`/api/meals?action=like&mealId=${mealId}`, { schoolCode, userId });
       await Promise.all([
         fetchMeals(),
-        fetchBoard('weekly', weekStart, weekEnd, setWeeklyBoard),
-        fetchBoard('monthly', monthStart, monthEnd, setMonthlyBoard),
+        fetchBoard('weekly', weekStart, weekEnd, setWeeklyBoard, 'tm_weekly'),
+        fetchBoard('monthly', monthStart, monthEnd, setMonthlyBoard, 'tm_monthly'),
       ]);
     } catch (err) {
       console.error('Failed to cheer meal post', err);
@@ -226,6 +239,8 @@ function TodayMeal() {
                 <p className="mt-2 text-xs sm:text-sm font-medium text-orange-700">"이번 달 상장 유력 후보예요"</p>
               </div>
             </>
+          ) : !boardLoaded ? (
+            <div className="relative aspect-[16/9] bg-amber-50 animate-pulse" />
           ) : (
             <div className="relative aspect-[16/9] bg-gradient-to-br from-amber-50 to-orange-50 flex flex-col items-center justify-center text-center px-4">
               <div className="text-5xl mb-2">🌷</div>
@@ -260,7 +275,11 @@ function TodayMeal() {
               ))}
             </div>
           </div>
-          {currentBoard.length === 0 ? (
+          {currentBoard.length === 0 && !boardLoaded ? (
+            <div className="space-y-1.5">
+              {[0,1,2].map(i => (<div key={i} className="h-10 rounded-xl bg-amber-50/50 animate-pulse" />))}
+            </div>
+          ) : currentBoard.length === 0 ? (
             <div className="rounded-xl bg-amber-50/40 px-3 py-5 text-center text-xs text-amber-700/70">
               {rankTab === 'ours' ? '우리 학교의 이번 달 기록이 아직 없어요' : '첫 후보를 기다리고 있어요'}
             </div>
@@ -337,7 +356,19 @@ function TodayMeal() {
                 className={`rounded-full px-2.5 py-1 transition ${feedSort === 'popular' ? 'bg-white text-amber-900 shadow-sm' : 'text-amber-700'}`}>인기순</button>
             </div>
           </div>
-          {sortedFeed.length === 0 ? (
+          {sortedFeed.length === 0 && !boardLoaded ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {[0,1,2,3].map(i => (
+                <div key={i} className="rounded-2xl border border-amber-100 bg-white overflow-hidden">
+                  <div className="aspect-[4/3] bg-amber-50 animate-pulse" />
+                  <div className="p-3 space-y-2">
+                    <div className="h-3 w-1/3 bg-amber-50 rounded animate-pulse" />
+                    <div className="h-3 w-full bg-amber-50 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : sortedFeed.length === 0 ? (
             <div className="rounded-2xl bg-white/70 border border-dashed border-amber-200 px-4 py-10 text-center">
               <div className="text-4xl mb-2">🍽️</div>
               <p className="text-sm font-semibold text-amber-900">첫 급식 사진을 기다리고 있어요</p>
