@@ -8,6 +8,14 @@ import QrDistribution from '../components/QrDistribution';
 
 const GREETING_TEXT = 'On1yTeaching';
 
+const DIRECT_OUTPUT_IDS = new Set([
+  'life-records',
+  'counseling',
+  'newsletter',
+  'autobiography-compilation',
+  'exam-grading',
+]);
+
 const KEYWORD_MAP = [
   { id: 'life-records', title: '생활기록부 작성', emoji: '📝', route: '/life-records',
     reason: '생기부 문장 초안을 만들 수 있어요',
@@ -151,7 +159,8 @@ function Dashboard() {
   }, [allTabs, tabUsage]);
 
 
-  const routeInfo = useMemo(() => detectRoutesFromPrompt(prompt), [prompt]);
+  const [submittedPrompt, setSubmittedPrompt] = useState('');
+  const [routeInfo, setRouteInfo] = useState({ primary: null, secondary: [], confidence: 'none' });
 
   const handleRecommendClick = (item) => {
     if (!item) return;
@@ -220,17 +229,28 @@ function Dashboard() {
 
   const handlePromptSubmit = async (e) => {
     e.preventDefault();
+    const text = prompt.trim();
+    if (!text) return;
+    setSubmittedPrompt(text);
+    const route = detectRoutesFromPrompt(text);
+    setRouteInfo(route);
+    setResponse('');
+    setUsedModel('');
+
+    const shouldGenerate = route.primary && DIRECT_OUTPUT_IDS.has(route.primary.id);
+    if (!shouldGenerate) return;
+
     setIsLoading(true);
     try {
-      const res = await client.post('/api/prompts', { 
-        content: prompt,
-        ai_model: selectedModel 
+      const res = await client.post('/api/prompts', {
+        content: text,
+        ai_model: selectedModel,
       });
-      setResponse(res.data.generated_document);
-      setUsedModel(res.data.ai_model);
+      setResponse(res.data.generated_document || '');
+      setUsedModel(res.data.ai_model || '');
     } catch (error) {
-      console.error("Failed to submit prompt", error);
-      setResponse("결과 생성에 실패했어요. 아래 추천 작업 중 하나로 바로 이동할 수 있어요.");
+      console.error('Failed to submit prompt', error);
+      // 실패해도 라우팅 결과는 그대로 노출 — 별도 에러 메시지 없음
     } finally {
       setIsLoading(false);
     }
@@ -357,20 +377,14 @@ function Dashboard() {
 
               {/* Right: result */}
               <div className="flex flex-col min-h-[100px]">
-                <div className="bg-white border border-gray-300 rounded-md p-3 flex-1 overflow-y-auto shadow-sm space-y-3">
-                  {routeInfo.confidence === 'high' && routeInfo.primary && (
-                    <RecommendationCard primary={routeInfo.primary} secondary={routeInfo.secondary} onSelect={handleRecommendClick} />
-                  )}
-                  {(routeInfo.confidence === 'medium' || routeInfo.confidence === 'low') && routeInfo.primary && (
-                    <DidYouMeanCard primary={routeInfo.primary} secondary={routeInfo.secondary} onSelect={handleRecommendClick} />
-                  )}
-                  {routeInfo.confidence === 'unknown' && !routeInfo.primary && (
-                    <AmbiguousHint suggestions={KEYWORD_MAP.slice(0, 6)} onSelect={handleRecommendClick} />
-                  )}
-                  {routeInfo.confidence === 'none' && !response && (
-                    <EmptyHint onSelect={handleRecommendClick} />
-                  )}
-                  <ResultRenderer text={response} />
+                <div className="bg-white border border-gray-300 rounded-md p-3 flex-1 overflow-y-auto shadow-sm">
+                  <ResultPanel
+                    submitted={submittedPrompt}
+                    routeInfo={routeInfo}
+                    response={response}
+                    isLoading={isLoading}
+                    onSelect={handleRecommendClick}
+                  />
                 </div>
               </div>
             </div>
@@ -389,7 +403,13 @@ function Dashboard() {
               <div className="flex justify-end">
                 <button
                   type="button"
-                  onClick={() => { setPrompt(''); setResponse(''); setUsedModel(''); }}
+                  onClick={() => {
+                    setPrompt('');
+                    setResponse('');
+                    setUsedModel('');
+                    setSubmittedPrompt('');
+                    setRouteInfo({ primary: null, secondary: [], confidence: 'none' });
+                  }}
                   className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
                 >
                   초기화
@@ -564,35 +584,87 @@ function DidYouMeanCard({ primary, secondary, onSelect }) {
   );
 }
 
-function AmbiguousHint({ suggestions, onSelect }) {
-  return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 space-y-2">
-      <p className="text-xs text-amber-800">어떤 작업을 하시려는지 아래에서 골라보세요</p>
-      <div className="flex flex-wrap gap-1.5">
-        {suggestions.map((s) => (
-          <button key={s.id} type="button" onClick={() => onSelect(s)}
-            className="inline-flex items-center gap-1 rounded-full bg-white border border-amber-200 px-2.5 py-0.5 text-[11px] font-medium text-amber-800 hover:border-amber-400 transition">
-            <span>{s.emoji}</span>{s.title}
-          </button>
-        ))}
+function ResultPanel({ submitted, routeInfo, response, isLoading, onSelect }) {
+  // 1) 제출 전 — 기본 안내문만
+  if (!submitted) {
+    return (
+      <div className="flex h-full min-h-[120px] items-center justify-center px-4 py-6 text-center">
+        <p className="text-sm text-gray-500 leading-relaxed">
+          업무 요청을 입력하고 <span className="font-semibold text-gray-700">생성하기</span>를 누르면,<br />
+          바로 답변하거나 관련 작업으로 안내해드려요.
+        </p>
       </div>
+    );
+  }
+
+  // 2) 생성 중
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <RequestEcho text={submitted} primary={routeInfo.primary} />
+        <div className="rounded-xl bg-gray-50 border border-gray-200 px-3 py-4 text-center text-sm text-gray-500">
+          답변을 만들고 있어요...
+        </div>
+      </div>
+    );
+  }
+
+  const hasResponse = !!(response && response.trim());
+
+  return (
+    <div className="space-y-3">
+      <RequestEcho text={submitted} primary={routeInfo.primary} />
+
+      {hasResponse && (
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold tracking-wider text-emerald-700 uppercase">바로 결과</p>
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-3">
+            <ResultRenderer text={response} />
+          </div>
+        </div>
+      )}
+
+      {routeInfo.confidence === 'high' && routeInfo.primary && (
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">
+            {hasResponse ? '다음 작업' : '추천 작업'}
+          </p>
+          <RecommendationCard primary={routeInfo.primary} secondary={routeInfo.secondary} onSelect={onSelect} />
+        </div>
+      )}
+
+      {(routeInfo.confidence === 'medium' || routeInfo.confidence === 'low') && routeInfo.primary && (
+        <DidYouMeanCard primary={routeInfo.primary} secondary={routeInfo.secondary} onSelect={onSelect} />
+      )}
+
+      {!routeInfo.primary && !hasResponse && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 space-y-2">
+          <p className="text-xs text-amber-800">요청을 정확히 하나로 좁히지 못했어요. 혹시 아래 작업을 찾으시나요?</p>
+          <div className="flex flex-wrap gap-1.5">
+            {KEYWORD_MAP.slice(0, 6).map((s) => (
+              <button key={s.id} type="button" onClick={() => onSelect(s)}
+                className="inline-flex items-center gap-1 rounded-full bg-white border border-amber-200 px-2.5 py-0.5 text-[11px] font-medium text-amber-800 hover:border-amber-400 transition">
+                <span>{s.emoji}</span>{s.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function EmptyHint({ onSelect }) {
-  const popular = KEYWORD_MAP.slice(0, 6);
+function RequestEcho({ text, primary }) {
   return (
-    <div className="space-y-2">
-      <p className="text-xs text-gray-500">자연어로 업무를 적으면 추천 탭을 알려드려요.</p>
-      <div className="grid grid-cols-2 gap-2">
-        {popular.map((p) => (
-          <button key={p.id} type="button" onClick={() => onSelect(p)}
-            className="flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-200 p-2 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition">
-            <span className="text-lg shrink-0">{p.emoji}</span>
-            <span className="text-xs font-medium text-gray-800 truncate">{p.title}</span>
-          </button>
-        ))}
+    <div className="flex items-start gap-2">
+      <p className="text-[11px] font-semibold tracking-wider text-gray-500 uppercase shrink-0 mt-0.5">요청 해석</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-gray-700 leading-relaxed line-clamp-2">"{text}"</p>
+        {primary && (
+          <p className="mt-0.5 text-[11px] text-indigo-700 font-medium">
+            <span>{primary.emoji}</span> {primary.title}
+          </p>
+        )}
       </div>
     </div>
   );
