@@ -219,12 +219,16 @@ async function generateLocalDraftAsync(text, primary) {
   const id = primary.id;
 
   let studentName = null;
+  let lookupNote = '';
   if (wantStudent && studentNum) {
     const info = await fetchStudentByNumber(studentNum);
     if (info?.name) studentName = info.name;
+    else lookupNote = `ℹ️ 학생명부에서 ${studentNum}번 학생 정보를 찾지 못해 일반 초안으로 작성했어요.`;
   }
 
-  if (id === 'life-records') return generateLifeRecordDraft(keywords, lineCount, studentName);
+  const withNote = (body) => lookupNote ? `${lookupNote}\n\n${body}` : body;
+
+  if (id === 'life-records') return withNote(generateLifeRecordDraft(keywords, lineCount, studentName));
   if (id === 'counseling') return generateCounselingDraft(keywords, lineCount);
   if (id === 'newsletter') return generateNewsletterDraft(keywords, lineCount);
   if (id === 'autobiography-compilation') {
@@ -443,7 +447,7 @@ const KEYWORD_MAP = [
     keywords: ['결석', '출결'],
     aliases: ['결석신고', '결석사유'] },
   { id: 'qr-distribution', title: 'QR 배포', emoji: '📱', route: '#qr', action: 'showQr',
-    reason: '아침 활동 링크를 QR 코드로 배포할 수 있어요',
+    reason: 'QR 배포는 전용 화면에서 코드 생성·링크 복사를 이어 설정할 수 있어요',
     labels: ['qr 배포', 'qr배포', '큐알 배포', '큐알배포', 'qr'],
     keywords: ['qr', '큐알', '배포', '활동지', '아침활동배포'],
     aliases: ['큐알로', 'qr코드', '큐알코드', '링크보내기'] },
@@ -1141,7 +1145,8 @@ function ResultPanel({ submitted, routeInfo, response, capabilityResult, isLoadi
 
       {!hasMainResult && routeInfo.confidence === 'high' && routeInfo.primary && (
         <div className="space-y-1.5">
-          <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">추천 작업</p>
+          <p className="text-[11px] font-semibold tracking-wider text-gray-500 uppercase">추천 작업</p>
+          <p className="text-[11px] text-gray-400 leading-relaxed">여기서는 바로 처리하기 어려워서 관련 작업으로 안내드릴게요.</p>
           <RecommendationCard primary={routeInfo.primary} secondary={routeInfo.secondary} onSelect={onSelect} />
         </div>
       )}
