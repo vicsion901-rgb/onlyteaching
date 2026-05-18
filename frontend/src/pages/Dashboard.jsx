@@ -1125,23 +1125,29 @@ function ResultPanel({ submitted, routeInfo, response, capabilityResult, isLoadi
 
       {hasCapability && <CapabilityResult result={capabilityResult} />}
 
-      {hasMainResult && routeInfo.primary && (
-        <div className="space-y-1.5">
-          <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">관련 작업</p>
-          <div className="flex flex-wrap gap-1.5">
-            <button type="button" onClick={() => onSelect(routeInfo.primary)}
-              className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-semibold text-indigo-800 hover:bg-indigo-100 transition">
-              <span>{routeInfo.primary.emoji}</span>{routeInfo.primary.title} 열기 →
-            </button>
-            {routeInfo.secondary.map((s) => (
-              <button key={s.id} type="button" onClick={() => onSelect(s)}
-                className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-700 hover:border-indigo-300 hover:text-indigo-700 transition">
-                <span>{s.emoji}</span>{s.title}
+      {hasMainResult && routeInfo.primary && (() => {
+        const threshold = Math.max(4, (routeInfo.primary.score || 0) * 0.5);
+        const relatedSecondary = (routeInfo.secondary || [])
+          .filter((s) => (s.score || 0) >= threshold)
+          .slice(0, 1);
+        return (
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">관련 작업</p>
+            <div className="flex flex-wrap gap-1.5">
+              <button type="button" onClick={() => onSelect(routeInfo.primary)}
+                className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-semibold text-indigo-800 hover:bg-indigo-100 transition">
+                <span>{routeInfo.primary.emoji}</span>{routeInfo.primary.title} 열기 →
               </button>
-            ))}
+              {relatedSecondary.map((s) => (
+                <button key={s.id} type="button" onClick={() => onSelect(s)}
+                  className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-700 hover:border-indigo-300 hover:text-indigo-700 transition">
+                  <span>{s.emoji}</span>{s.title}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {!hasMainResult && routeInfo.confidence === 'high' && routeInfo.primary && (
         <div className="space-y-1.5">
