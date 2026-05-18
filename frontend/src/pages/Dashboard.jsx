@@ -17,74 +17,111 @@ const DIRECT_OUTPUT_IDS = new Set([
 ]);
 
 const KEYWORD_MAP = [
-  { id: 'life-records', title: '생활기록부 작성', emoji: '📝', route: '/life-records',
-    reason: '생기부 문장 초안을 만들 수 있어요',
-    keywords: ['생기부', '생활기록부', '생활기록', '기록부', '행발', '발표력', '예의범절', '서술', '기록 문장', '서술형', '평가문장'],
-    aliases: ['생기브', '생긱부', '생기부쓰', '행바', '행발문장', '생기부문장', '생기부써', '생기부써줘'] },
-  { id: 'counseling', title: '상담 기록', emoji: '💬', route: '/counseling',
-    reason: '상담 내용과 관찰을 정리할 수 있어요',
-    keywords: ['상담', '학부모', '갈등', '관찰', '생활지도', '학생 관계', '또래', '친구관계', '정서', '문제행동', '행동'],
-    aliases: ['상담기록', '상듬', '학생관계', '친구갈등', '학부모상담', '지도기록'] },
-  { id: 'today-meal', title: '오늘의 급식', emoji: '🍱', route: '/today-meal',
-    reason: '급식 사진 업로드 + 학교별 응원 순위를 볼 수 있어요',
-    keywords: ['급식', '응원', '영양선생님', '급식상', '식판', '점심', '식단', '오늘의급식'],
-    aliases: ['오늘밥', '급싣', '급시', '영양쌤', '급식사진', '급식응원', '밥올려', '밥올리'] },
-  { id: 'student-records', title: '학생 명부', emoji: '👥', route: '/student-records',
-    reason: '학생 명부와 출결을 관리할 수 있어요',
-    keywords: ['학생명부', '명부', '출석', '학생기록'],
-    aliases: ['학생리스트', '학생목록', '명부확인'] },
-  { id: 'schedule', title: '학사일정', emoji: '📅', route: '/schedule',
-    reason: '일정을 등록하고 월간 흐름을 볼 수 있어요',
-    keywords: ['일정', '학사', '스케줄', '학사일정', '회의'],
-    aliases: ['스케쥴', '스케줄링', '일정등록', '일정정리'] },
-  { id: 'newsletter', title: '가정통신문', emoji: '📢', route: '/newsletter',
-    reason: '안내문/공지 초안을 만들 수 있어요',
-    keywords: ['가정통신문', '안내문', '통신문', '공지', '안내'],
-    aliases: ['공지문', '가통문', '안내문구', '공지사항'] },
-  { id: 'autobiography-compilation', title: '자서전 편찬', emoji: '📖', route: '/autobiography-compilation',
-    reason: '자서전 챕터와 질문을 확인하고 편집할 수 있어요',
-    keywords: ['자서전', '편찬', '챕터', '회고', '회고록', '책만들기', '원고', '질문답변'],
-    aliases: ['자서전쓰기', '챱터', '책편찬', '질문정리', '원고지편찬', '자서전편집'] },
-  { id: 'creative-studio', title: '창작 편찬실', emoji: '🎨', route: '/creative-studio',
-    reason: '창작 활동과 챕터 질문을 관리할 수 있어요',
-    keywords: ['창작', '편찬실'],
-    aliases: ['편찬싫', '편찬슬', '창작실'] },
-  { id: 'subject-evaluation', title: '교과 평가', emoji: '📊', route: '/subject-evaluation',
-    reason: '교과별 성취와 평가를 정리할 수 있어요',
-    keywords: ['교과평가', '성적', '평가', '성취'],
-    aliases: ['교과성적', '평가정리', '성적정리'] },
-  { id: 'exam-grading', title: '시험 채점', emoji: '✏️', route: '/exam-grading',
-    reason: '시험지 채점을 도와드려요',
-    keywords: ['채점', '시험지', '시험채점'],
-    aliases: ['시험점수', '시험검토', '채점해줘'] },
+  { id: 'teaching-tools', title: '수업 보조 도구', emoji: '🧰', route: '/presenter-picker',
+    reason: '발표자 정하기, 자리 정하기, 1인 1역 도구를 사용할 수 있어요',
+    labels: ['수업 보조 도구', '수업보조도구', '수업도구', '보조도구'],
+    keywords: ['수업', '보조도구', '수업도구', '랜덤', '추첨', '모둠', '발표자', '자리', '1인 1역'],
+    aliases: ['수업도구', '랜덤뽑기', '추첨도구', '수업보조'] },
   { id: 'presenter-picker', title: '발표자 정하기', emoji: '🎤', route: '/presenter-picker',
     reason: '발표자를 뽑거나 순서를 정할 수 있어요',
-    keywords: ['발표자', '발표 정하기', '발표 뽑기', '뽑기', '추첨', '랜덤', '모둠'],
-    aliases: ['발표자뽑기', '발표자뽑고십어', '발표자뽑고싶어', '발표자정해줘', '랜덤뽑기', '추첨도구'] },
+    labels: ['발표자 정하기', '발표자정하기'],
+    keywords: ['발표자', '발표 뽑기', '뽑기'],
+    aliases: ['발표자뽑기', '발표자뽑고싶어', '발표자뽑고십어', '발표자정해줘'] },
   { id: 'seat-arrangement', title: '자리 정하기', emoji: '🪑', route: '/seat-arrangement',
     reason: '자리 배치를 자동으로 정할 수 있어요',
-    keywords: ['자리', '자리 배치', '좌석'],
-    aliases: ['자리배치', '자리뽑기', '좌석배치', '자리정해줘'] },
+    labels: ['자리 정하기', '자리정하기'],
+    keywords: ['자리', '좌석', '자리 배치', '자리배치'],
+    aliases: ['자리뽑기', '좌석배치', '자리정해줘'] },
   { id: 'role-assignment', title: '1인 1역', emoji: '🎭', route: '/role-assignment',
     reason: '1인 1역 분담을 만들 수 있어요',
-    keywords: ['1인 1역', '역할', '분담', '1인1역'],
-    aliases: ['역할분담', '일인일역', '역할정해줘'] },
+    labels: ['1인 1역 정하기', '1인 1역', '1인1역'],
+    keywords: ['1인', '역할', '분담', '일인일역'],
+    aliases: ['역할분담', '역할정해줘'] },
+  { id: 'life-records', title: '생활기록부', emoji: '📝', route: '/life-records',
+    reason: '생기부 문장 초안을 만들 수 있어요',
+    labels: ['생활기록부', '생활기록부 작성', '생기부'],
+    keywords: ['생기부', '생활기록부', '행발', '발표력', '예의범절', '정리정돈', '서술', '평가문장', '기록 문장', '서술형'],
+    aliases: ['생기브', '생긱부', '행바', '행발문장', '생기부써', '생기부써줘'] },
+  { id: 'counseling', title: '관찰일지', emoji: '🗨️', route: '/counseling',
+    reason: '학생 관찰/상담 내용을 정리할 수 있어요',
+    labels: ['관찰일지', '상담 기록', '상담기록', '상담'],
+    keywords: ['상담', '학부모', '갈등', '관찰', '관찰일지', '생활지도', '또래', '친구관계', '정서', '문제행동'],
+    aliases: ['상듬', '학생관계', '친구갈등', '학부모상담', '지도기록'] },
+  { id: 'today-meal', title: '오늘의 급식', emoji: '🍱', route: '/today-meal',
+    reason: '학교별 급식 사진과 응원 순위를 볼 수 있어요',
+    labels: ['오늘의 급식', '오늘의급식', '급식'],
+    keywords: ['급식', '응원', '영양', '영양선생님', '급식상', '식판', '점심', '식단'],
+    aliases: ['오늘밥', '급싣', '영양쌤', '급식사진', '급식응원'] },
+  { id: 'care-classroom', title: '돌봄교실', emoji: '🧠', route: '/care-classroom',
+    reason: '감정·투두·행사 기록을 남길 수 있어요',
+    labels: ['돌봄교실', '돌봄 교실', '돌봄'],
+    keywords: ['돌봄', '감정', '감정 기록', '투두', '행사기록'],
+    aliases: ['돌봄일지', '돌붐교실'] },
+  { id: 'student-records', title: '학생명부', emoji: '👥', route: '/student-records',
+    reason: '학생 명부와 출결을 관리할 수 있어요',
+    labels: ['학생명부', '학생 명부', '명부'],
+    keywords: ['학생', '명부', '출석', '학생기록'],
+    aliases: ['학생리스트', '학생목록', '명부확인'] },
+  { id: 'schedule', title: '학사일정', emoji: '📅', route: '/schedule',
+    reason: '학사일정을 등록하고 월간 흐름을 볼 수 있어요',
+    labels: ['학사일정', '학사 일정'],
+    keywords: ['학사', '일정', '스케줄', '회의'],
+    aliases: ['스케쥴', '일정등록', '일정정리'] },
+  { id: 'subject-evaluation', title: '교과평가', emoji: '📊', route: '/subject-evaluation',
+    reason: '교과별 성취와 평가를 정리할 수 있어요',
+    labels: ['교과평가', '교과 평가'],
+    keywords: ['교과', '성적', '성취'],
+    aliases: ['교과성적', '평가정리'] },
+  { id: 'creative-activities', title: '창의적 체험활동', emoji: '🎨', route: '/creative-activities',
+    reason: '창체 활동 기록을 관리할 수 있어요',
+    labels: ['창의적 체험활동', '창의적체험활동', '창체'],
+    keywords: ['창체', '동아리', '봉사', '체험활동'],
+    aliases: ['창체활동'] },
+  { id: 'morning-activity', title: '아침 활동', emoji: '✏️', route: '/morning-activity',
+    reason: '아침 글쓰기/필사/문해력 활동을 할 수 있어요',
+    labels: ['아침 활동', '아침활동'],
+    keywords: ['아침', '필사', '받아쓰기', '이어쓰기'],
+    aliases: ['아침글쓰기'] },
+  { id: 'teacher-activities', title: '아침 활동 관리', emoji: '📋', route: '/teacher-activities',
+    reason: '학생 제출 현황과 세션을 관리할 수 있어요',
+    labels: ['아침 활동 관리', '아침활동관리', '활동 관리'],
+    keywords: ['활동 관리', '활동관리', '제출 현황', '제출확인', '세션'],
+    aliases: ['활동현황'] },
+  { id: 'autobiography-compilation', title: '자서전 편찬', emoji: '📚', route: '/autobiography-compilation',
+    reason: '자서전 챕터와 질문을 확인하고 편집할 수 있어요',
+    labels: ['자서전 편찬', '자서전편찬', '자서전'],
+    keywords: ['자서전', '편찬', '챕터', '회고', '회고록', '책만들기', '원고'],
+    aliases: ['자서전쓰기', '챱터', '책편찬', '질문정리'] },
+  { id: 'creative-studio', title: '창작 편찬실', emoji: '📖', route: '/creative-studio',
+    reason: '창작 활동과 챕터 질문을 관리할 수 있어요',
+    labels: ['창작 편찬실', '창작편찬실', '편찬실'],
+    keywords: ['창작', '편찬실'],
+    aliases: ['편찬싫', '창작실'] },
+  { id: 'my-book', title: '내 책 만들기', emoji: '📕', route: '/my-book',
+    reason: '나만의 책을 만들 수 있어요',
+    labels: ['내 책 만들기', '내책만들기'],
+    keywords: ['책 만들기', '책만들기', '내 책'],
+    aliases: ['책편집'] },
+  { id: 'newsletter', title: '가정통신문', emoji: '📢', route: '/newsletter',
+    reason: '가정통신문/안내문 초안을 만들 수 있어요',
+    labels: ['가정통신문', '가정 통신문'],
+    keywords: ['가정통신문', '안내문', '통신문', '공지', '안내'],
+    aliases: ['공지문', '가통문', '공지사항'] },
+  { id: 'exam-grading', title: '시험 채점', emoji: '✏️', route: '/exam-grading',
+    reason: '시험지 채점을 도와드려요',
+    labels: ['시험 채점', '시험채점'],
+    keywords: ['채점', '시험지', '시험'],
+    aliases: ['시험점수', '채점해줘'] },
   { id: 'absence-report', title: '결석계', emoji: '🏥', route: '/absence-report',
     reason: '결석/출결 신고를 처리할 수 있어요',
-    keywords: ['결석', '출결', '결석계'],
-    aliases: ['결석신고', '결석처리', '결석사유'] },
-  { id: 'care-classroom', title: '돌봄교실', emoji: '🏫', route: '/care-classroom',
-    reason: '돌봄교실 일지와 감정 기록을 남길 수 있어요',
-    keywords: ['돌봄', '감정 기록', '돌봄교실'],
-    aliases: ['돌봄일지', '돌봄기록', '돌붐교실'] },
-  { id: 'teacher-activities', title: '학생 활동 관리', emoji: '📋', route: '/teacher-activities',
-    reason: '학생 제출과 세션 현황을 볼 수 있어요',
-    keywords: ['활동 관리', '제출 현황', '세션', '학생 활동'],
-    aliases: ['활동현황', '제출확인', '활동관리'] },
+    labels: ['결석계'],
+    keywords: ['결석', '출결'],
+    aliases: ['결석신고', '결석사유'] },
   { id: 'qr-distribution', title: 'QR 배포', emoji: '📱', route: '#qr', action: 'showQr',
     reason: '아침 활동 링크를 QR 코드로 배포할 수 있어요',
-    keywords: ['qr', '배포', '활동지', '링크 보내기', '큐알', '아침활동배포'],
-    aliases: ['큐알로', '큐알배포', 'qr배포', 'qr코드', '큐알코드', '링크보내기', '큐알로보내'] },
+    labels: ['qr 배포', 'qr배포', '큐알 배포', '큐알배포', 'qr'],
+    keywords: ['qr', '큐알', '배포', '활동지', '아침활동배포'],
+    aliases: ['큐알로', 'qr코드', '큐알코드', '링크보내기'] },
 ];
 
 function Dashboard() {
@@ -500,20 +537,31 @@ function detectRoutesFromPrompt(text) {
   const normalized = text.toLowerCase().replace(/\s+/g, '');
 
   const scored = KEYWORD_MAP.map((entry) => {
-    let score = 0, exactHit = 0, aliasHit = 0, fuzzyHit = 0;
+    let score = 0;
+    let labelExact = false;
+
+    // 1) labels — 정확/포함 매치가 가장 강력
+    for (const lbl of (entry.labels || [])) {
+      const l = lbl.toLowerCase().replace(/\s+/g, '');
+      if (!l) continue;
+      if (normalized === l) { score += 20; labelExact = true; }
+      else if (normalized.includes(l)) { score += 10; }
+    }
+    // 2) strong keywords
     for (const kw of (entry.keywords || [])) {
       const k = kw.toLowerCase().replace(/\s+/g, '');
       if (!k) continue;
-      if (normalized.includes(k)) { score += k.length >= 4 ? 3 : 2; exactHit++; }
-      else if (hasFuzzyMatch(normalized, k)) { score += 1; fuzzyHit++; }
+      if (normalized.includes(k)) score += k.length >= 4 ? 5 : 4;
+      else if (hasFuzzyMatch(normalized, k)) score += 1;
     }
+    // 3) aliases
     for (const al of (entry.aliases || [])) {
       const k = al.toLowerCase().replace(/\s+/g, '');
       if (!k) continue;
-      if (normalized.includes(k)) { score += 2; aliasHit++; }
-      else if (hasFuzzyMatch(normalized, k)) { score += 1; fuzzyHit++; }
+      if (normalized.includes(k)) score += 3;
+      else if (hasFuzzyMatch(normalized, k)) score += 1;
     }
-    return { ...entry, score, exactHit, aliasHit, fuzzyHit };
+    return { ...entry, score, labelExact };
   }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score);
 
   if (scored.length === 0) {
@@ -522,8 +570,8 @@ function detectRoutesFromPrompt(text) {
   const [primary, ...rest] = scored;
   const secondary = rest.slice(0, 3);
   let confidence;
-  if (primary.exactHit >= 1) confidence = 'high';
-  else if (primary.aliasHit >= 1 || primary.fuzzyHit >= 1) confidence = 'medium';
+  if (primary.labelExact || primary.score >= 4) confidence = 'high';
+  else if (primary.score >= 3) confidence = 'medium';
   else confidence = 'low';
   return { primary, secondary, confidence };
 }
