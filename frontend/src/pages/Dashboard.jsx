@@ -32,6 +32,111 @@ function hasGenerationIntent(normalized) {
   });
 }
 
+// 옛 NestJS prompts.service.ts에서 가져온 키워드 추출 — 환경 의존 없이 항상 결과를 보장하는 로컬 폴백
+function extractKeywords(text) {
+  const cleaned = (text || '').replace(/[^\w가-힣\s,]/g, ' ');
+  const parts = cleaned.split(/[\s,]+/).map((p) => p.trim()).filter(Boolean);
+  const stop = new Set([
+    '상', '중', '하', '상중하', '상중', '중하', '최상', '최하',
+    'a', 'b', 'c', 'd', 'f', 's', 'p', 'np',
+    '우수', '미흡', '보통',
+    '1등급', '2등급', '3등급', '4등급', '5등급', '6등급', '7등급', '8등급', '9등급',
+    '써줘', '써', '작성해줘', '작성', '만들어줘', '만들어', '만들',
+    '정리해줘', '정리해', '정리', '요약해줘', '요약',
+    '초안', '문장', '한줄', '두줄', '한 줄', '두 줄',
+    '학생', '학생명부', '명부', '기록', '기록된', '있는', '있어', '있어요',
+    '관련', '생기부', '생활기록부', '상담', '안내문', '가정통신문',
+    '4줄', '3줄', '5줄', '2줄', '4line', '3line',
+  ]);
+  const isScoreWord = (w) => {
+    if (!w) return true;
+    if (stop.has(w.toLowerCase())) return true;
+    if (/^\d+점$/.test(w)) return true;
+    if (/^\d+등급$/.test(w)) return true;
+    if (/^\d+번$/.test(w)) return true;
+    if (/^\d+줄$/.test(w)) return true;
+    if (w.length === 1) return true;
+    return false;
+  };
+  const seen = new Set();
+  const uniq = [];
+  for (const p of parts) {
+    if (isScoreWord(p)) continue;
+    if (!seen.has(p)) { seen.add(p); uniq.push(p); }
+  }
+  return uniq.slice(0, 4);
+}
+
+function josa(word, type) {
+  if (!word) return type === '을를' ? '을' : '이';
+  const last = word[word.length - 1];
+  const code = last.charCodeAt(0);
+  const isKorean = code >= 0xac00 && code <= 0xd7a3;
+  const jong = isKorean ? (code - 0xac00) % 28 : 0;
+  const hasFinal = isKorean ? jong !== 0 : false;
+  if (type === '을를') return hasFinal ? '을' : '를';
+  return hasFinal ? '이' : '가';
+}
+
+function generateLocalDraft(text, primary) {
+  if (!primary) return '';
+  const keywords = extractKeywords(text);
+  const id = primary.id;
+
+  if (id === 'life-records') {
+    const [k1, k2, k3, k4] = [...keywords, '', '', '', ''];
+    const lines = [];
+    if (k1) lines.push(`- ${k1}${josa(k1, '을를')} 바탕으로 수업에 성실히 참여하며 긍정적인 변화를 보임.`);
+    if (k2) lines.push(`- ${k2} 태도가 돋보이며 또래와 협력적으로 활동함.`);
+    if (k3) lines.push(`- ${k3} 역량을 키우기 위해 꾸준히 노력하며 책임감 있게 과제를 수행함.`);
+    if (k4) lines.push(`- ${k4}${josa(k4, '을를')} 통해 자기주도적 성장을 이어감.`);
+    if (lines.length === 0) lines.push('- 수업에 성실히 참여하며 긍정적인 학교생활 태도를 보임.');
+    return lines.join('\n');
+  }
+
+  if (id === 'counseling') {
+    const f1 = keywords[0] || '학교생활';
+    const f2 = keywords[1] || '학습';
+    const f3 = keywords[2] || '';
+    const out = [
+      `- 학생이 ${f1} 영역에서 관찰 사항이 있어 정서적 부담을 느끼고 있는 것으로 보임.`,
+      `- ${f2} 측면에서도 관련된 영향이 나타날 수 있어 지속적인 관찰이 필요함.`,
+    ];
+    if (f3) out.push(`- ${f3} 관련 상황도 함께 살피며 안정과 참여를 지원할 필요가 있음.`);
+    else out.push('- 학교 내 정서 안정과 활동 참여를 함께 지원할 필요가 있음.');
+    return out.join('\n');
+  }
+
+  if (id === 'newsletter') {
+    const topic = keywords[0] || '학교 안내';
+    return [
+      '안녕하세요. 학부모님께 안내 말씀 드립니다.',
+      '',
+      `이번 안내는 ${topic} 관련 내용입니다.`,
+      '자세한 사항은 담임 선생님께 문의 부탁드립니다.',
+      '',
+      '감사합니다.',
+    ].join('\n');
+  }
+
+  if (id === 'autobiography-compilation') {
+    const k = keywords[0] || '오늘';
+    return [
+      `- ${k}${josa(k, '을를')} 중심으로 이번 시기의 기록을 정리합니다.`,
+      '- 이 시기를 지나며 느낀 점과 배운 점을 짧게 정리해 챕터에 담아봅니다.',
+    ].join('\n');
+  }
+
+  if (id === 'exam-grading') {
+    return [
+      '- 시험지 채점은 [시험 채점] 탭에서 사진/답안 업로드로 진행할 수 있어요.',
+      '- 자동 채점 결과를 확인하고 수동 보정도 가능합니다.',
+    ].join('\n');
+  }
+
+  return '';
+}
+
 function getThisWeekRange() {
   const c = new Date();
   const day = c.getDay();
@@ -351,12 +456,24 @@ function Dashboard() {
     try {
       // 1) directAnswer — AI 생성 (DIRECT_OUTPUT 카테고리)
       if (shouldGenerate) {
+        let aiResult = '';
         try {
           const res = await client.post('/api/prompts', { content: text, ai_model: selectedModel });
-          setResponse(res.data.result || res.data.generated_document || '');
-          setUsedModel(res.data.model || res.data.ai_model || '');
+          aiResult = res.data.result || res.data.generated_document || '';
+          if (aiResult.trim()) {
+            setResponse(aiResult);
+            setUsedModel(res.data.model || res.data.ai_model || '');
+          }
         } catch (err) {
           console.error('directAnswer failed', err);
+        }
+        // AI 응답이 비었거나 실패한 경우 — 클라이언트 로컬 템플릿 폴백 (옛 NestJS 로직)
+        if (!aiResult.trim()) {
+          const local = generateLocalDraft(text, route.primary);
+          if (local) {
+            setResponse(local);
+            setUsedModel('local-template');
+          }
         }
       }
 
