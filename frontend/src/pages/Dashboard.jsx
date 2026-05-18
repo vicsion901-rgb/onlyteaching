@@ -252,10 +252,19 @@ function getThisWeekRange() {
   return { weekStart: mon.toISOString().slice(0, 10), weekEnd: sun.toISOString().slice(0, 10) };
 }
 
+const STUDENT_AUTOBIOGRAPHY_CHAPTERS = [
+  { chapter: '나의 첫 시작', q: '학교생활에서 가장 기억에 남는 첫 날은 언제인가요?' },
+  { chapter: '친구 이야기', q: '가장 친한 친구와 만든 추억을 적어보세요.' },
+  { chapter: '내가 좋아하는 것', q: '요즘 가장 좋아하는 활동/책/사람은 무엇인가요?' },
+  { chapter: '어려웠던 순간', q: '힘들었던 일과 그때 도와준 사람은 누구였나요?' },
+  { chapter: '자랑스러운 일', q: '스스로 자랑스럽다고 느낀 순간을 적어보세요.' },
+  { chapter: '미래의 나', q: '1년 뒤 나는 어떤 모습이길 바라나요?' },
+];
+
 const CAPABILITY_REGISTRY = [
   {
     id: 'random-presenter',
-    matches: (info, n) => (info.primary?.id === 'presenter-picker') || /발표자.*뽑|랜덤.*발표|뽑아줘/.test(n),
+    matches: (info, n) => (info.primary?.id === 'presenter-picker') || /발표자.*뽑|랜덤.*발표|뽑아줘|뽑아\b|발표자.*정해/.test(n),
     handler: async () => {
       const userId = localStorage.getItem('userId');
       if (!userId) return null;
@@ -268,8 +277,33 @@ const CAPABILITY_REGISTRY = [
     },
   },
   {
+    id: 'student-lookup',
+    matches: (info, n, text) => {
+      if (hasGenerationIntent(n)) return false;
+      const num = extractStudentNumber(text);
+      const nameMatch = /([가-힣]{2,4})\s*학생/.test(text);
+      const hasIntent = /보여|확인|찾|정보|기록확인|기록보/.test(n);
+      const isStudentTopic = info.primary?.id === 'student-records' || hasStudentRosterSource(text);
+      return isStudentTopic && hasIntent && (num || nameMatch);
+    },
+    handler: async (text) => {
+      const num = extractStudentNumber(text);
+      const nameMatch = text.match(/([가-힣]{2,4})\s*학생/);
+      const nameQuery = nameMatch ? nameMatch[1] : null;
+      const userId = localStorage.getItem('userId');
+      if (!userId) return null;
+      const { default: client } = await import('../api/client');
+      const res = await client.get('/api/students', { params: { userId } });
+      const list = Array.isArray(res.data) ? res.data : [];
+      let student = null;
+      if (num) student = list.find((s) => Number(s.number) === Number(num));
+      if (!student && nameQuery) student = list.find((s) => s.name === nameQuery || (s.name && s.name.includes(nameQuery)));
+      return { type: 'student-lookup', student, queried: { num, name: nameQuery }, total: list.length };
+    },
+  },
+  {
     id: 'meal-feed-preview',
-    matches: (info, n) => (info.primary?.id === 'today-meal') && /보여줘|보고|볼래|확인|미리보기|보고싶/.test(n),
+    matches: (info, n) => (info.primary?.id === 'today-meal') && /보여|보고|볼래|확인|미리보기|보고싶/.test(n),
     handler: async () => {
       const { weekStart, weekEnd } = getThisWeekRange();
       const { default: client } = await import('../api/client');
@@ -279,13 +313,25 @@ const CAPABILITY_REGISTRY = [
       return { type: 'meal-feed-preview', items: list.slice(0, 3) };
     },
   },
+  {
+    id: 'autobiography-chapters',
+    matches: (info, n) => {
+      const isTopic = info.primary?.id === 'autobiography-compilation' || info.primary?.id === 'creative-studio';
+      const hasIntent = /보여|볼래|확인|챕터|질문/.test(n);
+      const isStudentScope = /학생용|학생.*챕터|학생.*질문/.test(n);
+      return isTopic && hasIntent && isStudentScope;
+    },
+    handler: async () => {
+      return { type: 'autobiography-chapters', items: STUDENT_AUTOBIOGRAPHY_CHAPTERS };
+    },
+  },
 ];
 
-async function tryInvokeCapability(routeInfo, normalized) {
+async function tryInvokeCapability(routeInfo, normalized, text) {
   for (const cap of CAPABILITY_REGISTRY) {
     try {
-      if (cap.matches(routeInfo, normalized)) {
-        const result = await cap.handler();
+      if (cap.matches(routeInfo, normalized, text)) {
+        const result = await cap.handler(text, routeInfo);
         if (result) return result;
       }
     } catch (err) {
@@ -585,7 +631,7 @@ function Dashboard() {
 
       // 2) invokeTabCapability — 직접 답변이 없으면 기능 실행 시도
       if (!shouldGenerate) {
-        const cap = await tryInvokeCapability(route, normalized);
+        const cap = await tryInvokeCapability(route, normalized, text);
         if (cap) setCapabilityResult(cap);
       }
       // 3) navigateToTab fallback은 결과창에서 자동 처리 (RecommendationCard)
@@ -964,6 +1010,45 @@ function CapabilityResult({ result }) {
           🎤 오늘 발표자: {s.number ? `${s.number}번 ` : ''}{s.name || '학생'}
         </p>
         <p className="mt-1 text-[11px] text-purple-700/70">{result.total}명 중 무작위 추첨</p>
+      </div>
+    );
+  }
+  if (result.type === 'student-lookup') {
+    const s = result.student;
+    if (!s) {
+      const q = result.queried || {};
+      return (
+        <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-3">
+          <p className="text-[11px] font-semibold tracking-wider text-blue-700 uppercase">실행 결과 · 학생 조회</p>
+          <p className="mt-2 text-sm text-blue-900">{q.num ? `${q.num}번 ` : ''}{q.name ? `${q.name} ` : ''}학생을 찾지 못했어요.</p>
+          <p className="mt-1 text-[11px] text-blue-700/70">학생명부에서 등록 여부를 확인할 수 있어요. (전체 {result.total}명)</p>
+        </div>
+      );
+    }
+    return (
+      <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3">
+        <p className="text-[11px] font-semibold tracking-wider text-blue-700 uppercase">실행 결과 · 학생 조회</p>
+        <p className="mt-2 text-base sm:text-lg font-bold text-blue-900">👤 {s.number ? `${s.number}번 ` : ''}{s.name || '학생'}</p>
+        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-blue-800/80">
+          {s.grade && <span>학년 {s.grade}</span>}
+          {s.class && <span>반 {s.class}</span>}
+          {s.gender && <span>{s.gender}</span>}
+        </div>
+      </div>
+    );
+  }
+  if (result.type === 'autobiography-chapters') {
+    return (
+      <div className="rounded-xl border border-purple-200 bg-purple-50/40 p-3 space-y-2">
+        <p className="text-[11px] font-semibold tracking-wider text-purple-700 uppercase">실행 결과 · 학생용 챕터 질문</p>
+        <ul className="space-y-1.5">
+          {result.items.map((it, idx) => (
+            <li key={`${it.chapter}-${idx}`} className="rounded-lg bg-white border border-purple-100 px-2.5 py-1.5">
+              <p className="text-[11px] font-semibold text-purple-800">{it.chapter}</p>
+              <p className="text-xs text-purple-900/80 leading-relaxed mt-0.5">{it.q}</p>
+            </li>
+          ))}
+        </ul>
       </div>
     );
   }
