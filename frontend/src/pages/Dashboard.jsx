@@ -32,7 +32,35 @@ function hasGenerationIntent(normalized) {
   });
 }
 
-// 옛 NestJS prompts.service.ts에서 가져온 키워드 추출 — 환경 의존 없이 항상 결과를 보장하는 로컬 폴백
+// 옛 NestJS prompts.service.ts에서 가져온 키워드 추출 + 1단계 마무리 보강
+function extractLineCount(text) {
+  const m = (text || '').match(/(\d+)\s*줄/);
+  if (m) return Math.max(1, Math.min(8, parseInt(m[1], 10)));
+  return null;
+}
+
+function extractStudentNumber(text) {
+  const m = (text || '').match(/(\d+)\s*번/);
+  if (m) return parseInt(m[1], 10);
+  return null;
+}
+
+function hasStudentRosterSource(text) {
+  return /학생명부|명부|학생\s*기록|기록된/.test(text || '');
+}
+
+async function fetchStudentByNumber(num) {
+  if (!num) return null;
+  const userId = (typeof localStorage !== 'undefined' && localStorage.getItem('userId')) || '';
+  if (!userId) return null;
+  try {
+    const { default: client } = await import('../api/client');
+    const res = await client.get('/api/students', { params: { userId } });
+    const list = Array.isArray(res.data) ? res.data : [];
+    return list.find((s) => Number(s.number) === Number(num)) || null;
+  } catch { return null; }
+}
+
 function extractKeywords(text) {
   const cleaned = (text || '').replace(/[^\w가-힣\s,]/g, ' ');
   const parts = cleaned.split(/[\s,]+/).map((p) => p.trim()).filter(Boolean);
@@ -45,7 +73,7 @@ function extractKeywords(text) {
     '정리해줘', '정리해', '정리', '요약해줘', '요약',
     '초안', '문장', '한줄', '두줄', '한 줄', '두 줄',
     '학생', '학생명부', '명부', '기록', '기록된', '있는', '있어', '있어요',
-    '관련', '생기부', '생활기록부', '상담', '안내문', '가정통신문',
+    '관련', '생기부', '생활기록부', '상담', '안내문', '가정통신문', '친구',
     '4줄', '3줄', '5줄', '2줄', '4line', '3line',
   ]);
   const isScoreWord = (w) => {
@@ -64,7 +92,7 @@ function extractKeywords(text) {
     if (isScoreWord(p)) continue;
     if (!seen.has(p)) { seen.add(p); uniq.push(p); }
   }
-  return uniq.slice(0, 4);
+  return uniq;
 }
 
 function josa(word, type) {
@@ -78,62 +106,140 @@ function josa(word, type) {
   return hasFinal ? '이' : '가';
 }
 
-function generateLocalDraft(text, primary) {
+const LIFE_RECORD_TEMPLATES = [
+  { match: /발표|발표력/, line: '발표 상황에서 자신의 의견을 또렷하게 표현하며 자신감 있게 참여함.' },
+  { match: /정리|정돈/, line: '활동 후 학습 자료와 주변을 스스로 정돈하는 습관이 잘 형성되어 있음.' },
+  { match: /예의/, line: '친구 및 교사와의 관계에서 예의 바른 언어와 태도를 꾸준히 보임.' },
+  { match: /협동|협력|모둠/, line: '모둠 활동에서 친구들과 협력하며 맡은 역할을 성실히 수행함.' },
+  { match: /책임/, line: '맡은 일을 끝까지 마무리하며 책임감 있는 모습을 보임.' },
+  { match: /집중/, line: '수업 중 집중력을 유지하며 학습에 적극적으로 참여함.' },
+  { match: /성실/, line: '학교생활 전반에서 안정적이고 성실한 태도를 보임.' },
+  { match: /노력/, line: '꾸준한 노력으로 점차 성장하는 모습을 보임.' },
+  { match: /관계/, line: '친구 및 교사와의 관계에서 따뜻하고 존중하는 태도를 보임.' },
+  { match: /자신감/, line: '활동에 자신감 있게 참여하며 자신의 생각을 분명히 표현함.' },
+  { match: /호기심/, line: '새로운 학습 내용에 호기심을 가지고 적극적으로 탐구함.' },
+  { match: /창의/, line: '생각을 자유롭게 표현하며 창의적인 결과물을 만들어 냄.' },
+  { match: /리더/, line: '활동에서 또래를 이끌며 자연스러운 리더십을 보임.' },
+  { match: /배려/, line: '친구들의 감정과 상황을 살피며 따뜻한 배려를 실천함.' },
+  { match: /독서/, line: '독서를 즐기며 읽은 내용을 자신의 언어로 표현하는 힘이 있음.' },
+];
+
+const LIFE_RECORD_FILLERS = [
+  '학교생활 전반에서 안정적이고 성실한 태도를 유지함.',
+  '맡은 활동에 책임감 있게 임하며 또래에게 좋은 영향을 줌.',
+  '자기 주도적으로 학습에 임하며 긍정적인 변화를 보임.',
+  '친구 및 교사와의 관계에서 따뜻한 모습을 꾸준히 보여 줌.',
+  '꾸준한 노력으로 한 학기 동안 점차 성장하는 모습을 보임.',
+];
+
+function pickLifeRecordLine(kw) {
+  for (const t of LIFE_RECORD_TEMPLATES) if (t.match.test(kw)) return t.line;
+  return `${kw}${josa(kw, '을를')} 바탕으로 수업에 성실히 참여하며 긍정적인 변화를 보임.`;
+}
+
+function generateLifeRecordDraft(keywords, lineCount, studentName) {
+  const target = lineCount || 4;
+  const seen = new Set();
+  const lines = [];
+  for (const kw of keywords) {
+    const sentence = pickLifeRecordLine(kw);
+    if (seen.has(sentence)) continue;
+    seen.add(sentence);
+    lines.push(sentence);
+    if (lines.length >= target) break;
+  }
+  let fi = 0;
+  while (lines.length < target && fi < LIFE_RECORD_FILLERS.length) {
+    const f = LIFE_RECORD_FILLERS[fi++];
+    if (!seen.has(f)) { seen.add(f); lines.push(f); }
+  }
+  if (lines.length === 0) lines.push('학교생활에 성실히 참여하며 안정적인 태도를 보임.');
+  const final = lines.slice(0, target);
+  if (studentName && final.length > 0) {
+    final[0] = `${studentName} 학생은 ${final[0].replace(/\.$/, '')}.`;
+  }
+  return final.map((s) => `- ${s}`).join('\n');
+}
+
+const COUNSELING_TEMPLATES = [
+  { match: /갈등/, line: '또래 관계에서의 갈등 상황이 학생의 정서에 부담으로 작용하고 있음이 관찰됨.' },
+  { match: /관계|친구/, line: '또래 관계에서 어려움을 느끼고 있어 정서 지원이 필요해 보임.' },
+  { match: /집중|수업/, line: '수업 시간 집중에 영향이 있어 학습 지속을 함께 살펴볼 필요가 있음.' },
+  { match: /스트레스|불안/, line: '스트레스/불안 표현이 관찰되어 정서적 안전감을 확보할 시간이 필요함.' },
+  { match: /학부모|부모/, line: '학부모와의 상담을 통해 가정과 학교가 함께 학생을 지원할 방향을 공유함.' },
+];
+
+function pickCounselingLine(kw) {
+  for (const t of COUNSELING_TEMPLATES) if (t.match.test(kw)) return t.line;
+  return `${kw} 관련 상황이 관찰되어 지속적인 관찰과 지원이 필요함.`;
+}
+
+function generateCounselingDraft(keywords, lineCount) {
+  const target = lineCount || 3;
+  const seen = new Set();
+  const lines = [];
+  for (const kw of keywords) {
+    const s = pickCounselingLine(kw);
+    if (seen.has(s)) continue;
+    seen.add(s); lines.push(s);
+    if (lines.length >= target) break;
+  }
+  const FILLERS = [
+    '학교 내 정서 안정과 활동 참여를 함께 지원할 필요가 있음.',
+    '교사·또래·가정의 협력으로 학생의 안정감을 형성해 나갈 계획임.',
+    '학생의 강점을 살릴 수 있는 활동 기회를 우선적으로 제공할 예정임.',
+  ];
+  let fi = 0;
+  while (lines.length < target && fi < FILLERS.length) {
+    if (!seen.has(FILLERS[fi])) { seen.add(FILLERS[fi]); lines.push(FILLERS[fi]); }
+    fi++;
+  }
+  if (lines.length === 0) lines.push('학생의 학교생활 상황에 대한 관찰과 지원이 필요함.');
+  return lines.slice(0, target).map((s) => `- ${s}`).join('\n');
+}
+
+function generateNewsletterDraft(keywords, lineCount) {
+  const topic = keywords[0] || '학교 안내';
+  const body = [
+    `이번 안내는 ${topic} 관련 내용입니다.`,
+    '자세한 사항은 담임 선생님께 문의해 주시면 안내드리겠습니다.',
+    '가정의 협조에 늘 감사드립니다.',
+  ];
+  const target = lineCount || 3;
+  const trimmed = body.slice(0, target);
+  return ['안녕하세요. 학부모님께 안내 말씀 드립니다.', '', ...trimmed, '', '감사합니다.'].join('\n');
+}
+
+async function generateLocalDraftAsync(text, primary) {
   if (!primary) return '';
+  const lineCount = extractLineCount(text);
+  const studentNum = extractStudentNumber(text);
+  const wantStudent = hasStudentRosterSource(text);
   const keywords = extractKeywords(text);
   const id = primary.id;
 
-  if (id === 'life-records') {
-    const [k1, k2, k3, k4] = [...keywords, '', '', '', ''];
-    const lines = [];
-    if (k1) lines.push(`- ${k1}${josa(k1, '을를')} 바탕으로 수업에 성실히 참여하며 긍정적인 변화를 보임.`);
-    if (k2) lines.push(`- ${k2} 태도가 돋보이며 또래와 협력적으로 활동함.`);
-    if (k3) lines.push(`- ${k3} 역량을 키우기 위해 꾸준히 노력하며 책임감 있게 과제를 수행함.`);
-    if (k4) lines.push(`- ${k4}${josa(k4, '을를')} 통해 자기주도적 성장을 이어감.`);
-    if (lines.length === 0) lines.push('- 수업에 성실히 참여하며 긍정적인 학교생활 태도를 보임.');
-    return lines.join('\n');
+  let studentName = null;
+  if (wantStudent && studentNum) {
+    const info = await fetchStudentByNumber(studentNum);
+    if (info?.name) studentName = info.name;
   }
 
-  if (id === 'counseling') {
-    const f1 = keywords[0] || '학교생활';
-    const f2 = keywords[1] || '학습';
-    const f3 = keywords[2] || '';
-    const out = [
-      `- 학생이 ${f1} 영역에서 관찰 사항이 있어 정서적 부담을 느끼고 있는 것으로 보임.`,
-      `- ${f2} 측면에서도 관련된 영향이 나타날 수 있어 지속적인 관찰이 필요함.`,
-    ];
-    if (f3) out.push(`- ${f3} 관련 상황도 함께 살피며 안정과 참여를 지원할 필요가 있음.`);
-    else out.push('- 학교 내 정서 안정과 활동 참여를 함께 지원할 필요가 있음.');
-    return out.join('\n');
-  }
-
-  if (id === 'newsletter') {
-    const topic = keywords[0] || '학교 안내';
-    return [
-      '안녕하세요. 학부모님께 안내 말씀 드립니다.',
-      '',
-      `이번 안내는 ${topic} 관련 내용입니다.`,
-      '자세한 사항은 담임 선생님께 문의 부탁드립니다.',
-      '',
-      '감사합니다.',
-    ].join('\n');
-  }
-
+  if (id === 'life-records') return generateLifeRecordDraft(keywords, lineCount, studentName);
+  if (id === 'counseling') return generateCounselingDraft(keywords, lineCount);
+  if (id === 'newsletter') return generateNewsletterDraft(keywords, lineCount);
   if (id === 'autobiography-compilation') {
     const k = keywords[0] || '오늘';
     return [
       `- ${k}${josa(k, '을를')} 중심으로 이번 시기의 기록을 정리합니다.`,
       '- 이 시기를 지나며 느낀 점과 배운 점을 짧게 정리해 챕터에 담아봅니다.',
-    ].join('\n');
+    ].slice(0, lineCount || 2).join('\n');
   }
-
   if (id === 'exam-grading') {
     return [
       '- 시험지 채점은 [시험 채점] 탭에서 사진/답안 업로드로 진행할 수 있어요.',
       '- 자동 채점 결과를 확인하고 수동 보정도 가능합니다.',
-    ].join('\n');
+    ].slice(0, lineCount || 2).join('\n');
   }
-
   return '';
 }
 
@@ -467,9 +573,9 @@ function Dashboard() {
         } catch (err) {
           console.error('directAnswer failed', err);
         }
-        // AI 응답이 비었거나 실패한 경우 — 클라이언트 로컬 템플릿 폴백 (옛 NestJS 로직)
+        // AI 응답이 비었거나 실패한 경우 — 클라이언트 로컬 템플릿 폴백 (학생 정보 조회 포함)
         if (!aiResult.trim()) {
-          const local = generateLocalDraft(text, route.primary);
+          const local = await generateLocalDraftAsync(text, route.primary);
           if (local) {
             setResponse(local);
             setUsedModel('local-template');
