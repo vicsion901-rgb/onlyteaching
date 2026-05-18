@@ -621,13 +621,15 @@ function detectRoutesFromPrompt(text) {
     let score = 0;
     let labelExact = false;
 
-    // 1) labels — 정확/포함 매치가 가장 강력
+    // 1) labels — 한 카테고리 안의 변형들은 누적 안 함, 가장 강한 매치만
+    let labelScore = 0;
     for (const lbl of (entry.labels || [])) {
       const l = lbl.toLowerCase().replace(/\s+/g, '');
       if (!l) continue;
-      if (normalized === l) { score += 20; labelExact = true; }
-      else if (normalized.includes(l)) { score += 10; }
+      if (normalized === l) { labelScore = Math.max(labelScore, 20); labelExact = true; }
+      else if (normalized.includes(l)) { labelScore = Math.max(labelScore, 10); }
     }
+    score += labelScore;
     // 2) strong keywords
     for (const kw of (entry.keywords || [])) {
       const k = kw.toLowerCase().replace(/\s+/g, '');
@@ -652,8 +654,19 @@ function detectRoutesFromPrompt(text) {
   if (scored.length === 0) {
     return { primary: null, secondary: [], confidence: text.trim().length >= 2 ? 'unknown' : 'none' };
   }
-  const [primary, ...rest] = scored;
-  const secondary = rest.slice(0, 3);
+  let [primary, ...rest] = scored;
+  let secondary = rest.slice(0, 3);
+
+  // 생성 의도 + DIRECT_OUTPUT 카테고리가 1순위가 아니면 swap
+  // (학생명부 같은 데이터 source가 1순위라도, 사용자 목표는 문장 생성)
+  if (wantsGeneration) {
+    const directCandidate = scored.find((s) => DIRECT_OUTPUT_IDS.has(s.id));
+    if (directCandidate && directCandidate.id !== primary.id) {
+      secondary = [primary, ...rest.filter((s) => s.id !== directCandidate.id)].slice(0, 3);
+      primary = directCandidate;
+    }
+  }
+
   let confidence;
   if (primary.labelExact || primary.score >= 4) confidence = 'high';
   else if (primary.score >= 3) confidence = 'medium';
