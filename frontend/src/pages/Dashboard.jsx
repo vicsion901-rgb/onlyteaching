@@ -32,6 +32,58 @@ function hasGenerationIntent(normalized) {
   });
 }
 
+function getThisWeekRange() {
+  const c = new Date();
+  const day = c.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const mon = new Date(c); mon.setDate(c.getDate() + diff);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  return { weekStart: mon.toISOString().slice(0, 10), weekEnd: sun.toISOString().slice(0, 10) };
+}
+
+const CAPABILITY_REGISTRY = [
+  {
+    id: 'random-presenter',
+    matches: (info, n) => (info.primary?.id === 'presenter-picker') || /발표자.*뽑|랜덤.*발표|뽑아줘/.test(n),
+    handler: async () => {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return null;
+      const { default: client } = await import('../api/client');
+      const res = await client.get('/api/students', { params: { userId } });
+      const students = Array.isArray(res.data) ? res.data : [];
+      if (students.length === 0) return null;
+      const pick = students[Math.floor(Math.random() * students.length)];
+      return { type: 'random-presenter', student: pick, total: students.length };
+    },
+  },
+  {
+    id: 'meal-feed-preview',
+    matches: (info, n) => (info.primary?.id === 'today-meal') && /보여줘|보고|볼래|확인|미리보기|보고싶/.test(n),
+    handler: async () => {
+      const { weekStart, weekEnd } = getThisWeekRange();
+      const { default: client } = await import('../api/client');
+      const res = await client.get('/api/meals', { params: { action: 'leaderboard', period: 'weekly', startDate: weekStart, endDate: weekEnd } });
+      const list = Array.isArray(res.data) ? res.data : [];
+      if (list.length === 0) return null;
+      return { type: 'meal-feed-preview', items: list.slice(0, 3) };
+    },
+  },
+];
+
+async function tryInvokeCapability(routeInfo, normalized) {
+  for (const cap of CAPABILITY_REGISTRY) {
+    try {
+      if (cap.matches(routeInfo, normalized)) {
+        const result = await cap.handler();
+        if (result) return result;
+      }
+    } catch (err) {
+      console.error('capability failed', cap.id, err);
+    }
+  }
+  return null;
+}
+
 const KEYWORD_MAP = [
   { id: 'teaching-tools', title: '수업 보조 도구', emoji: '🧰', route: '/presenter-picker',
     reason: '발표자 정하기, 자리 정하기, 1인 1역 도구를 사용할 수 있어요',
@@ -214,6 +266,7 @@ function Dashboard() {
 
   const [submittedPrompt, setSubmittedPrompt] = useState('');
   const [routeInfo, setRouteInfo] = useState({ primary: null, secondary: [], confidence: 'none' });
+  const [capabilityResult, setCapabilityResult] = useState(null);
 
   const handleRecommendClick = (item) => {
     if (!item) return;
@@ -289,21 +342,30 @@ function Dashboard() {
     setRouteInfo(route);
     setResponse('');
     setUsedModel('');
-
-    const shouldGenerate = route.primary && DIRECT_OUTPUT_IDS.has(route.primary.id);
-    if (!shouldGenerate) return;
-
+    setCapabilityResult(null);
     setIsLoading(true);
+
+    const normalized = text.toLowerCase().replace(/\s+/g, '');
+    const shouldGenerate = route.primary && DIRECT_OUTPUT_IDS.has(route.primary.id);
+
     try {
-      const res = await client.post('/api/prompts', {
-        content: text,
-        ai_model: selectedModel,
-      });
-      setResponse(res.data.generated_document || '');
-      setUsedModel(res.data.ai_model || '');
-    } catch (error) {
-      console.error('Failed to submit prompt', error);
-      // 실패해도 라우팅 결과는 그대로 노출 — 별도 에러 메시지 없음
+      // 1) directAnswer — AI 생성 (DIRECT_OUTPUT 카테고리)
+      if (shouldGenerate) {
+        try {
+          const res = await client.post('/api/prompts', { content: text, ai_model: selectedModel });
+          setResponse(res.data.generated_document || '');
+          setUsedModel(res.data.ai_model || '');
+        } catch (err) {
+          console.error('directAnswer failed', err);
+        }
+      }
+
+      // 2) invokeTabCapability — 직접 답변이 없으면 기능 실행 시도
+      if (!shouldGenerate) {
+        const cap = await tryInvokeCapability(route, normalized);
+        if (cap) setCapabilityResult(cap);
+      }
+      // 3) navigateToTab fallback은 결과창에서 자동 처리 (RecommendationCard)
     } finally {
       setIsLoading(false);
     }
@@ -435,6 +497,7 @@ function Dashboard() {
                     submitted={submittedPrompt}
                     routeInfo={routeInfo}
                     response={response}
+                    capabilityResult={capabilityResult}
                     isLoading={isLoading}
                     onSelect={handleRecommendClick}
                   />
@@ -462,6 +525,7 @@ function Dashboard() {
                     setUsedModel('');
                     setSubmittedPrompt('');
                     setRouteInfo({ primary: null, secondary: [], confidence: 'none' });
+                    setCapabilityResult(null);
                   }}
                   className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
                 >
@@ -653,7 +717,48 @@ function DidYouMeanCard({ primary, secondary, onSelect }) {
   );
 }
 
-function ResultPanel({ submitted, routeInfo, response, isLoading, onSelect }) {
+function CapabilityResult({ result }) {
+  if (!result) return null;
+  if (result.type === 'random-presenter') {
+    const s = result.student || {};
+    return (
+      <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-3">
+        <p className="text-[11px] font-semibold tracking-wider text-purple-700 uppercase">실행 결과 · 발표자 추첨</p>
+        <p className="mt-2 text-base sm:text-lg font-bold text-purple-900">
+          🎤 오늘 발표자: {s.number ? `${s.number}번 ` : ''}{s.name || '학생'}
+        </p>
+        <p className="mt-1 text-[11px] text-purple-700/70">{result.total}명 중 무작위 추첨</p>
+      </div>
+    );
+  }
+  if (result.type === 'meal-feed-preview') {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3 space-y-2">
+        <p className="text-[11px] font-semibold tracking-wider text-amber-700 uppercase">실행 결과 · 이번 주 인기 급식</p>
+        <div className="grid grid-cols-3 gap-2">
+          {result.items.map((it, idx) => (
+            <div key={`${it.schoolCode}-${idx}`} className="rounded-lg bg-white border border-amber-100 overflow-hidden">
+              <div className="aspect-[4/3] bg-amber-50">
+                {it.topImageUrl ? (
+                  <img src={it.topImageUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-2xl text-amber-300">🍱</div>
+                )}
+              </div>
+              <div className="p-1.5 text-center">
+                <p className="text-[11px] font-semibold text-amber-900 truncate">{it.schoolCode}</p>
+                <p className="text-[10px] text-amber-700/70">👏 {it.totalLikes}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
+function ResultPanel({ submitted, routeInfo, response, capabilityResult, isLoading, onSelect }) {
   // 1) 제출 전 — 기본 안내문 (좌상단, 입력창 placeholder와 같은 시작점)
   if (!submitted) {
     return (
@@ -677,6 +782,8 @@ function ResultPanel({ submitted, routeInfo, response, isLoading, onSelect }) {
   }
 
   const hasResponse = !!(response && response.trim());
+  const hasCapability = !!capabilityResult;
+  const hasMainResult = hasResponse || hasCapability;
 
   return (
     <div className="space-y-3">
@@ -691,7 +798,9 @@ function ResultPanel({ submitted, routeInfo, response, isLoading, onSelect }) {
         </div>
       )}
 
-      {hasResponse && routeInfo.primary && (
+      {hasCapability && <CapabilityResult result={capabilityResult} />}
+
+      {hasMainResult && routeInfo.primary && (
         <div className="space-y-1.5">
           <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">관련 작업</p>
           <div className="flex flex-wrap gap-1.5">
@@ -709,7 +818,7 @@ function ResultPanel({ submitted, routeInfo, response, isLoading, onSelect }) {
         </div>
       )}
 
-      {!hasResponse && routeInfo.confidence === 'high' && routeInfo.primary && (
+      {!hasMainResult && routeInfo.confidence === 'high' && routeInfo.primary && (
         <div className="space-y-1.5">
           <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">추천 작업</p>
           <RecommendationCard primary={routeInfo.primary} secondary={routeInfo.secondary} onSelect={onSelect} />
