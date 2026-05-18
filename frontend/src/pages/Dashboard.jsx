@@ -353,8 +353,8 @@ function Dashboard() {
       if (shouldGenerate) {
         try {
           const res = await client.post('/api/prompts', { content: text, ai_model: selectedModel });
-          setResponse(res.data.generated_document || '');
-          setUsedModel(res.data.ai_model || '');
+          setResponse(res.data.result || res.data.generated_document || '');
+          setUsedModel(res.data.model || res.data.ai_model || '');
         } catch (err) {
           console.error('directAnswer failed', err);
         }
