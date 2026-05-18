@@ -16,6 +16,7 @@ function SubjectEvaluation() {
   const [isAchLoading, setIsAchLoading] = useState(false);
   const [achLoaded, setAchLoaded] = useState(false);
   const [autoSelectedInitial, setAutoSelectedInitial] = useState(false);
+  const [fetchError, setFetchError] = useState('');
 
   const [students, setStudents] = useState([]);
   const [studentsLoaded, setStudentsLoaded] = useState(false);
@@ -55,6 +56,7 @@ function SubjectEvaluation() {
 
   const fetchAchievementStandards = async () => {
     setIsAchLoading(true);
+    setFetchError('');
     try {
       const res = await client.get('/api/achievements', {
         params: {
@@ -64,13 +66,18 @@ function SubjectEvaluation() {
         },
       });
       const raw = res.data;
-      const items = Array.isArray(raw) ? raw : (raw?.items || []);
+      const items = extractItems(raw);
+      // eslint-disable-next-line no-console
+      console.debug('[achievements]', {
+        isArray: Array.isArray(raw),
+        keys: raw && typeof raw === 'object' && !Array.isArray(raw) ? Object.keys(raw) : null,
+        itemsCount: items.length,
+      });
       setAchievements(items);
       const meta = (raw && !Array.isArray(raw) && raw.meta) ? raw.meta : null;
       if (meta && (meta.subjects?.length || meta.grade_groups?.length || meta.areas?.length)) {
         setAchMeta(meta);
       } else {
-        // meta가 응답에 없으면 items에서 클라이언트 derive
         setAchMeta({
           subjects: [...new Set(items.map((i) => i.subject).filter(Boolean))].sort(),
           grade_groups: [...new Set(items.map((i) => String(i.grade_group)).filter(Boolean))].sort(),
@@ -79,6 +86,7 @@ function SubjectEvaluation() {
       }
     } catch (error) {
       console.error('Failed to load achievement standards', error);
+      setFetchError('성취기준을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
     } finally {
       setIsAchLoading(false);
       setAchLoaded(true);
@@ -266,9 +274,14 @@ function SubjectEvaluation() {
               {[0, 1, 2].map((i) => (<div key={i} className="h-12 rounded-md bg-gray-100 animate-pulse" />))}
             </div>
           )}
-          {!isAchLoading && achLoaded && filteredAchievements.length === 0 && (
+          {!isAchLoading && achLoaded && fetchError && (
+            <div className="rounded-md bg-red-50 border border-red-200 px-2.5 py-2 text-center text-[11px] sm:text-xs text-red-700">{fetchError}</div>
+          )}
+          {!isAchLoading && achLoaded && !fetchError && filteredAchievements.length === 0 && (
             <div className="rounded-md bg-blue-50/50 border border-blue-100 px-2.5 py-3 text-center text-[11px] sm:text-xs text-blue-700">
-              {filtersUntouched
+              {achievements.length === 0 && filtersUntouched
+                ? '성취기준 데이터가 아직 등록되지 않았어요. 잠시 후 다시 시도하거나 관리자에게 문의해 주세요.'
+                : filtersUntouched
                 ? '학년군 / 교과 / 영역을 선택하거나 검색어를 입력하면 성취기준이 표시돼요.'
                 : '선택한 조건에 맞는 성취기준이 없어요. 다른 필터를 시도해보세요.'}
             </div>
@@ -425,6 +438,14 @@ function SubjectEvaluation() {
       </section>
     </div>
   );
+}
+
+function extractItems(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.items)) return raw.items;
+  if (Array.isArray(raw?.rows)) return raw.rows;
+  if (Array.isArray(raw?.data)) return raw.data;
+  return [];
 }
 
 function buildLocalEvalSentence({ selectedStandard, studentName, level, observation, evidence }) {
