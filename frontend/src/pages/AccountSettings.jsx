@@ -151,61 +151,75 @@ function AccountSettings() {
         </dl>
       </div>
 
-      {/* 프로필 수정 — 닉네임/학년/반 */}
-      <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-        <h2 className="font-semibold text-gray-900 mb-1">프로필 수정</h2>
-        <p className="text-xs text-gray-500 mb-3">닉네임은 게시물 작성자 이름, 학년/반은 업무 화면 기본값으로 사용돼요.</p>
-        <form onSubmit={async (e) => {
-          e.preventDefault();
-          setProfileSaving(true);
-          try {
-            const res = await client.post('/api/account', {
-              userId, action: 'updateProfile',
-              nickname: editNickname.trim(),
-              gradeLevel: editGrade ? Number(editGrade) : undefined,
-              classNumber: editClass ? Number(editClass) : undefined,
-            });
-            const d = res.data || {};
-            setInfo((prev) => ({ ...prev, nickname: d.nickname || prev.nickname, gradeLevel: d.gradeLevel || prev.gradeLevel, classNumber: d.classNumber || prev.classNumber }));
-            try {
-              if (d.nickname) localStorage.setItem('nickname', d.nickname);
-              if (d.gradeLevel) localStorage.setItem('gradeLevel', String(d.gradeLevel));
-              if (d.classNumber) localStorage.setItem('classNumber', String(d.classNumber));
-            } catch {}
-            showMsg('프로필이 저장되었어요.');
-          } catch (err) {
-            showErr(err?.response?.data?.message || '저장 중 오류가 발생했어요.');
-          } finally {
-            setProfileSaving(false);
-          }
-        }} className="space-y-3">
-          <div>
-            <label className="block text-xs text-gray-600 mb-1">닉네임</label>
-            <input type="text" value={editNickname} onChange={(e) => setEditNickname(e.target.value)} maxLength={20}
-              className="w-full rounded-md border-gray-300 text-sm py-2" />
-            <p className="mt-1 text-[10px] text-gray-400">영문, 숫자, 한글 가능</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">담당 학년</label>
-              <select value={editGrade} onChange={(e) => setEditGrade(e.target.value)}
-                className="w-full rounded-md border-gray-300 text-sm py-2">
-                <option value="">선택</option>
-                {[1, 2, 3, 4, 5, 6].map((g) => <option key={g} value={g}>{g}학년</option>)}
-              </select>
+      {/* 프로필 입력 / 수정 — 상태별 라벨 분기 */}
+      {(() => {
+        const isProfileComplete = !!(info.nickname && info.gradeLevel && info.classNumber);
+        return (
+          <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
+            {/* 제목 + 가로 보조 설명 */}
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-3">
+              <h2 className="font-semibold text-gray-900">
+                {isProfileComplete ? '내 프로필' : '프로필 입력'}
+              </h2>
+              <p className="text-xs text-gray-500">
+                닉네임은 게시물·댓글에, 학년·반은 업무 화면 기본값에 반영돼요
+              </p>
             </div>
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">담당 반</label>
-              <input type="number" min="1" max="30" value={editClass} onChange={(e) => setEditClass(e.target.value)}
-                className="w-full rounded-md border-gray-300 text-sm py-2" />
-            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setProfileSaving(true);
+              try {
+                const res = await client.post('/api/account', {
+                  userId, action: 'updateProfile',
+                  nickname: editNickname.trim(),
+                  gradeLevel: editGrade ? Number(editGrade) : undefined,
+                  classNumber: editClass ? Number(editClass) : undefined,
+                });
+                const d = res.data || {};
+                setInfo((prev) => ({ ...prev, nickname: d.nickname || prev.nickname, gradeLevel: d.gradeLevel || prev.gradeLevel, classNumber: d.classNumber || prev.classNumber }));
+                try {
+                  if (d.nickname) localStorage.setItem('nickname', d.nickname);
+                  if (d.gradeLevel) localStorage.setItem('gradeLevel', String(d.gradeLevel));
+                  if (d.classNumber) localStorage.setItem('classNumber', String(d.classNumber));
+                } catch {}
+                showMsg(isProfileComplete ? '프로필이 수정되었어요.' : '프로필이 저장되었어요.');
+              } catch (err) {
+                showErr(err?.response?.data?.message || '저장 중 오류가 발생했어요.');
+              } finally {
+                setProfileSaving(false);
+              }
+            }} className="space-y-3">
+              <div>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0 mb-1">
+                  <label className="text-xs text-gray-600">닉네임</label>
+                  <span className="text-[10px] text-gray-400">영문, 숫자, 한글 가능</span>
+                </div>
+                <input type="text" value={editNickname} onChange={(e) => setEditNickname(e.target.value)} maxLength={20}
+                  className="w-full rounded-md border-gray-300 text-sm py-2" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">담당 학년</label>
+                  <select value={editGrade} onChange={(e) => setEditGrade(e.target.value)}
+                    className="w-full rounded-md border-gray-300 text-sm py-2">
+                    <option value="">선택</option>
+                    {[1, 2, 3, 4, 5, 6].map((g) => <option key={g} value={g}>{g}학년</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">담당 반</label>
+                  <input type="number" min="1" max="30" value={editClass} onChange={(e) => setEditClass(e.target.value)}
+                    className="w-full rounded-md border-gray-300 text-sm py-2" />
+                </div>
+              </div>
+              <button type="submit" disabled={profileSaving}
+                className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">
+                {profileSaving ? '저장 중...' : (isProfileComplete ? '수정하기' : '입력하기')}
+              </button>
+            </form>
           </div>
-          <button type="submit" disabled={profileSaving}
-            className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">
-            {profileSaving ? '저장 중...' : '프로필 저장'}
-          </button>
-        </form>
-      </div>
+        );
+      })()}
 
       {/* 비밀번호 변경 */}
       <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
