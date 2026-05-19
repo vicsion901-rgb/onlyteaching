@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import { getLibrary, getSentencesByLevel, hasLevelVariants } from '../data/subjectEvalLibrary';
+import { gradeToGroup } from '../utils/profile';
 
 const STORAGE_KEY = 'subject_eval_v2';
 const SUBJECTS = ['국어', '수학', '사회', '과학', '영어', '도덕', '체육', '음악', '미술', '실과', '통합교과'];
@@ -110,7 +111,13 @@ function SubjectEvaluation() {
 
   useEffect(() => {
     if (gradeGroupsForSubjectArea.length > 0 && !gradeGroupsForSubjectArea.includes(gradeGroup)) {
-      setGradeGroup(gradeGroupsForSubjectArea[0]);
+      // 프로필 학년 기반 학년군이 가용하면 우선 선택, 아니면 첫 항목 fallback
+      const profileGroup = gradeToGroup(Number(localStorage.getItem('gradeLevel')) || null);
+      if (profileGroup && gradeGroupsForSubjectArea.includes(profileGroup)) {
+        setGradeGroup(profileGroup);
+      } else {
+        setGradeGroup(gradeGroupsForSubjectArea[0]);
+      }
     }
   }, [gradeGroupsForSubjectArea, gradeGroup]);
 

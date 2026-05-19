@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
+import { getDisplayName } from '../utils/profile';
 
 function getWeekRange(date = new Date()) {
   const c = new Date(date);
@@ -411,7 +412,9 @@ function TodayMeal() {
             <span className="text-xl">🍱</span>
             <div className="min-w-0 flex-1">
               <h3 className="text-sm sm:text-base font-bold text-amber-900 leading-tight">우리 학교도 오늘 급식을 올려보세요</h3>
-              <p className="text-[10px] text-amber-800/70">사진 한 장 + 한마디면 충분해요</p>
+              <p className="text-[10px] text-amber-800/70">
+                작성자: <span className="font-semibold">{getDisplayName('우리 학교')}</span> · 사진 한 장 + 한마디면 충분해요
+              </p>
             </div>
           </div>
           <form onSubmit={handleSubmit} className="space-y-2">

@@ -7,7 +7,11 @@ function AccountSettings() {
   const navigate = useNavigate();
   const userId = localStorage.getItem('userId') || '';
 
-  const [info, setInfo] = useState({ email: '', name: '', phone: '', schoolName: '' });
+  const [info, setInfo] = useState({ email: '', name: '', phone: '', schoolName: '', nickname: '', gradeLevel: null, classNumber: null });
+  const [editNickname, setEditNickname] = useState('');
+  const [editGrade, setEditGrade] = useState('');
+  const [editClass, setEditClass] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -41,6 +45,9 @@ function AccountSettings() {
         setInfo(res.data);
         setNewName(res.data.name);
         setNewPhone(res.data.phone);
+        setEditNickname(res.data.nickname || '');
+        setEditGrade(res.data.gradeLevel ? String(res.data.gradeLevel) : '');
+        setEditClass(res.data.classNumber ? String(res.data.classNumber) : '');
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -134,7 +141,70 @@ function AccountSettings() {
           <dd className="text-gray-900">{info.phone || '-'}</dd>
           <dt className="text-gray-500">학교</dt>
           <dd className="text-gray-900">{info.schoolName || '-'}</dd>
+          <dt className="text-gray-500">닉네임</dt>
+          <dd className="text-gray-900">{info.nickname || '-'}</dd>
+          <dt className="text-gray-500">담당 학년/반</dt>
+          <dd className="text-gray-900">
+            {info.gradeLevel ? `${info.gradeLevel}학년` : '-'}
+            {info.classNumber ? ` ${info.classNumber}반` : ''}
+          </dd>
         </dl>
+      </div>
+
+      {/* 프로필 수정 — 닉네임/학년/반 */}
+      <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
+        <h2 className="font-semibold text-gray-900 mb-1">프로필 수정</h2>
+        <p className="text-xs text-gray-500 mb-3">닉네임은 게시물 작성자 이름, 학년/반은 업무 화면 기본값으로 사용돼요.</p>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          setProfileSaving(true);
+          try {
+            const res = await client.post('/api/account', {
+              userId, action: 'updateProfile',
+              nickname: editNickname.trim(),
+              gradeLevel: editGrade ? Number(editGrade) : undefined,
+              classNumber: editClass ? Number(editClass) : undefined,
+            });
+            const d = res.data || {};
+            setInfo((prev) => ({ ...prev, nickname: d.nickname || prev.nickname, gradeLevel: d.gradeLevel || prev.gradeLevel, classNumber: d.classNumber || prev.classNumber }));
+            try {
+              if (d.nickname) localStorage.setItem('nickname', d.nickname);
+              if (d.gradeLevel) localStorage.setItem('gradeLevel', String(d.gradeLevel));
+              if (d.classNumber) localStorage.setItem('classNumber', String(d.classNumber));
+            } catch {}
+            showMsg('프로필이 저장되었어요.');
+          } catch (err) {
+            showErr(err?.response?.data?.message || '저장 중 오류가 발생했어요.');
+          } finally {
+            setProfileSaving(false);
+          }
+        }} className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">닉네임</label>
+            <input type="text" value={editNickname} onChange={(e) => setEditNickname(e.target.value)} maxLength={20}
+              className="w-full rounded-md border-gray-300 text-sm py-2" />
+            <p className="mt-1 text-[10px] text-gray-400">영문, 숫자, 한글 가능</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">담당 학년</label>
+              <select value={editGrade} onChange={(e) => setEditGrade(e.target.value)}
+                className="w-full rounded-md border-gray-300 text-sm py-2">
+                <option value="">선택</option>
+                {[1, 2, 3, 4, 5, 6].map((g) => <option key={g} value={g}>{g}학년</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">담당 반</label>
+              <input type="number" min="1" max="30" value={editClass} onChange={(e) => setEditClass(e.target.value)}
+                className="w-full rounded-md border-gray-300 text-sm py-2" />
+            </div>
+          </div>
+          <button type="submit" disabled={profileSaving}
+            className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">
+            {profileSaving ? '저장 중...' : '프로필 저장'}
+          </button>
+        </form>
       </div>
 
       {/* 비밀번호 변경 */}
