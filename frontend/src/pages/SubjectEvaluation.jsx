@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
-import { getLibrary } from '../data/subjectEvalLibrary';
+import { getLibrary, getSentencesByLevel, hasLevelVariants } from '../data/subjectEvalLibrary';
 
 const STORAGE_KEY = 'subject_eval_v2';
 const SUBJECTS = ['국어', '수학', '사회', '과학', '영어', '도덕', '체육', '음악', '미술', '실과', '통합교과'];
@@ -22,6 +22,7 @@ function SubjectEvaluation() {
   const [gradeGroup, setGradeGroup] = useState('');
 
   const [selectedStandard, setSelectedStandard] = useState(null);
+  const [level, setLevel] = useState('중');
   const [selectedKeywords, setSelectedKeywords] = useState([]);
   const [selectedSentences, setSelectedSentences] = useState([]);
   const [teacherNote, setTeacherNote] = useState('');
@@ -163,10 +164,12 @@ function SubjectEvaluation() {
       setSelectedKeywords(existing.selectedKeywords || []);
       setSelectedSentences(existing.selectedSentences || []);
       setTeacherNote(existing.teacherNote || '');
+      setLevel(existing.level || '중');
     } else {
       setSelectedKeywords([]);
       setSelectedSentences([]);
       setTeacherNote('');
+      setLevel('중');
     }
   }, [currentRecordId, records]);
 
@@ -203,6 +206,7 @@ function SubjectEvaluation() {
       area: selectedStandard.area,
       standardCode: selectedStandard.code,
       standardText: selectedStandard.standard,
+      level,
       selectedKeywords,
       selectedSentences,
       teacherNote,
@@ -274,6 +278,7 @@ function SubjectEvaluation() {
     setSelectedKeywords(r.selectedKeywords || []);
     setSelectedSentences(r.selectedSentences || []);
     setTeacherNote(r.teacherNote || '');
+    setLevel(r.level || '중');
   };
 
   const hasExistingRecord = currentRecordId && records.some((r) => r.id === currentRecordId);
@@ -420,9 +425,31 @@ function SubjectEvaluation() {
         <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 sm:p-4">
           <div className="mb-2">
             <p className="text-[10px] font-semibold text-purple-700 uppercase tracking-wider">⑤ 평가문장 조합</p>
+            {/* 작업 맥락 한 줄 */}
+            {selectedStudent && (
+              <p className="mt-0.5 text-[11px] font-medium text-gray-700">
+                {selectedStudent.number ? `${selectedStudent.number}번 ` : ''}{selectedStudent.name} · {selectedStandard.grade_group}학년군 · {selectedStandard.subject} · {selectedStandard.area}
+              </p>
+            )}
             <p className="mt-0.5 text-[11px] text-purple-700/70">
               <span className="font-mono font-bold mr-1">[{selectedStandard.code}]</span>{selectedStandard.standard}
             </p>
+          </div>
+
+          {/* 수행 수준 토글 */}
+          <div className="mb-2.5">
+            <p className="text-[10px] font-medium text-gray-500 mb-1">
+              수행 수준 {hasLevelVariants(subject, area) && <span className="text-purple-500 ml-1">· 수준별 문장 제공</span>}
+            </p>
+            <div className="inline-flex rounded-full bg-purple-50 p-0.5 text-[11px] font-medium">
+              {['상', '중', '하'].map((lv) => (
+                <button key={lv} type="button"
+                  onClick={() => { setLevel(lv); setSelectedSentences([]); }}
+                  className={`rounded-full px-3 py-0.5 transition ${level === lv ? 'bg-purple-600 text-white shadow-sm' : 'text-purple-700 hover:text-purple-900'}`}>
+                  {lv}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* 평가 포인트 키워드 */}
@@ -443,26 +470,33 @@ function SubjectEvaluation() {
             </div>
           )}
 
-          {/* 문장 후보 */}
-          {library?.sentences?.length > 0 ? (
-            <div className="mb-2.5">
-              <p className="text-[10px] font-medium text-gray-500 mb-1">문장 후보 (클릭 시 결과에 추가)</p>
-              <div className="space-y-1">
-                {library.sentences.map((s) => {
-                  const on = selectedSentences.includes(s);
-                  return (
-                    <button key={s} type="button" onClick={() => addSentence(s)}
-                      disabled={on}
-                      className={`block w-full text-left rounded-md border px-2 py-1.5 text-xs leading-relaxed transition ${on ? 'bg-purple-50 border-purple-200 text-purple-800 cursor-not-allowed' : 'bg-white border-gray-200 hover:border-purple-300 hover:bg-purple-50/40'}`}>
-                      {on && <span className="mr-1 text-purple-600">+추가됨</span>}{s}
-                    </button>
-                  );
-                })}
+          {/* 문장 후보 — 수준별 분기 */}
+          {(() => {
+            const candidates = getSentencesByLevel(subject, area, level);
+            const isLevelSpecific = hasLevelVariants(subject, area);
+            if (candidates.length === 0) {
+              return <p className="text-xs text-gray-400 mb-2">이 영역의 문장 후보 라이브러리가 아직 준비되지 않았어요. 직접 메모를 활용해 주세요.</p>;
+            }
+            return (
+              <div className="mb-2.5">
+                <p className="text-[10px] font-medium text-gray-500 mb-1">
+                  문장 후보 {isLevelSpecific ? `· ${level} 수준` : ''}<span className="ml-1 text-gray-400">(클릭 시 결과에 추가)</span>
+                </p>
+                <div className="space-y-1">
+                  {candidates.map((s) => {
+                    const on = selectedSentences.includes(s);
+                    return (
+                      <button key={s} type="button" onClick={() => addSentence(s)}
+                        disabled={on}
+                        className={`block w-full text-left rounded-md border px-2 py-1.5 text-xs leading-relaxed transition ${on ? 'bg-purple-50 border-purple-200 text-purple-800 cursor-not-allowed' : 'bg-white border-gray-200 hover:border-purple-300 hover:bg-purple-50/40'}`}>
+                        {on && <span className="mr-1 text-purple-600">+추가됨</span>}{s}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400 mb-2">이 영역의 문장 후보 라이브러리가 아직 준비되지 않았어요. 직접 메모를 활용해 주세요.</p>
-          )}
+            );
+          })()}
 
           {/* 결과 조합 */}
           <div className="rounded-lg bg-emerald-50/40 border border-emerald-200 p-2.5 space-y-1.5">
