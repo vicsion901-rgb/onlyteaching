@@ -1,307 +1,358 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
+import { getLibrary } from '../data/subjectEvalLibrary';
 
-const STORAGE_KEY = 'subject_evaluation_recent';
-const LEVELS = ['상', '중', '하'];
+const STORAGE_KEY = 'subject_eval_v2';
+const SUBJECTS = ['국어', '수학', '사회', '과학', '영어', '도덕', '체육', '음악', '미술', '실과', '통합교과'];
 
 function SubjectEvaluation() {
   const navigate = useNavigate();
-  const [achievements, setAchievements] = useState([]);
-  const [achMeta, setAchMeta] = useState({ subjects: [], grade_groups: [], areas: [] });
-  const [gradeFilter, setGradeFilter] = useState('');
-  const [subjectFilter, setSubjectFilter] = useState('');
-  const [areaFilter, setAreaFilter] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isAchLoading, setIsAchLoading] = useState(false);
-  const [achLoaded, setAchLoaded] = useState(false);
-  const [autoSelectedInitial, setAutoSelectedInitial] = useState(false);
-  const [fetchError, setFetchError] = useState('');
 
   const [students, setStudents] = useState([]);
-  const [studentsLoaded, setStudentsLoaded] = useState(false);
-
   const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [manualStudentName, setManualStudentName] = useState('');
+
+  const [achievements, setAchievements] = useState([]);
+  const [achMeta, setAchMeta] = useState({ subjects: [], grade_groups: [], areas: [] });
+  const [isAchLoading, setIsAchLoading] = useState(false);
+
+  const [subject, setSubject] = useState('국어');
+  const [area, setArea] = useState('');
+  const [gradeGroup, setGradeGroup] = useState('');
 
   const [selectedStandard, setSelectedStandard] = useState(null);
-  const [level, setLevel] = useState('상');
-  const [observation, setObservation] = useState('');
-  const [evidence, setEvidence] = useState('');
-  const [evalResult, setEvalResult] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [copyMsg, setCopyMsg] = useState('');
+  const [selectedKeywords, setSelectedKeywords] = useState([]);
+  const [selectedSentences, setSelectedSentences] = useState([]);
+  const [teacherNote, setTeacherNote] = useState('');
 
-  const [recentEvals, setRecentEvals] = useState(() => {
+  const [records, setRecords] = useState(() => {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
   });
-  const [recentStudentFilter, setRecentStudentFilter] = useState('');
-  const writePanelRef = useRef(null);
+  const [copyMsg, setCopyMsg] = useState('');
+  const [boardStudentFilter, setBoardStudentFilter] = useState('');
 
   // 학생명부 로드
   useEffect(() => {
     const userId = localStorage.getItem('userId');
-    if (!userId) { setStudentsLoaded(true); return; }
+    if (!userId) return;
     client.get('/api/students', { params: { userId } })
-      .then((res) => setStudents(Array.isArray(res.data) ? res.data : []))
-      .catch(() => {})
-      .finally(() => setStudentsLoaded(true));
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : [];
+        setStudents(list);
+        if (list.length > 0 && !selectedStudentId) setSelectedStudentId(String(list[0].id));
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 성취기준 로드
+  // 성취기준 로드 (전체)
   useEffect(() => {
-    fetchAchievementStandards();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gradeFilter, subjectFilter, areaFilter]);
-
-  const fetchAchievementStandards = async () => {
     setIsAchLoading(true);
-    setFetchError('');
-    try {
-      const res = await client.get('/api/achievements', {
-        params: {
-          grade_group: gradeFilter || undefined,
-          subject: subjectFilter || undefined,
-          area: areaFilter || undefined,
-        },
-      });
-      const raw = res.data;
-      const items = extractItems(raw);
-      // eslint-disable-next-line no-console
-      console.debug('[achievements]', {
-        isArray: Array.isArray(raw),
-        keys: raw && typeof raw === 'object' && !Array.isArray(raw) ? Object.keys(raw) : null,
-        itemsCount: items.length,
-      });
-      setAchievements(items);
-      const meta = (raw && !Array.isArray(raw) && raw.meta) ? raw.meta : null;
-      if (meta && (meta.subjects?.length || meta.grade_groups?.length || meta.areas?.length)) {
-        setAchMeta(meta);
-      } else {
-        setAchMeta({
+    client.get('/api/achievements')
+      .then((res) => {
+        const raw = res.data;
+        const items = Array.isArray(raw) ? raw : (raw?.items || []);
+        setAchievements(items);
+        const meta = (raw && !Array.isArray(raw) && raw.meta) ? raw.meta : null;
+        if (meta) setAchMeta(meta);
+        else setAchMeta({
           subjects: [...new Set(items.map((i) => i.subject).filter(Boolean))].sort(),
           grade_groups: [...new Set(items.map((i) => String(i.grade_group)).filter(Boolean))].sort(),
           areas: [...new Set(items.map((i) => i.area).filter(Boolean))].sort(),
         });
-      }
-    } catch (error) {
-      console.error('Failed to load achievement standards', error);
-      setFetchError('성취기준을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
-    } finally {
-      setIsAchLoading(false);
-      setAchLoaded(true);
-    }
-  };
+      })
+      .catch(() => {})
+      .finally(() => setIsAchLoading(false));
+  }, []);
 
-  // 초기 자동 선택 — 메타 채워지면 첫 학년군 자동 셋
+  // 교과 변경 시 첫 영역 자동 선택
+  const areasForSubject = useMemo(() => {
+    return [...new Set(achievements.filter((a) => a.subject === subject).map((a) => a.area))];
+  }, [achievements, subject]);
+
   useEffect(() => {
-    if (autoSelectedInitial) return;
-    if (!achLoaded) return;
-    if (gradeFilter || subjectFilter) return;
-    const gg = achMeta.grade_groups || [];
-    if (gg.length > 0) {
-      setGradeFilter(gg[0]);
-      setAutoSelectedInitial(true);
+    if (areasForSubject.length > 0 && !areasForSubject.includes(area)) {
+      setArea(areasForSubject[0]);
     }
-  }, [achLoaded, achMeta, gradeFilter, subjectFilter, autoSelectedInitial]);
+  }, [areasForSubject, area]);
 
-  const filteredAchievements = useMemo(() => {
-    if (!searchQuery.trim()) return achievements;
-    const q = searchQuery.trim().toLowerCase();
-    return achievements.filter((a) =>
-      (a.standard || '').toLowerCase().includes(q) ||
-      (a.code || '').toLowerCase().includes(q) ||
-      (a.area || '').toLowerCase().includes(q),
+  // 영역 변경 시 학년군 후보 + 자동 첫 학년군
+  const gradeGroupsForSubjectArea = useMemo(() => {
+    return [...new Set(
+      achievements
+        .filter((a) => a.subject === subject && a.area === area)
+        .map((a) => String(a.grade_group)),
+    )].sort();
+  }, [achievements, subject, area]);
+
+  useEffect(() => {
+    if (gradeGroupsForSubjectArea.length > 0 && !gradeGroupsForSubjectArea.includes(gradeGroup)) {
+      setGradeGroup(gradeGroupsForSubjectArea[0]);
+    }
+  }, [gradeGroupsForSubjectArea, gradeGroup]);
+
+  // 현재 선택된 성취기준 후보
+  const standardsForCurrent = useMemo(() => {
+    return achievements.filter(
+      (a) => a.subject === subject && a.area === area && String(a.grade_group) === gradeGroup,
     );
-  }, [achievements, searchQuery]);
+  }, [achievements, subject, area, gradeGroup]);
 
-  const selectedStudent = useMemo(() => {
-    if (!selectedStudentId) return null;
-    return students.find((s) => String(s.id) === String(selectedStudentId)) || null;
-  }, [students, selectedStudentId]);
+  // 라이브러리 (키워드 + 문장 후보)
+  const library = useMemo(() => getLibrary(subject, area), [subject, area]);
 
-  const selectStandard = (item) => {
-    setSelectedStandard(item);
-    setEvalResult('');
-    setTimeout(() => writePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  const selectedStudent = useMemo(
+    () => students.find((s) => String(s.id) === String(selectedStudentId)) || null,
+    [students, selectedStudentId],
+  );
+
+  // 학생+성취기준 unique key
+  const currentRecordId = useMemo(() => {
+    if (!selectedStudent || !selectedStandard) return null;
+    return `${selectedStudent.id}_${selectedStandard.code}`;
+  }, [selectedStudent, selectedStandard]);
+
+  // 학생/성취기준 바뀌면 기존 저장 자동 로드
+  useEffect(() => {
+    if (!currentRecordId) {
+      setSelectedKeywords([]);
+      setSelectedSentences([]);
+      setTeacherNote('');
+      return;
+    }
+    const existing = records.find((r) => r.id === currentRecordId);
+    if (existing) {
+      setSelectedKeywords(existing.selectedKeywords || []);
+      setSelectedSentences(existing.selectedSentences || []);
+      setTeacherNote(existing.teacherNote || '');
+    } else {
+      setSelectedKeywords([]);
+      setSelectedSentences([]);
+      setTeacherNote('');
+    }
+  }, [currentRecordId, records]);
+
+  const toggleKeyword = (kw) => {
+    setSelectedKeywords((prev) => prev.includes(kw) ? prev.filter((k) => k !== kw) : [...prev, kw]);
   };
 
-  const handleGenerate = async () => {
-    if (!selectedStandard) return;
-    const studentLabel = selectedStudent
-      ? `${selectedStudent.number ? selectedStudent.number + '번 ' : ''}${selectedStudent.name || ''}`.trim()
-      : (manualStudentName.trim() || '');
-    setIsGenerating(true);
-    setEvalResult('');
-    const prompt = [
-      `성취기준: ${selectedStandard.code || ''} ${selectedStandard.standard || ''}`,
-      studentLabel ? `학생: ${studentLabel}` : '',
-      `수행 수준: ${level}`,
-      observation ? `관찰 키워드: ${observation}` : '',
-      evidence ? `근거 메모: ${evidence}` : '',
-      '',
-      '위 정보를 바탕으로 학교 생활기록부 교과 평가문장을 한국어 1~2문장으로 정중하고 공식적인 톤으로 작성해주세요. 학생 이름이 있으면 자연스럽게 통합해주세요.',
-    ].filter(Boolean).join('\n');
-
-    let aiResult = '';
-    try {
-      const res = await client.post('/api/prompts', { content: prompt });
-      aiResult = res.data.result || res.data.generated_document || '';
-      if (aiResult.trim()) setEvalResult(aiResult.trim());
-    } catch (err) {
-      console.error('eval generation failed', err);
-    }
-    if (!aiResult.trim()) {
-      setEvalResult(buildLocalEvalSentence({
-        selectedStandard,
-        studentName: studentLabel || (selectedStudent?.name || ''),
-        level, observation, evidence,
-      }));
-    }
-    setIsGenerating(false);
+  const addSentence = (s) => {
+    setSelectedSentences((prev) => prev.includes(s) ? prev : [...prev, s]);
   };
 
-  const handleSaveRecord = () => {
-    if (!evalResult || !selectedStandard) return;
+  const removeSentence = (idx) => {
+    setSelectedSentences((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const finalText = useMemo(() => {
+    const parts = [...selectedSentences];
+    if (teacherNote.trim()) parts.push(teacherNote.trim());
+    return parts.join(' ');
+  }, [selectedSentences, teacherNote]);
+
+  const handleSave = () => {
+    if (!selectedStudent || !selectedStandard) return;
+    if (selectedSentences.length === 0 && !teacherNote.trim()) return;
+    const now = new Date().toISOString();
+    const existingIdx = records.findIndex((r) => r.id === currentRecordId);
     const record = {
-      id: Date.now(),
-      studentId: selectedStudent?.id || null,
-      studentNumber: selectedStudent?.number || null,
-      studentName: selectedStudent?.name || manualStudentName.trim() || '미지정',
+      id: currentRecordId,
+      studentId: selectedStudent.id,
+      studentNumber: selectedStudent.number || null,
+      studentName: selectedStudent.name || '',
       gradeGroup: selectedStandard.grade_group,
-      subject: selectedStandard.subject || '',
-      area: selectedStandard.area || '',
-      code: selectedStandard.code || '',
-      standard: selectedStandard.standard || '',
-      level,
-      observation,
-      evidence,
-      text: evalResult,
-      createdAt: new Date().toISOString(),
+      subject: selectedStandard.subject,
+      area: selectedStandard.area,
+      standardCode: selectedStandard.code,
+      standardText: selectedStandard.standard,
+      selectedKeywords,
+      selectedSentences,
+      teacherNote,
+      finalText,
+      createdAt: existingIdx >= 0 ? records[existingIdx].createdAt : now,
+      updatedAt: now,
     };
-    const next = [record, ...recentEvals].slice(0, 50);
-    setRecentEvals(next);
+    const next = [...records];
+    if (existingIdx >= 0) next[existingIdx] = record;
+    else next.unshift(record);
+    setRecords(next);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
-    setCopyMsg('기록 반영됨');
+    setCopyMsg(existingIdx >= 0 ? '수정 저장됨' : '저장됨');
     setTimeout(() => setCopyMsg(''), 1500);
   };
 
   const handleCopy = () => {
-    if (!evalResult) return;
-    navigator.clipboard?.writeText(evalResult);
+    if (!finalText) return;
+    navigator.clipboard?.writeText(finalText);
     setCopyMsg('복사됨');
     setTimeout(() => setCopyMsg(''), 1500);
   };
 
-  const recentCountsByStudent = useMemo(() => {
-    const map = new Map();
-    for (const r of recentEvals) {
-      const key = r.studentId ? String(r.studentId) : r.studentName;
-      map.set(key, (map.get(key) || 0) + 1);
-    }
-    return map;
-  }, [recentEvals]);
+  const handleDelete = () => {
+    if (!currentRecordId) return;
+    const next = records.filter((r) => r.id !== currentRecordId);
+    setRecords(next);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+    setSelectedKeywords([]);
+    setSelectedSentences([]);
+    setTeacherNote('');
+    setCopyMsg('삭제됨');
+    setTimeout(() => setCopyMsg(''), 1500);
+  };
 
-  const visibleRecents = useMemo(() => {
-    if (!recentStudentFilter) return recentEvals;
-    return recentEvals.filter((r) => {
-      const k = r.studentId ? String(r.studentId) : r.studentName;
-      return k === recentStudentFilter;
-    });
-  }, [recentEvals, recentStudentFilter]);
-
+  // 학생별 기록 보드
   const studentChips = useMemo(() => {
+    const counts = new Map();
+    for (const r of records) {
+      const key = r.studentId ? String(r.studentId) : r.studentName;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
     const arr = [];
-    for (const r of recentEvals) {
+    for (const r of records) {
       const key = r.studentId ? String(r.studentId) : r.studentName;
       if (!arr.find((a) => a.key === key)) {
-        arr.push({ key, label: r.studentName, count: recentCountsByStudent.get(key) || 0 });
+        arr.push({ key, label: `${r.studentNumber ? r.studentNumber + '번 ' : ''}${r.studentName}`, count: counts.get(key) || 0 });
       }
-      if (arr.length >= 6) break;
+      if (arr.length >= 8) break;
     }
     return arr;
-  }, [recentEvals, recentCountsByStudent]);
+  }, [records]);
 
-  const filtersUntouched = !gradeFilter && !subjectFilter && !areaFilter && !searchQuery.trim();
+  const visibleRecords = useMemo(() => {
+    if (!boardStudentFilter) return records;
+    return records.filter((r) => {
+      const k = r.studentId ? String(r.studentId) : r.studentName;
+      return k === boardStudentFilter;
+    });
+  }, [records, boardStudentFilter]);
+
+  const loadRecord = (r) => {
+    if (r.studentId) setSelectedStudentId(String(r.studentId));
+    setSubject(r.subject);
+    setArea(r.area);
+    setGradeGroup(String(r.gradeGroup));
+    const std = achievements.find((a) => a.code === r.standardCode);
+    setSelectedStandard(std || { code: r.standardCode, standard: r.standardText, subject: r.subject, area: r.area, grade_group: r.gradeGroup });
+    setSelectedKeywords(r.selectedKeywords || []);
+    setSelectedSentences(r.selectedSentences || []);
+    setTeacherNote(r.teacherNote || '');
+  };
+
+  const hasExistingRecord = currentRecordId && records.some((r) => r.id === currentRecordId);
 
   return (
-    <div className="space-y-3 sm:space-y-4 max-w-3xl mx-auto">
+    <div className="max-w-5xl mx-auto space-y-3 sm:space-y-4">
       {/* 헤더 */}
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">📊 교과평가</h1>
-          <p className="mt-0.5 text-[11px] sm:text-xs text-gray-500">성취기준 탐색 → 평가문장 작성 → 학생별 기록 반영</p>
+          <p className="mt-0.5 text-[11px] sm:text-xs text-gray-500">학생 선택 → 교과·영역·성취기준 → 문장 조합 → 학생별 저장</p>
         </div>
-        <button onClick={() => navigate('/dashboard')} className="shrink-0 text-xs sm:text-sm font-medium text-primary-600 hover:text-primary-900">← 홈으로</button>
+        <button onClick={() => navigate('/dashboard')} className="shrink-0 text-xs font-medium text-primary-600 hover:text-primary-900">← 홈으로</button>
       </div>
 
-      {/* ① 성취기준 탐색 */}
+      {/* 학생 선택 */}
       <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 sm:p-4">
-        <div className="mb-2 flex items-end justify-between gap-2">
-          <div>
-            <p className="text-[10px] font-semibold tracking-wider text-blue-700 uppercase">① 성취기준 탐색</p>
-            <h2 className="mt-0.5 text-sm sm:text-base font-bold text-gray-900">학년·교과·영역으로 평가 기준 찾기</h2>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-1">학생 선택</label>
+            {students.length > 0 ? (
+              <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)}
+                className="block w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-blue-400 focus:ring-1 focus:ring-blue-300">
+                {students.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.number ? `${s.number}번 ` : ''}{s.name || ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-xs text-gray-500">학생명부에 학생이 없어요. 먼저 명부를 등록해 주세요.</p>
+            )}
           </div>
-          {(gradeFilter || subjectFilter || areaFilter) && (
-            <span className="text-[10px] text-blue-700">
-              {gradeFilter && `${gradeFilter}학년군`}{subjectFilter && ` · ${subjectFilter}`}{areaFilter && ` · ${areaFilter}`}
-            </span>
-          )}
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 mb-2">
-          <select value={gradeFilter} onChange={(e) => { setGradeFilter(e.target.value); setAreaFilter(''); }}
-            className="rounded-md border-gray-300 text-xs sm:text-sm py-1.5 focus:border-blue-400 focus:ring-1 focus:ring-blue-300">
-            <option value="">전체 학년군</option>
-            {(achMeta.grade_groups || []).map((g) => <option key={g} value={g}>{g}학년군</option>)}
-          </select>
-          <select value={subjectFilter} onChange={(e) => { setSubjectFilter(e.target.value); setAreaFilter(''); }}
-            className="rounded-md border-gray-300 text-xs sm:text-sm py-1.5 focus:border-blue-400 focus:ring-1 focus:ring-blue-300">
-            <option value="">전체 교과</option>
-            {(achMeta.subjects || []).map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <select value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)}
-            className="rounded-md border-gray-300 text-xs sm:text-sm py-1.5 focus:border-blue-400 focus:ring-1 focus:ring-blue-300">
-            <option value="">전체 영역</option>
-            {(achMeta.areas || []).map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="코드/문장 검색"
-            className="rounded-md border-gray-300 text-xs sm:text-sm py-1.5 focus:border-blue-400 focus:ring-1 focus:ring-blue-300" />
-        </div>
-        <div className="space-y-1.5 max-h-[18rem] overflow-y-auto pr-1">
-          {isAchLoading && (
-            <div className="space-y-1.5">
-              {[0, 1, 2].map((i) => (<div key={i} className="h-12 rounded-md bg-gray-100 animate-pulse" />))}
+          {selectedStudent && (
+            <div className="text-[11px] text-gray-500">
+              총 평가 {records.filter((r) => String(r.studentId) === String(selectedStudent.id)).length}건
             </div>
           )}
-          {!isAchLoading && achLoaded && fetchError && (
-            <div className="rounded-md bg-red-50 border border-red-200 px-2.5 py-2 text-center text-[11px] sm:text-xs text-red-700">{fetchError}</div>
-          )}
-          {!isAchLoading && achLoaded && !fetchError && filteredAchievements.length === 0 && (
-            <div className="rounded-md bg-blue-50/50 border border-blue-100 px-2.5 py-3 text-center text-[11px] sm:text-xs text-blue-700">
-              {achievements.length === 0 && filtersUntouched
-                ? '성취기준 데이터가 아직 등록되지 않았어요. 잠시 후 다시 시도하거나 관리자에게 문의해 주세요.'
-                : filtersUntouched
-                ? '학년군 / 교과 / 영역을 선택하거나 검색어를 입력하면 성취기준이 표시돼요.'
-                : '선택한 조건에 맞는 성취기준이 없어요. 다른 필터를 시도해보세요.'}
+        </div>
+      </section>
+
+      {/* 교과 탭 */}
+      <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 sm:p-4">
+        <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mb-2">① 교과</p>
+        <div className="flex flex-wrap gap-1">
+          {SUBJECTS.map((s) => {
+            const isActive = subject === s;
+            const has = achievements.some((a) => a.subject === s);
+            return (
+              <button key={s} type="button" disabled={!has} onClick={() => { setSubject(s); setSelectedStandard(null); }}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${isActive ? 'bg-emerald-600 text-white' : has ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-gray-50 text-gray-300 cursor-not-allowed'}`}>
+                {s}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 영역 칩 */}
+        {areasForSubject.length > 0 && (
+          <>
+            <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mt-3 mb-2">② 영역</p>
+            <div className="flex flex-wrap gap-1">
+              {areasForSubject.map((ar) => {
+                const isActive = area === ar;
+                return (
+                  <button key={ar} type="button" onClick={() => { setArea(ar); setSelectedStandard(null); }}
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition ${isActive ? 'bg-emerald-600 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:border-emerald-400'}`}>
+                    {ar}
+                  </button>
+                );
+              })}
             </div>
-          )}
-          {!isAchLoading && filteredAchievements.map((item) => {
+          </>
+        )}
+
+        {/* 학년군 */}
+        {gradeGroupsForSubjectArea.length > 0 && (
+          <>
+            <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mt-3 mb-2">③ 학년군</p>
+            <div className="flex flex-wrap gap-1">
+              {gradeGroupsForSubjectArea.map((gg) => {
+                const isActive = gradeGroup === gg;
+                return (
+                  <button key={gg} type="button" onClick={() => { setGradeGroup(gg); setSelectedStandard(null); }}
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition ${isActive ? 'bg-emerald-600 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:border-emerald-400'}`}>
+                    {gg}학년군
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* 성취기준 카드 */}
+      <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider">④ 성취기준</p>
+          {isAchLoading && <span className="text-[10px] text-gray-400">불러오는 중...</span>}
+        </div>
+        {!isAchLoading && standardsForCurrent.length === 0 && (
+          <p className="text-xs text-gray-500 py-2">해당 조건의 성취기준이 없어요. 백엔드 데이터를 확인해 주세요.</p>
+        )}
+        <div className="space-y-1.5 max-h-[14rem] overflow-y-auto pr-1">
+          {standardsForCurrent.map((item) => {
             const isSelected = selectedStandard?.id === item.id;
             return (
-              <div key={`${item.id}-${item.code}`}
-                className={`rounded-lg border p-2 transition ${isSelected ? 'border-blue-400 bg-blue-50/40 ring-1 ring-blue-300' : 'border-gray-200 bg-white hover:border-blue-200 hover:shadow-sm'}`}>
+              <div key={item.id}
+                className={`rounded-lg border p-2 transition ${isSelected ? 'border-blue-400 bg-blue-50/40 ring-1 ring-blue-300' : 'border-gray-200 bg-white hover:border-blue-200'}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1 mb-0.5">
-                      {item.code && (<span className="inline-flex items-center rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-800">{item.code}</span>)}
-                      <span className="text-[10px] text-gray-500 truncate">{item.subject} · {item.grade_group}학년군 · {item.area}</span>
-                    </div>
-                    <p className="text-xs sm:text-sm text-gray-900 leading-snug line-clamp-2">{item.standard}</p>
+                    <span className="inline-flex items-center rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-800 mr-1.5">{item.code}</span>
+                    <span className="text-xs sm:text-sm text-gray-900">{item.standard}</span>
                   </div>
-                  <button type="button" onClick={() => selectStandard(item)}
-                    className={`shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] sm:text-[11px] font-semibold transition ${isSelected ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>
-                    {isSelected ? '선택됨 ✓' : '이 기준으로 →'}
+                  <button type="button" onClick={() => setSelectedStandard(item)}
+                    className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-semibold transition ${isSelected ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>
+                    {isSelected ? '선택됨 ✓' : '선택'}
                   </button>
                 </div>
               </div>
@@ -310,155 +361,152 @@ function SubjectEvaluation() {
         </div>
       </section>
 
-      {/* ② 평가문장 작성 */}
-      <section ref={writePanelRef} className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 sm:p-4">
-        <div className="mb-2">
-          <p className="text-[10px] font-semibold tracking-wider text-emerald-700 uppercase">② 평가문장 작성</p>
-          <h2 className="mt-0.5 text-sm sm:text-base font-bold text-gray-900">선택한 기준에 학생 맥락을 더해 초안 만들기</h2>
-        </div>
-        {!selectedStandard ? (
-          <div className="rounded-md bg-gray-50 border border-gray-200 px-2.5 py-3 text-center text-[11px] sm:text-xs text-gray-500">
-            위에서 <span className="font-semibold text-gray-700">[이 기준으로 →]</span> 버튼을 누르면 여기서 평가문장을 작성할 수 있어요.
+      {/* 평가문장 작성 */}
+      {selectedStandard && (
+        <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 sm:p-4">
+          <div className="mb-2">
+            <p className="text-[10px] font-semibold text-purple-700 uppercase tracking-wider">⑤ 평가문장 조합</p>
+            <p className="mt-0.5 text-[11px] text-purple-700/70">
+              <span className="font-mono font-bold mr-1">[{selectedStandard.code}]</span>{selectedStandard.standard}
+            </p>
           </div>
-        ) : (
-          <div className="space-y-2">
-            <div className="rounded-md bg-blue-50/50 border border-blue-100 p-2">
-              <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider">선택한 기준</p>
-              <p className="mt-0.5 text-[11px] sm:text-xs text-blue-900 leading-snug line-clamp-2">
-                {selectedStandard.code && (<span className="font-bold mr-1">[{selectedStandard.code}]</span>)}
-                {selectedStandard.standard}
-              </p>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              <div className="col-span-2">
-                <label className="block text-[10px] font-medium text-gray-600 mb-0.5">학생</label>
-                {students.length > 0 ? (
-                  <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)}
-                    className="block w-full rounded-md border-gray-300 text-xs sm:text-sm py-1.5 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300">
-                    <option value="">학생 선택</option>
-                    {students.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.number ? `${s.number}번 ` : ''}{s.name || ''}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input type="text" value={manualStudentName} onChange={(e) => setManualStudentName(e.target.value)}
-                    placeholder={studentsLoaded ? '학생명부 비어 있음 — 이름 직접 입력' : '학생명부 불러오는 중...'}
-                    className="block w-full rounded-md border-gray-300 text-xs sm:text-sm py-1.5 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300" />
-                )}
-              </div>
-              <div>
-                <label className="block text-[10px] font-medium text-gray-600 mb-0.5">수준</label>
-                <select value={level} onChange={(e) => setLevel(e.target.value)}
-                  className="block w-full rounded-md border-gray-300 text-xs sm:text-sm py-1.5 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300">
-                  {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-                </select>
+
+          {/* 평가 포인트 키워드 */}
+          {library?.keywords?.length > 0 && (
+            <div className="mb-2.5">
+              <p className="text-[10px] font-medium text-gray-500 mb-1">평가 포인트</p>
+              <div className="flex flex-wrap gap-1">
+                {library.keywords.map((kw) => {
+                  const on = selectedKeywords.includes(kw);
+                  return (
+                    <button key={kw} type="button" onClick={() => toggleKeyword(kw)}
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-medium transition ${on ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'}`}>
+                      {on ? '✓ ' : ''}{kw}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <input type="text" value={observation} onChange={(e) => setObservation(e.target.value)}
-              placeholder="관찰 키워드 — 예) 발표 자신감, 자료 정리, 또래 협력"
-              className="block w-full rounded-md border-gray-300 text-xs sm:text-sm py-1.5 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300" />
-            <textarea value={evidence} onChange={(e) => setEvidence(e.target.value)} rows={2}
-              placeholder="근거 메모 (선택) — 평가 근거 활동/사례를 짧게"
-              className="block w-full rounded-md border-gray-300 text-xs sm:text-sm py-1.5 resize-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300" />
-            <button type="button" onClick={handleGenerate} disabled={isGenerating}
-              className="w-full inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60 transition">
-              {isGenerating ? '생성 중...' : '평가문장 생성'}
-            </button>
-            {evalResult && (
-              <div className="space-y-1.5">
-                <div className="rounded-md bg-emerald-50/60 border border-emerald-200 p-2.5">
-                  <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider">결과</p>
-                  <p className="mt-1 text-xs sm:text-sm text-gray-900 leading-relaxed whitespace-pre-wrap">{evalResult}</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <button type="button" onClick={handleCopy}
-                    className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 transition">복사</button>
-                  <button type="button" onClick={handleGenerate} disabled={isGenerating}
-                    className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 transition">다시 생성</button>
-                  <button type="button" onClick={handleSaveRecord}
-                    className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-emerald-700 transition">기록 반영</button>
-                  {copyMsg && (<span className="text-[11px] text-emerald-700 font-medium">{copyMsg}</span>)}
-                </div>
+          )}
+
+          {/* 문장 후보 */}
+          {library?.sentences?.length > 0 ? (
+            <div className="mb-2.5">
+              <p className="text-[10px] font-medium text-gray-500 mb-1">문장 후보 (클릭 시 결과에 추가)</p>
+              <div className="space-y-1">
+                {library.sentences.map((s) => {
+                  const on = selectedSentences.includes(s);
+                  return (
+                    <button key={s} type="button" onClick={() => addSentence(s)}
+                      disabled={on}
+                      className={`block w-full text-left rounded-md border px-2 py-1.5 text-xs leading-relaxed transition ${on ? 'bg-purple-50 border-purple-200 text-purple-800 cursor-not-allowed' : 'bg-white border-gray-200 hover:border-purple-300 hover:bg-purple-50/40'}`}>
+                      {on && <span className="mr-1 text-purple-600">+추가됨</span>}{s}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400 mb-2">이 영역의 문장 후보 라이브러리가 아직 준비되지 않았어요. 직접 메모를 활용해 주세요.</p>
+          )}
+
+          {/* 결과 조합 */}
+          <div className="rounded-lg bg-emerald-50/40 border border-emerald-200 p-2.5 space-y-1.5">
+            <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider">결과 (선택한 문장)</p>
+            {selectedSentences.length === 0 ? (
+              <p className="text-xs text-emerald-700/60">위에서 문장 후보를 눌러 결과를 만들어 주세요.</p>
+            ) : (
+              <ul className="space-y-1">
+                {selectedSentences.map((s, idx) => (
+                  <li key={idx} className="flex items-start gap-2 rounded bg-white border border-emerald-100 px-2 py-1">
+                    <span className="flex-1 text-xs text-gray-800 leading-relaxed">{s}</span>
+                    <button type="button" onClick={() => removeSentence(idx)} className="shrink-0 text-[11px] text-rose-500 hover:text-rose-700">✕</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <textarea value={teacherNote} onChange={(e) => setTeacherNote(e.target.value)} rows={2}
+              placeholder="교사 메모/보완 의견 (선택, 결과 마지막에 덧붙여짐)"
+              className="block w-full rounded border border-emerald-200 bg-white px-2 py-1 text-xs text-gray-800 placeholder:text-emerald-700/40 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300 resize-none" />
+            {finalText && (
+              <div className="rounded bg-white border border-emerald-200 p-2 text-xs text-gray-900 leading-relaxed">
+                <p className="text-[10px] font-semibold text-emerald-700 mb-0.5">최종 문장</p>
+                {finalText}
               </div>
             )}
           </div>
-        )}
-      </section>
 
-      {/* ③ 최근 작업 / 학생별 기록 */}
+          {/* 액션 */}
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            <button type="button" onClick={handleSave} disabled={!selectedStudent || (!selectedSentences.length && !teacherNote.trim())}
+              className="rounded-md bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 disabled:opacity-50 transition">
+              {hasExistingRecord ? '수정 저장' : '학생 기록에 저장'}
+            </button>
+            <button type="button" onClick={handleCopy} disabled={!finalText}
+              className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition">복사</button>
+            {hasExistingRecord && (
+              <button type="button" onClick={handleDelete}
+                className="rounded-md border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 transition">삭제</button>
+            )}
+            {copyMsg && <span className="text-[11px] text-emerald-700 font-medium">{copyMsg}</span>}
+            {hasExistingRecord && <span className="text-[11px] text-amber-600">기존 저장 불러옴</span>}
+          </div>
+        </section>
+      )}
+
+      {/* 학생별 평가 기록 */}
       <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 sm:p-4">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div>
-            <p className="text-[10px] font-semibold tracking-wider text-purple-700 uppercase">③ 학생별 평가문장 기록</p>
-            <h2 className="mt-0.5 text-sm sm:text-base font-bold text-gray-900">기록 반영된 평가문장</h2>
+            <p className="text-[10px] font-semibold text-rose-700 uppercase tracking-wider">⑥ 학생별 교과평가 기록</p>
+            <h2 className="mt-0.5 text-sm sm:text-base font-bold text-gray-900">저장된 평가</h2>
           </div>
-          {recentEvals.length > 0 && (<span className="text-[10px] text-gray-400">총 {recentEvals.length}건</span>)}
+          {records.length > 0 && <span className="text-[10px] text-gray-400">총 {records.length}건</span>}
         </div>
         {studentChips.length > 0 && (
           <div className="flex flex-wrap items-center gap-1 mb-2">
-            <button type="button" onClick={() => setRecentStudentFilter('')}
-              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium transition ${recentStudentFilter === '' ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'}`}>
-              전체 {recentEvals.length}
+            <button type="button" onClick={() => setBoardStudentFilter('')}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${boardStudentFilter === '' ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'}`}>
+              전체 {records.length}
             </button>
             {studentChips.map((c) => (
-              <button key={c.key} type="button" onClick={() => setRecentStudentFilter(c.key)}
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium transition ${recentStudentFilter === c.key ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'}`}>
+              <button key={c.key} type="button" onClick={() => setBoardStudentFilter(c.key)}
+                className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${boardStudentFilter === c.key ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'}`}>
                 {c.label} {c.count}
               </button>
             ))}
           </div>
         )}
-        {recentEvals.length === 0 ? (
-          <div className="rounded-md bg-purple-50/30 border border-purple-100 px-2.5 py-3 text-center text-[11px] sm:text-xs text-purple-700/70">
-            아직 기록된 평가문장이 없어요. 위에서 작성한 뒤 <span className="font-semibold">[기록 반영]</span> 버튼을 누르면 여기 쌓여요.
-          </div>
+        {records.length === 0 ? (
+          <p className="text-xs text-gray-400 text-center py-3">저장된 기록이 없어요. 위에서 평가문장을 만들고 저장해 보세요.</p>
         ) : (
           <ul className="space-y-1 max-h-[18rem] overflow-y-auto pr-1">
-            {visibleRecents.map((r) => (
-              <li key={r.id} className="rounded-md border border-gray-200 bg-white p-2">
+            {visibleRecords.map((r) => (
+              <li key={r.id}
+                className="rounded-md border border-gray-200 bg-white p-2 hover:border-rose-200 cursor-pointer transition"
+                onClick={() => loadRecord(r)}>
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px]">
-                  <span className="font-semibold text-gray-900">
-                    {r.studentNumber ? `${r.studentNumber}번 ` : ''}{r.studentName}
-                  </span>
+                  <span className="font-semibold text-gray-900">{r.studentNumber ? `${r.studentNumber}번 ` : ''}{r.studentName}</span>
                   <span className="text-gray-400">·</span>
-                  <span className="text-gray-600">{r.subject || '교과'}</span>
-                  {r.code && (<><span className="text-gray-400">·</span><span className="font-mono text-blue-700">{r.code}</span></>)}
+                  <span className="text-gray-600">{r.subject}</span>
                   <span className="text-gray-400">·</span>
-                  <span className="text-gray-600">{r.level}</span>
+                  <span className="text-gray-600">{r.area}</span>
                   <span className="text-gray-400">·</span>
-                  <span className="text-gray-400">{new Date(r.createdAt).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric' })}</span>
+                  <span className="font-mono text-blue-700">{r.standardCode}</span>
+                  <span className="text-gray-400">·</span>
+                  <span className="text-gray-400">{new Date(r.updatedAt || r.createdAt).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric' })}</span>
                 </div>
-                <p className="mt-0.5 text-[11px] sm:text-xs text-gray-700 leading-snug line-clamp-2">{r.text}</p>
+                <p className="mt-0.5 text-[11px] text-gray-700 leading-snug line-clamp-2">{r.finalText}</p>
               </li>
             ))}
           </ul>
         )}
+        {records.length > 0 && (
+          <p className="mt-1.5 text-[10px] text-gray-400">기록을 클릭하면 작성 패널에 불러와 수정할 수 있어요.</p>
+        )}
       </section>
     </div>
   );
-}
-
-function extractItems(raw) {
-  if (Array.isArray(raw)) return raw;
-  if (Array.isArray(raw?.items)) return raw.items;
-  if (Array.isArray(raw?.rows)) return raw.rows;
-  if (Array.isArray(raw?.data)) return raw.data;
-  return [];
-}
-
-function buildLocalEvalSentence({ selectedStandard, studentName, level, observation, evidence }) {
-  const name = studentName ? `${studentName} 학생은` : '학생은';
-  const code = selectedStandard?.code ? `[${selectedStandard.code}] ` : '';
-  const obsLine = observation ? `${observation}을 중심으로 ` : '';
-  const evidLine = evidence ? ` (${evidence})` : '';
-  const levelLabel = level === '상'
-    ? '성취기준에 부합하는 우수한 수행을 보였습니다'
-    : level === '중'
-    ? '성취기준에 안정적으로 도달하는 수행을 보였습니다'
-    : '성취기준 도달을 향해 꾸준한 노력을 이어가고 있습니다';
-  return `${code}${name} ${obsLine}${levelLabel}.${evidLine}`;
 }
 
 export default SubjectEvaluation;
