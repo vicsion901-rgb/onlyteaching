@@ -113,16 +113,44 @@ function extractKeywords(text) {
   const cleaned = (text || '').replace(/[^\w가-힣\s,]/g, ' ');
   const parts = cleaned.split(/[\s,]+/).map((p) => p.trim()).filter(Boolean);
   const stop = new Set([
+    // 등급/성취 표기
     '상', '중', '하', '상중하', '상중', '중하', '최상', '최하',
     'a', 'b', 'c', 'd', 'f', 's', 'p', 'np',
     '우수', '미흡', '보통',
     '1등급', '2등급', '3등급', '4등급', '5등급', '6등급', '7등급', '8등급', '9등급',
-    '써줘', '써', '작성해줘', '작성', '만들어줘', '만들어', '만들',
-    '정리해줘', '정리해', '정리', '요약해줘', '요약',
-    '초안', '문장', '한줄', '두줄', '한 줄', '두 줄',
-    '학생', '학생명부', '명부', '기록', '기록된', '있는', '있어', '있어요',
-    '관련', '생기부', '생활기록부', '상담', '안내문', '가정통신문', '친구',
-    '4줄', '3줄', '5줄', '2줄', '4line', '3line',
+    // 명령어/지시어
+    '써', '써줘', '써주세요', '써봐', '써봐요', '쓰자', '쓰기',
+    '작성', '작성해', '작성해줘', '작성해주세요', '작성합', '작성하기',
+    '만들', '만들어', '만들어줘', '만들어주세요', '만들기',
+    '정리', '정리해', '정리해줘', '정리해주세요', '정리하기',
+    '요약', '요약해', '요약해줘', '요약해주세요',
+    '해줘', '해주세요', '해', '하기',
+    '부탁', '부탁해', '부탁드려요', '부탁드립니다',
+    '보여줘', '보여', '보고', '볼래', '보여주세요',
+    '알려줘', '알려', '알려주세요',
+    '주세요', '주실',
+    // 연결어
+    '관련', '관련해서', '관련한', '관해', '관해서',
+    '으로', '로', '에', '에서', '에는', '에게',
+    '대해', '대한', '대해서',
+    // 형식어
+    '초안', '문장', '문구', '구절',
+    '한줄', '두줄', '세줄', '네줄', '한 줄', '두 줄',
+    '한문장', '두문장', '세문장',
+    '2줄', '3줄', '4줄', '5줄', '6줄', '7줄', '8줄',
+    '예', '예시', '샘플',
+    // 탭명/대상 식별자
+    '학생', '학생들', '학생명부', '명부', '명단',
+    '기록', '기록된', '기록부', '기록물',
+    '있는', '있어', '있어요', '있는데', '있고',
+    '생기부', '생활기록부', '생활기록',
+    '상담', '상담기록', '관찰일지', '관찰', '관찰기록',
+    '교과평가', '교과', '평가', '평가문장',
+    '안내문', '가정통신문', '통신문',
+    '자서전', '편찬', '편찬실',
+    '친구', '학우', '아이',
+    // 시간/소속
+    '오늘', '이번', '저번', '지난', '오늘의',
   ]);
   const isScoreWord = (w) => {
     if (!w) return true;
@@ -228,14 +256,14 @@ const SUBJECT_NAMES = ['국어', '수학', '사회', '과학', '영어', '도덕
 function generateSubjectEvalDraft(text, lineCount) {
   const target = lineCount || 2;
   const matched = SUBJECT_NAMES.find((s) => text.includes(s));
-  const lines = matched && SUBJECT_EVAL_TEMPLATES[matched]
-    ? [...SUBJECT_EVAL_TEMPLATES[matched]]
-    : [
-        '교과 활동에 성실히 참여하며 자신의 배움을 적극적으로 표현함.',
-        '수업 활동을 통해 새로운 내용을 능동적으로 받아들이는 태도를 보임.',
-        '학습 결과를 자신의 언어로 정리해 표현하는 능력을 보임.',
-        '교과 학습에 꾸준히 노력하며 안정적인 성장을 보임.',
-      ];
+  // 교과명도 없으면 안내
+  if (!matched) {
+    return [
+      'ℹ️ 어느 교과의 평가문장을 만들지 알려주세요.',
+      '예: 국어, 수학, 사회, 과학, 영어, 도덕, 체육, 음악, 미술, 실과, 통합교과',
+    ].join('\n');
+  }
+  const lines = [...(SUBJECT_EVAL_TEMPLATES[matched] || [])];
   const out = lines.slice(0, target);
   while (out.length < target) {
     out.push('학습 활동에 꾸준히 참여하며 안정적인 태도를 보임.');
@@ -275,6 +303,15 @@ function pickLifeRecordLine(kw) {
 }
 
 function generateLifeRecordDraft(keywords, lineCount, studentName) {
+  // 의미 키워드가 전혀 없으면 안내 (억지 generic 생성 금지)
+  if (keywords.length === 0) {
+    const who = studentName ? `${studentName} 학생` : '학생';
+    return [
+      `ℹ️ ${who}에 대한 관찰 키워드를 함께 입력하면 더 정확한 생활기록부 문장을 만들 수 있어요.`,
+      '예: 발표력, 정리정돈, 책임감, 협동, 예의범절',
+      '[생활기록부 열기] 버튼으로 학생별 정보를 보며 작성할 수도 있어요.',
+    ].join('\n');
+  }
   const target = lineCount || 4;
   const seen = new Set();
   const lines = [];
@@ -312,6 +349,13 @@ function pickCounselingLine(kw) {
 }
 
 function generateCounselingDraft(keywords, lineCount) {
+  // 의미 키워드 없음 → 안내
+  if (keywords.length === 0) {
+    return [
+      'ℹ️ 어떤 관찰/상담 상황인지 키워드를 함께 입력하면 더 정확한 기록을 만들 수 있어요.',
+      '예: 친구관계, 갈등, 집중, 학부모 상담, 정서, 문제행동',
+    ].join('\n');
+  }
   const target = lineCount || 3;
   const seen = new Set();
   const lines = [];
@@ -336,6 +380,13 @@ function generateCounselingDraft(keywords, lineCount) {
 }
 
 function generateNewsletterDraft(keywords, lineCount) {
+  // 안내 주제 없음 → 안내
+  if (keywords.length === 0) {
+    return [
+      'ℹ️ 어떤 내용의 안내문인지 주제를 함께 입력하면 더 정확한 초안을 만들 수 있어요.',
+      '예: 봄소풍, 학사일정, 안전교육, 학부모 면담, 방학 안내',
+    ].join('\n');
+  }
   const topic = keywords[0] || '학교 안내';
   const body = [
     `이번 안내는 ${topic} 관련 내용입니다.`,
