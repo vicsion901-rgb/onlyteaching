@@ -376,19 +376,22 @@ function SubjectEvaluation() {
           <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider">④ 성취기준</p>
           {isAchLoading && <span className="text-[10px] text-gray-400">불러오는 중...</span>}
         </div>
-        {/* 디버그 라인 — 콘솔과 함께 화면에도 mismatch 즉시 확인 */}
-        {achievements.length > 0 && (
-          <p className="text-[10px] text-gray-300 font-mono mb-1.5">
-            total {achievements.length} · {subject}={achievements.filter((a) => a.subject === subject).length} · area={area || '-'}·{gradeGroup || '-'} · matched {standardsForCurrent.length}
-          </p>
+        {isAchLoading && (
+          <div className="space-y-1.5">
+            {[0, 1, 2].map((i) => (<div key={i} className="h-12 rounded-md bg-gray-100 animate-pulse" />))}
+          </div>
         )}
         {!isAchLoading && achievements.length === 0 && (
-          <p className="text-xs text-gray-500 py-2">성취기준 데이터가 아직 로드되지 않았어요. /api/achievements?debug=1 로 응답을 확인해 주세요.</p>
+          <div className="rounded-md bg-blue-50/40 border border-blue-100 px-3 py-4 text-center">
+            <p className="text-xs sm:text-sm text-blue-700">성취기준을 불러오지 못했어요.</p>
+            <p className="mt-0.5 text-[11px] text-blue-600/70">잠시 후 다시 시도해 주세요.</p>
+          </div>
         )}
         {!isAchLoading && achievements.length > 0 && standardsForCurrent.length === 0 && (
-          <p className="text-xs text-gray-500 py-2">
-            {subject}·{area || '(영역 없음)'}·{gradeGroup || '(학년군 없음)'} 조합의 성취기준이 없어요. 위 디버그 라인의 mismatch를 확인해 주세요.
-          </p>
+          <div className="rounded-md bg-gray-50 border border-gray-200 px-3 py-4 text-center">
+            <p className="text-xs sm:text-sm text-gray-600">선택한 조건에 맞는 성취기준이 없어요.</p>
+            <p className="mt-0.5 text-[11px] text-gray-500">다른 영역이나 학년군을 선택해 보세요.</p>
+          </div>
         )}
         <div className="space-y-1.5 max-h-[14rem] overflow-y-auto pr-1">
           {standardsForCurrent.map((item) => {
