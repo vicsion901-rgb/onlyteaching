@@ -10,6 +10,7 @@ function SubjectEvaluation() {
   const navigate = useNavigate();
 
   const [students, setStudents] = useState([]);
+  const [studentsLoaded, setStudentsLoaded] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState('');
 
   const [achievements, setAchievements] = useState([]);
@@ -34,14 +35,15 @@ function SubjectEvaluation() {
   // 학생명부 로드
   useEffect(() => {
     const userId = localStorage.getItem('userId');
-    if (!userId) return;
+    if (!userId) { setStudentsLoaded(true); return; }
     client.get('/api/students', { params: { userId } })
       .then((res) => {
         const list = Array.isArray(res.data) ? res.data : [];
         setStudents(list);
         if (list.length > 0 && !selectedStudentId) setSelectedStudentId(String(list[0].id));
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setStudentsLoaded(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -64,6 +66,29 @@ function SubjectEvaluation() {
       .catch(() => {})
       .finally(() => setIsAchLoading(false));
   }, []);
+
+  // 디버그: achievements 응답이 무엇인지 콘솔에 그대로 노출
+  useEffect(() => {
+    if (achievements.length === 0) return;
+    // eslint-disable-next-line no-console
+    console.debug('[교과평가-data]', {
+      total: achievements.length,
+      subjects: [...new Set(achievements.map((a) => a.subject))],
+      gradeGroups: [...new Set(achievements.map((a) => String(a.grade_group)))],
+      areas: [...new Set(achievements.map((a) => a.area))],
+      sample: achievements.slice(0, 2),
+    });
+  }, [achievements]);
+
+  // subject 기본 '국어'가 응답에 없으면 첫 가용 subject로 fallback
+  useEffect(() => {
+    if (achievements.length === 0) return;
+    const availableSubjects = [...new Set(achievements.map((a) => a.subject))];
+    if (!availableSubjects.includes(subject) && availableSubjects.length > 0) {
+      setSubject(availableSubjects[0]);
+      setSelectedStandard(null);
+    }
+  }, [achievements, subject]);
 
   // 교과 변경 시 첫 영역 자동 선택
   const areasForSubject = useMemo(() => {
@@ -97,6 +122,19 @@ function SubjectEvaluation() {
       (a) => a.subject === subject && a.area === area && String(a.grade_group) === gradeGroup,
     );
   }, [achievements, subject, area, gradeGroup]);
+
+  // 디버그: 필터 결과 콘솔
+  useEffect(() => {
+    if (achievements.length === 0) return;
+    // eslint-disable-next-line no-console
+    console.debug('[교과평가-filter]', {
+      subject, area, gradeGroup,
+      total: achievements.length,
+      subjectMatch: achievements.filter((a) => a.subject === subject).length,
+      subjectAreaMatch: achievements.filter((a) => a.subject === subject && a.area === area).length,
+      finalMatch: standardsForCurrent.length,
+    });
+  }, [subject, area, gradeGroup, achievements, standardsForCurrent.length]);
 
   // 라이브러리 (키워드 + 문장 후보)
   const library = useMemo(() => getLibrary(subject, area), [subject, area]);
@@ -256,7 +294,9 @@ function SubjectEvaluation() {
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div className="flex-1 min-w-[200px]">
             <label className="block text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-1">학생 선택</label>
-            {students.length > 0 ? (
+            {!studentsLoaded ? (
+              <div className="h-9 rounded-md bg-gray-100 animate-pulse" />
+            ) : students.length > 0 ? (
               <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)}
                 className="block w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-blue-400 focus:ring-1 focus:ring-blue-300">
                 {students.map((s) => (
@@ -336,8 +376,19 @@ function SubjectEvaluation() {
           <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider">④ 성취기준</p>
           {isAchLoading && <span className="text-[10px] text-gray-400">불러오는 중...</span>}
         </div>
-        {!isAchLoading && standardsForCurrent.length === 0 && (
-          <p className="text-xs text-gray-500 py-2">해당 조건의 성취기준이 없어요. 백엔드 데이터를 확인해 주세요.</p>
+        {/* 디버그 라인 — 콘솔과 함께 화면에도 mismatch 즉시 확인 */}
+        {achievements.length > 0 && (
+          <p className="text-[10px] text-gray-300 font-mono mb-1.5">
+            total {achievements.length} · {subject}={achievements.filter((a) => a.subject === subject).length} · area={area || '-'}·{gradeGroup || '-'} · matched {standardsForCurrent.length}
+          </p>
+        )}
+        {!isAchLoading && achievements.length === 0 && (
+          <p className="text-xs text-gray-500 py-2">성취기준 데이터가 아직 로드되지 않았어요. /api/achievements?debug=1 로 응답을 확인해 주세요.</p>
+        )}
+        {!isAchLoading && achievements.length > 0 && standardsForCurrent.length === 0 && (
+          <p className="text-xs text-gray-500 py-2">
+            {subject}·{area || '(영역 없음)'}·{gradeGroup || '(학년군 없음)'} 조합의 성취기준이 없어요. 위 디버그 라인의 mismatch를 확인해 주세요.
+          </p>
         )}
         <div className="space-y-1.5 max-h-[14rem] overflow-y-auto pr-1">
           {standardsForCurrent.map((item) => {
