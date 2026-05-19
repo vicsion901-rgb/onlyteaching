@@ -45,6 +45,19 @@ function decrypt(payload: string | null | undefined): string | null {
   } catch { return null; }
 }
 
+let columnsEnsured = false;
+async function ensureProfileColumns(db: Pool) {
+  if (columnsEnsured) return;
+  try {
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname TEXT`);
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS grade_level INTEGER`);
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS class_number INTEGER`);
+    columnsEnsured = true;
+  } catch (err) {
+    console.error('ensureProfileColumns failed', err);
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const _origin = req.headers?.origin || ""; const _allowed = ["https://www.onlyteaching.kr","https://onlyteaching.kr","http://localhost:5173","http://localhost:3000"].includes(_origin) ? _origin : "https://www.onlyteaching.kr"; res.setHeader("Access-Control-Allow-Origin", _allowed); res.setHeader("Access-Control-Allow-Credentials", "true"); res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,PUT,DELETE,OPTIONS"); res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization"); if (req.method === "OPTIONS") return res.status(204).end();
 
@@ -52,6 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
 
   const db = getPool();
+  await ensureProfileColumns(db);
 
   // GET - 현재 정보 조회
   if (req.method === 'GET') {
@@ -59,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!userId) return res.status(400).json({ message: 'userId 필요' });
 
     const { rows } = await db.query(
-      'SELECT "schoolCode", "nameEnc", "phoneEnc", "schoolName", status FROM users WHERE id = $1',
+      'SELECT "schoolCode", "nameEnc", "phoneEnc", "schoolName", status, nickname, grade_level, class_number FROM users WHERE id = $1',
       [userId],
     );
     if (rows.length === 0) return res.status(404).json({ message: '사용자 없음' });
@@ -71,6 +85,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       phone: decrypt(user.phoneEnc) || '',
       schoolName: user.schoolName || '',
       status: user.status,
+      nickname: user.nickname || '',
+      gradeLevel: user.grade_level || null,
+      classNumber: user.class_number || null,
     });
   }
 
@@ -120,6 +137,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const phoneEnc = encrypt(phone);
         await db.query('UPDATE users SET "phoneEnc" = $1 WHERE id = $2', [phoneEnc, userId]);
         return res.status(200).json({ message: '전화번호가 변경되었습니다.' });
+      }
+
+      // 프로필 보완 — nickname / gradeLevel / classNumber
+      if (action === 'updateProfile') {
+        const { nickname, gradeLevel, classNumber } = body;
+        const sets: string[] = [];
+        const vals: (string | number | null)[] = [];
+        if (nickname !== undefined) {
+          const n = String(nickname || '').trim();
+          if (n.length === 0 || n.length > 20) return res.status(400).json({ message: '닉네임은 1~20자로 입력해주세요.' });
+          sets.push(`nickname = $${sets.length + 1}`); vals.push(n);
+        }
+        if (gradeLevel !== undefined && gradeLevel !== null && gradeLevel !== '') {
+          const g = Number(gradeLevel);
+          if (!Number.isFinite(g) || g < 1 || g > 6) return res.status(400).json({ message: '담당 학년은 1~6 사이여야 합니다.' });
+          sets.push(`grade_level = $${sets.length + 1}`); vals.push(g);
+        }
+        if (classNumber !== undefined && classNumber !== null && classNumber !== '') {
+          const c = Number(classNumber);
+          if (!Number.isFinite(c) || c < 1 || c > 30) return res.status(400).json({ message: '담당 반은 1~30 사이여야 합니다.' });
+          sets.push(`class_number = $${sets.length + 1}`); vals.push(c);
+        }
+        if (sets.length === 0) return res.status(400).json({ message: '입력값이 없습니다.' });
+        vals.push(userId);
+        await db.query(`UPDATE users SET ${sets.join(', ')} WHERE id = $${sets.length + 1}`, vals);
+        const { rows: updated } = await db.query(
+          'SELECT nickname, grade_level, class_number FROM users WHERE id = $1',
+          [userId],
+        );
+        const u = updated[0] || {};
+        return res.status(200).json({
+          message: '프로필이 저장되었습니다.',
+          nickname: u.nickname || '',
+          gradeLevel: u.grade_level || null,
+          classNumber: u.class_number || null,
+        });
       }
 
       return res.status(400).json({ message: '알 수 없는 요청' });

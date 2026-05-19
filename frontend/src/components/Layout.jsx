@@ -3,7 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo-dashboard.png';
 import { getTabsBySection } from '../config/tabRegistry';
 import client from '../api/client';
+import ProfileCompletionModal from './ProfileCompletionModal';
 
+
+const PROFILE_CHECK_SESSION_KEY = 'profile_check_done_this_session';
 
 function Layout({ children }) {
   const location = useLocation();
@@ -43,6 +46,53 @@ function Layout({ children }) {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
+
+  // 프로필 보완 체크 — 닉네임/학년/반 중 비어 있으면 모달 표시
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileInitial, setProfileInitial] = useState(null);
+  useEffect(() => {
+    if (verifyStatus !== 'VERIFIED') return;
+    if (isLoginPage || isResetPage || isPolicyPage || isStudentPage || isVerifyPage) return;
+    let cancelled = false;
+    // 같은 세션에서 이미 닫았으면 또 띄우지 않음 (다음 로그인엔 sessionStorage 비워짐)
+    if (sessionStorage.getItem(PROFILE_CHECK_SESSION_KEY) === '1') return;
+    const userId = localStorage.getItem('userId');
+    if (!userId) return;
+    client.get('/api/account', { params: { userId } })
+      .then((res) => {
+        if (cancelled) return;
+        const { nickname, gradeLevel, classNumber } = res.data || {};
+        // localStorage 캐시
+        try {
+          if (nickname) localStorage.setItem('nickname', nickname); else localStorage.removeItem('nickname');
+          if (gradeLevel) localStorage.setItem('gradeLevel', String(gradeLevel)); else localStorage.removeItem('gradeLevel');
+          if (classNumber) localStorage.setItem('classNumber', String(classNumber)); else localStorage.removeItem('classNumber');
+        } catch {}
+        const missing = !nickname?.trim() || !gradeLevel || !classNumber;
+        if (missing) {
+          setProfileInitial({ nickname, gradeLevel, classNumber });
+          setShowProfileModal(true);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verifyStatus]);
+
+  const handleProfileSaved = (vals) => {
+    // 3개 모두 채워졌을 때만 모달 종료 + 세션 플래그
+    const allFilled = vals?.nickname && vals?.gradeLevel && vals?.classNumber;
+    if (allFilled) {
+      try { sessionStorage.setItem(PROFILE_CHECK_SESSION_KEY, '1'); } catch {}
+      setShowProfileModal(false);
+    }
+  };
+
+  const handleProfileClose = () => {
+    // 닫기 — 같은 세션 안에선 안 뜨지만, 다음 로그인 때 (sessionStorage 자연 클리어) 다시 검사
+    try { sessionStorage.setItem(PROFILE_CHECK_SESSION_KEY, '1'); } catch {}
+    setShowProfileModal(false);
+  };
 
   const [isMotivationOpen, setIsMotivationOpen] = useState(false);
   const [isWorkTimeOpen, setIsWorkTimeOpen] = useState(false);
@@ -468,6 +518,11 @@ function Layout({ children }) {
           {children}
         </div>
       </main>
+
+      {/* 프로필 보완 모달 */}
+      {showProfileModal && profileInitial && (
+        <ProfileCompletionModal initial={profileInitial} onSaved={handleProfileSaved} onClose={handleProfileClose} />
+      )}
     </div>
 
     {/* ===== Footer Bar (전체 너비, 사이드바 포함 꽉 채움) ===== */}
