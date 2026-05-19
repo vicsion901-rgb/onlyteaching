@@ -17,6 +17,53 @@ const DIRECT_OUTPUT_IDS = new Set([
   'subject-evaluation',
 ]);
 
+// LLM intent → 카테고리 id 매핑
+const INTENT_TO_CATEGORY = {
+  'student-record': 'life-records',
+  'counseling-record': 'counseling',
+  'subject-evaluation': 'subject-evaluation',
+  'meal-feed': 'today-meal',
+  'qr-distribute': 'qr-distribution',
+  'autobiography': 'autobiography-compilation',
+  'student-roster': 'student-records',
+  'creative-activity': 'creative-activities',
+  'helper-tool': 'presenter-picker',
+  'schedule-admin': 'schedule',
+};
+
+async function parseIntentWithLLM(text) {
+  try {
+    const res = await client.post('/api/prompts', { content: text, mode: 'intent' });
+    const raw = res.data.result || res.data.generated_document || '';
+    if (!raw || !raw.trim()) return null;
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch { return null; }
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (!parsed.intent || parsed.intent === 'unknown') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function intentToRouteInfo(llmIntent) {
+  const catId = INTENT_TO_CATEGORY[llmIntent.intent];
+  if (!catId) return null;
+  const primary = KEYWORD_MAP.find((e) => e.id === catId);
+  if (!primary) return null;
+  // confidence 기반 high/medium 결정
+  let confidence;
+  const c = Number(llmIntent.confidence) || 0;
+  if (c >= 0.7) confidence = 'high';
+  else if (c >= 0.4) confidence = 'medium';
+  else confidence = 'low';
+  return {
+    primary: { ...primary, score: c * 30 },
+    secondary: [],
+    confidence,
+  };
+}
+
 const GENERATION_VERBS = [
   '써줘', '써주세요', '작성해줘', '작성해주세요', '작성',
   '만들어줘', '만들어주세요', '만들어', '만들',
@@ -692,19 +739,37 @@ function Dashboard() {
     const text = prompt.trim();
     if (!text) return;
     setSubmittedPrompt(text);
-    const route = detectRoutesFromPrompt(text);
-    setRouteInfo(route);
     setResponse('');
     setUsedModel('');
     setCapabilityResult(null);
     setIsLoading(true);
 
     const normalized = text.toLowerCase().replace(/\s+/g, '');
-    const shouldGenerate = route.primary && DIRECT_OUTPUT_IDS.has(route.primary.id);
 
     try {
-      // 1) directAnswer — AI 생성 (DIRECT_OUTPUT 카테고리)
-      if (shouldGenerate) {
+      // 1) LLM intent parse 시도
+      const llmIntent = await parseIntentWithLLM(text);
+      let route;
+      if (llmIntent) {
+        const fromLLM = intentToRouteInfo(llmIntent);
+        if (fromLLM?.primary) route = fromLLM;
+      }
+      // 2) LLM 실패/unknown → 키워드 매칭 fallback
+      if (!route || !route.primary) {
+        route = detectRoutesFromPrompt(text);
+      }
+      setRouteInfo(route);
+
+      // 3) mode 결정 — LLM mode 우선, 없으면 카테고리 기반 추정
+      const llmMode = llmIntent?.mode;
+      const isDirectCategory = route.primary && DIRECT_OUTPUT_IDS.has(route.primary.id);
+      const wantsGen = llmMode === 'generate' || (!llmMode && hasGenerationIntent(normalized) && isDirectCategory);
+      const wantsExec = llmMode === 'execute' || llmMode === 'lookup';
+      const wantsHelp = llmMode === 'help' || llmMode === 'navigate';
+
+      // 4) 실행 분기
+      if (wantsGen && isDirectCategory) {
+        // direct generation (AI + 로컬 폴백)
         let aiResult = '';
         try {
           const res = await client.post('/api/prompts', { content: text, ai_model: selectedModel });
@@ -716,22 +781,20 @@ function Dashboard() {
         } catch (err) {
           console.error('directAnswer failed', err);
         }
-        // AI 응답이 비었거나 실패한 경우 — 클라이언트 로컬 템플릿 폴백 (학생 정보 조회 포함)
         if (!aiResult.trim()) {
           const local = await generateLocalDraftAsync(text, route.primary);
-          if (local) {
-            setResponse(local);
-            setUsedModel('local-template');
-          }
+          if (local) { setResponse(local); setUsedModel('local-template'); }
         }
-      }
-
-      // 2) invokeTabCapability — 직접 답변이 없으면 기능 실행 시도
-      if (!shouldGenerate) {
+      } else if (wantsExec) {
+        // capability 실행
+        const cap = await tryInvokeCapability(route, normalized, text);
+        if (cap) setCapabilityResult(cap);
+      } else if (!wantsHelp && !isDirectCategory) {
+        // mode 정보 없고 비 direct → capability 시도 (기존 behavior 유지)
         const cap = await tryInvokeCapability(route, normalized, text);
         if (cap) setCapabilityResult(cap);
       }
-      // 3) navigateToTab fallback은 결과창에서 자동 처리 (RecommendationCard)
+      // wantsHelp 또는 capability 실패 → navigate fallback은 ResultPanel에서 자동
     } finally {
       setIsLoading(false);
     }
