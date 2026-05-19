@@ -1,14 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import client from '../api/client';
 
 const GRADES = [1, 2, 3, 4, 5, 6];
 
-export default function ProfileCompletionModal({ initial, onSaved, onClose }) {
+export default function ProfileCompletionModal({ initial, onSaved }) {
   const [nickname, setNickname] = useState(initial?.nickname || '');
   const [gradeLevel, setGradeLevel] = useState(initial?.gradeLevel || '');
   const [classNumber, setClassNumber] = useState(initial?.classNumber || '');
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // body 스크롤 잠금 — 모달이 떠 있는 동안
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // ESC 키 차단 — 닫히지 않게
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, []);
 
   const missingNickname = !nickname.trim();
   const missingGrade = !gradeLevel;
@@ -18,7 +34,7 @@ export default function ProfileCompletionModal({ initial, onSaved, onClose }) {
   const handleSave = async () => {
     setErrorMsg('');
     if (!allFilled) {
-      setErrorMsg('세 항목을 모두 입력해 주세요.');
+      setErrorMsg('모든 항목을 입력해야 계속 진행할 수 있어요.');
       return;
     }
     setSaving(true);
@@ -51,19 +67,22 @@ export default function ProfileCompletionModal({ initial, onSaved, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.preventDefault()}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div>
-              <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">기본 정보 안내</p>
-              <h2 className="mt-0.5 text-lg font-bold text-gray-900">프로필을 먼저 완성해 주세요</h2>
-              <p className="mt-1 text-xs text-gray-500 leading-relaxed">
-                교과평가, 창체, 학생 기록을 정확히 연결하려면 닉네임·담당 학년·담당 반 정보가 필요해요.
-              </p>
-            </div>
-            <button type="button" onClick={onClose} aria-label="닫기"
-              className="shrink-0 text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+          <div className="mb-3">
+            <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">필수 입력</p>
+            <h2 className="mt-0.5 text-lg font-bold text-gray-900">서비스 사용 전 기본 정보를 입력해 주세요</h2>
+            <p className="mt-1 text-xs text-gray-500 leading-relaxed">
+              교과평가, 창체, 학생 기록 연결을 위해 필요한 정보예요.<br />
+              모든 항목을 입력해야 계속 진행할 수 있어요.
+            </p>
           </div>
 
           <div className="space-y-3">
@@ -73,8 +92,9 @@ export default function ProfileCompletionModal({ initial, onSaved, onClose }) {
                 {missingNickname && <span className="text-[10px] font-semibold text-rose-500">입력 필요</span>}
               </label>
               <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)}
-                placeholder="예) 강민주 선생님" maxLength={20}
+                maxLength={20}
                 className={`block w-full rounded-lg border px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-300 focus:border-indigo-400 ${missingNickname ? 'border-rose-300 bg-rose-50/30' : 'border-gray-300'}`} />
+              <p className="mt-1 text-[10px] text-gray-400">영문, 숫자, 한글 가능</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -95,7 +115,6 @@ export default function ProfileCompletionModal({ initial, onSaved, onClose }) {
                   {missingClass && <span className="text-[10px] font-semibold text-rose-500">필요</span>}
                 </label>
                 <input type="number" min="1" max="30" value={classNumber} onChange={(e) => setClassNumber(e.target.value)}
-                  placeholder="예) 3"
                   className={`block w-full rounded-lg border px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-300 focus:border-indigo-400 ${missingClass ? 'border-rose-300 bg-rose-50/30' : 'border-gray-300'}`} />
               </div>
             </div>
@@ -104,17 +123,10 @@ export default function ProfileCompletionModal({ initial, onSaved, onClose }) {
               <p className="rounded-md bg-rose-50 border border-rose-200 px-2.5 py-1.5 text-xs text-rose-700">{errorMsg}</p>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <button type="button" onClick={onClose}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50">나중에</button>
-              <button type="button" onClick={handleSave} disabled={saving || !allFilled}
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60">
-                {saving ? '저장 중...' : '저장하고 시작하기'}
-              </button>
-            </div>
-            <p className="text-[10px] text-gray-400 text-center pt-1">
-              나중에 닫아도 다음 로그인 때 다시 안내해 드려요.
-            </p>
+            <button type="button" onClick={handleSave} disabled={saving || !allFilled}
+              className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60 transition">
+              {saving ? '저장 중...' : '저장하고 시작하기'}
+            </button>
           </div>
         </div>
       </div>

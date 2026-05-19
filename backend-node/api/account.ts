@@ -147,6 +147,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (nickname !== undefined) {
           const n = String(nickname || '').trim();
           if (n.length === 0 || n.length > 20) return res.status(400).json({ message: '닉네임은 1~20자로 입력해주세요.' });
+          // 닉네임 중복 검사 (자기 자신 제외)
+          const dup = await db.query('SELECT id FROM users WHERE nickname = $1 AND id <> $2 LIMIT 1', [n, userId]);
+          if (dup.rows.length > 0) return res.status(409).json({ message: '이미 있는 닉네임입니다.' });
           sets.push(`nickname = $${sets.length + 1}`); vals.push(n);
         }
         if (gradeLevel !== undefined && gradeLevel !== null && gradeLevel !== '') {
