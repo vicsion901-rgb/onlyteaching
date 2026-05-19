@@ -48,7 +48,7 @@ function SubjectEvaluation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 성취기준 로드 (전체)
+  // 성취기준 로드
   useEffect(() => {
     setIsAchLoading(true);
     client.get('/api/achievements')
@@ -68,7 +68,7 @@ function SubjectEvaluation() {
       .finally(() => setIsAchLoading(false));
   }, []);
 
-  // 디버그: achievements 응답이 무엇인지 콘솔에 그대로 노출
+  // 디버그 로그
   useEffect(() => {
     if (achievements.length === 0) return;
     // eslint-disable-next-line no-console
@@ -77,11 +77,10 @@ function SubjectEvaluation() {
       subjects: [...new Set(achievements.map((a) => a.subject))],
       gradeGroups: [...new Set(achievements.map((a) => String(a.grade_group)))],
       areas: [...new Set(achievements.map((a) => a.area))],
-      sample: achievements.slice(0, 2),
     });
   }, [achievements]);
 
-  // subject 기본 '국어'가 응답에 없으면 첫 가용 subject로 fallback
+  // subject fallback
   useEffect(() => {
     if (achievements.length === 0) return;
     const availableSubjects = [...new Set(achievements.map((a) => a.subject))];
@@ -91,7 +90,6 @@ function SubjectEvaluation() {
     }
   }, [achievements, subject]);
 
-  // 교과 변경 시 첫 영역 자동 선택
   const areasForSubject = useMemo(() => {
     return [...new Set(achievements.filter((a) => a.subject === subject).map((a) => a.area))];
   }, [achievements, subject]);
@@ -102,7 +100,6 @@ function SubjectEvaluation() {
     }
   }, [areasForSubject, area]);
 
-  // 영역 변경 시 학년군 후보 + 자동 첫 학년군
   const gradeGroupsForSubjectArea = useMemo(() => {
     return [...new Set(
       achievements
@@ -117,27 +114,12 @@ function SubjectEvaluation() {
     }
   }, [gradeGroupsForSubjectArea, gradeGroup]);
 
-  // 현재 선택된 성취기준 후보
   const standardsForCurrent = useMemo(() => {
     return achievements.filter(
       (a) => a.subject === subject && a.area === area && String(a.grade_group) === gradeGroup,
     );
   }, [achievements, subject, area, gradeGroup]);
 
-  // 디버그: 필터 결과 콘솔
-  useEffect(() => {
-    if (achievements.length === 0) return;
-    // eslint-disable-next-line no-console
-    console.debug('[교과평가-filter]', {
-      subject, area, gradeGroup,
-      total: achievements.length,
-      subjectMatch: achievements.filter((a) => a.subject === subject).length,
-      subjectAreaMatch: achievements.filter((a) => a.subject === subject && a.area === area).length,
-      finalMatch: standardsForCurrent.length,
-    });
-  }, [subject, area, gradeGroup, achievements, standardsForCurrent.length]);
-
-  // 라이브러리 (키워드 + 문장 후보)
   const library = useMemo(() => getLibrary(subject, area), [subject, area]);
 
   const selectedStudent = useMemo(
@@ -145,13 +127,12 @@ function SubjectEvaluation() {
     [students, selectedStudentId],
   );
 
-  // 학생+성취기준 unique key
   const currentRecordId = useMemo(() => {
     if (!selectedStudent || !selectedStandard) return null;
     return `${selectedStudent.id}_${selectedStandard.code}`;
   }, [selectedStudent, selectedStandard]);
 
-  // 학생/성취기준 바뀌면 기존 저장 자동 로드
+  // 학생+기준 바뀌면 기존 저장 자동 로드
   useEffect(() => {
     if (!currentRecordId) {
       setSelectedKeywords([]);
@@ -242,7 +223,6 @@ function SubjectEvaluation() {
     setTimeout(() => setCopyMsg(''), 1500);
   };
 
-  // 학생별 기록 보드
   const studentChips = useMemo(() => {
     const counts = new Map();
     for (const r of records) {
@@ -255,7 +235,7 @@ function SubjectEvaluation() {
       if (!arr.find((a) => a.key === key)) {
         arr.push({ key, label: `${r.studentNumber ? r.studentNumber + '번 ' : ''}${r.studentName}`, count: counts.get(key) || 0 });
       }
-      if (arr.length >= 8) break;
+      if (arr.length >= 5) break;
     }
     return arr;
   }, [records]);
@@ -284,26 +264,26 @@ function SubjectEvaluation() {
   const hasExistingRecord = currentRecordId && records.some((r) => r.id === currentRecordId);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-3 sm:space-y-4">
-      {/* 헤더 */}
+    <div className="max-w-7xl mx-auto space-y-2.5">
+      {/* 상단 헤더 */}
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">📊 교과평가</h1>
-          <p className="mt-0.5 text-[11px] sm:text-xs text-gray-500">학생 선택 → 교과·영역·성취기준 → 문장 조합 → 학생별 저장</p>
+          <p className="mt-0.5 text-[11px] text-gray-500">학생 선택 → 교과·영역·성취기준 → 문장 조합 → 학생별 저장</p>
         </div>
         <button onClick={() => navigate('/dashboard')} className="shrink-0 text-xs font-medium text-primary-600 hover:text-primary-900">← 홈으로</button>
       </div>
 
-      {/* 학생 선택 */}
-      <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 sm:p-4">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-1">학생 선택</label>
+      {/* 학생 선택 + 작업 경로 (한 줄) */}
+      <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-2.5 sm:p-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-[200px] flex-shrink-0">
+            <label className="block text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-0.5">학생</label>
             {!studentsLoaded ? (
-              <div className="h-9 rounded-md bg-gray-100 animate-pulse" />
+              <div className="h-8 rounded-md bg-gray-100 animate-pulse" />
             ) : students.length > 0 ? (
               <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)}
-                className="block w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-blue-400 focus:ring-1 focus:ring-blue-300">
+                className="block w-full rounded-md border-gray-300 text-sm py-1 focus:border-blue-400 focus:ring-1 focus:ring-blue-300">
                 {students.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.number ? `${s.number}번 ` : ''}{s.name || ''}
@@ -311,299 +291,296 @@ function SubjectEvaluation() {
                 ))}
               </select>
             ) : (
-              <p className="text-xs text-gray-500">학생명부에 학생이 없어요. 먼저 명부를 등록해 주세요.</p>
+              <p className="text-xs text-gray-500">학생명부 없음</p>
             )}
           </div>
+          <div className="min-w-0 flex-1 hidden sm:block">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">현재 작업</p>
+            <p className="mt-0.5 text-xs sm:text-sm font-medium text-gray-800 truncate">
+              {selectedStudent ? (
+                <>
+                  {selectedStudent.number ? `${selectedStudent.number}번 ` : ''}{selectedStudent.name}
+                  {gradeGroup && <span className="text-gray-400"> · {gradeGroup}학년군</span>}
+                  {subject && <span className="text-gray-400"> · {subject}</span>}
+                  {area && <span className="text-gray-400"> · {area}</span>}
+                  {selectedStandard && <span className="text-blue-600 ml-1.5 font-mono text-[10px]">[{selectedStandard.code}]</span>}
+                </>
+              ) : '학생을 선택해 주세요'}
+            </p>
+          </div>
           {selectedStudent && (
-            <div className="text-[11px] text-gray-500">
-              총 평가 {records.filter((r) => String(r.studentId) === String(selectedStudent.id)).length}건
+            <div className="text-[10px] text-gray-400 shrink-0">
+              저장 {records.filter((r) => String(r.studentId) === String(selectedStudent.id)).length}건
             </div>
           )}
         </div>
       </section>
 
-      {/* 교과 탭 */}
-      <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 sm:p-4">
-        <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mb-2">① 교과</p>
-        <div className="flex flex-wrap gap-1">
-          {SUBJECTS.map((s) => {
-            const isActive = subject === s;
-            const has = achievements.some((a) => a.subject === s);
-            return (
-              <button key={s} type="button" disabled={!has} onClick={() => { setSubject(s); setSelectedStandard(null); }}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${isActive ? 'bg-emerald-600 text-white' : has ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-gray-50 text-gray-300 cursor-not-allowed'}`}>
-                {s}
-              </button>
-            );
-          })}
-        </div>
+      {/* 2단 그리드 */}
+      <div className="lg:grid lg:grid-cols-[3fr_2fr] lg:gap-2.5 space-y-2.5 lg:space-y-0">
 
-        {/* 영역 칩 */}
-        {areasForSubject.length > 0 && (
-          <>
-            <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mt-3 mb-2">② 영역</p>
-            <div className="flex flex-wrap gap-1">
-              {areasForSubject.map((ar) => {
-                const isActive = area === ar;
+        {/* ─── 왼쪽: 탐색/선택 ─── */}
+        <div className="space-y-2.5">
+
+          {/* 교과/영역/학년군 */}
+          <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-2.5 sm:p-3">
+            <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mb-1.5">① 교과 · 영역 · 학년군</p>
+            <div className="flex flex-wrap gap-1 mb-2">
+              {SUBJECTS.map((s) => {
+                const isActive = subject === s;
+                const has = achievements.some((a) => a.subject === s);
                 return (
-                  <button key={ar} type="button" onClick={() => { setArea(ar); setSelectedStandard(null); }}
-                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition ${isActive ? 'bg-emerald-600 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:border-emerald-400'}`}>
-                    {ar}
+                  <button key={s} type="button" disabled={!has} onClick={() => { setSubject(s); setSelectedStandard(null); }}
+                    className={`rounded-md px-2 py-0.5 text-[11px] font-medium transition ${isActive ? 'bg-emerald-600 text-white' : has ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-gray-50 text-gray-300 cursor-not-allowed'}`}>
+                    {s}
                   </button>
                 );
               })}
             </div>
-          </>
-        )}
-
-        {/* 학년군 */}
-        {gradeGroupsForSubjectArea.length > 0 && (
-          <>
-            <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mt-3 mb-2">③ 학년군</p>
-            <div className="flex flex-wrap gap-1">
-              {gradeGroupsForSubjectArea.map((gg) => {
-                const isActive = gradeGroup === gg;
-                return (
-                  <button key={gg} type="button" onClick={() => { setGradeGroup(gg); setSelectedStandard(null); }}
-                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition ${isActive ? 'bg-emerald-600 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:border-emerald-400'}`}>
-                    {gg}학년군
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </section>
-
-      {/* 성취기준 카드 */}
-      <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 sm:p-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider">④ 성취기준</p>
-          {isAchLoading && <span className="text-[10px] text-gray-400">불러오는 중...</span>}
-        </div>
-        {isAchLoading && (
-          <div className="space-y-1.5">
-            {[0, 1, 2].map((i) => (<div key={i} className="h-12 rounded-md bg-gray-100 animate-pulse" />))}
-          </div>
-        )}
-        {!isAchLoading && achievements.length === 0 && (
-          <div className="rounded-md bg-blue-50/40 border border-blue-100 px-3 py-4 text-center">
-            <p className="text-xs sm:text-sm text-blue-700">성취기준을 불러오지 못했어요.</p>
-            <p className="mt-0.5 text-[11px] text-blue-600/70">잠시 후 다시 시도해 주세요.</p>
-          </div>
-        )}
-        {!isAchLoading && achievements.length > 0 && standardsForCurrent.length === 0 && (
-          <div className="rounded-md bg-gray-50 border border-gray-200 px-3 py-4 text-center">
-            <p className="text-xs sm:text-sm text-gray-600">선택한 조건에 맞는 성취기준이 없어요.</p>
-            <p className="mt-0.5 text-[11px] text-gray-500">다른 영역이나 학년군을 선택해 보세요.</p>
-          </div>
-        )}
-        <div className="space-y-1.5 max-h-[14rem] overflow-y-auto pr-1">
-          {standardsForCurrent.map((item) => {
-            const isSelected = selectedStandard?.id === item.id;
-            return (
-              <div key={item.id}
-                className={`rounded-lg border p-2 transition ${isSelected ? 'border-blue-400 bg-blue-50/40 ring-1 ring-blue-300' : 'border-gray-200 bg-white hover:border-blue-200'}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <span className="inline-flex items-center rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-800 mr-1.5">{item.code}</span>
-                    <span className="text-xs sm:text-sm text-gray-900">{item.standard}</span>
-                  </div>
-                  <button type="button" onClick={() => {
-                    if (isSelected) {
-                      // 토글 해제 — 성취기준에 종속된 작성 상태만 정리
-                      setSelectedStandard(null);
-                      setSelectedKeywords([]);
-                      setSelectedSentences([]);
-                      setTeacherNote('');
-                      setLevel('중');
-                    } else {
-                      setSelectedStandard(item);
-                    }
-                  }}
-                    className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-semibold transition ${isSelected ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>
-                    {isSelected ? '✕ 선택 해제' : '선택'}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 평가문장 작성 */}
-      {selectedStandard && (
-        <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 sm:p-4">
-          <div className="mb-2">
-            <p className="text-[10px] font-semibold text-purple-700 uppercase tracking-wider">⑤ 평가문장 조합</p>
-            {/* 작업 맥락 한 줄 */}
-            {selectedStudent && (
-              <p className="mt-0.5 text-[11px] font-medium text-gray-700">
-                {selectedStudent.number ? `${selectedStudent.number}번 ` : ''}{selectedStudent.name} · {selectedStandard.grade_group}학년군 · {selectedStandard.subject} · {selectedStandard.area}
-              </p>
-            )}
-            <p className="mt-0.5 text-[11px] text-purple-700/70">
-              <span className="font-mono font-bold mr-1">[{selectedStandard.code}]</span>{selectedStandard.standard}
-            </p>
-          </div>
-
-          {/* 수행 수준 토글 */}
-          <div className="mb-2.5">
-            <p className="text-[10px] font-medium text-gray-500 mb-1">
-              수행 수준 {hasLevelVariants(subject, area) && <span className="text-purple-500 ml-1">· 수준별 문장 제공</span>}
-            </p>
-            <div className="inline-flex rounded-full bg-purple-50 p-0.5 text-[11px] font-medium">
-              {['상', '중', '하'].map((lv) => (
-                <button key={lv} type="button"
-                  onClick={() => { setLevel(lv); setSelectedSentences([]); }}
-                  className={`rounded-full px-3 py-0.5 transition ${level === lv ? 'bg-purple-600 text-white shadow-sm' : 'text-purple-700 hover:text-purple-900'}`}>
-                  {lv}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 평가 포인트 키워드 */}
-          {library?.keywords?.length > 0 && (
-            <div className="mb-2.5">
-              <p className="text-[10px] font-medium text-gray-500 mb-1">평가 포인트</p>
-              <div className="flex flex-wrap gap-1">
-                {library.keywords.map((kw) => {
-                  const on = selectedKeywords.includes(kw);
+            {areasForSubject.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-1.5">
+                {areasForSubject.map((ar) => {
+                  const isActive = area === ar;
                   return (
-                    <button key={kw} type="button" onClick={() => toggleKeyword(kw)}
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-medium transition ${on ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'}`}>
-                      {on ? '✓ ' : ''}{kw}
+                    <button key={ar} type="button" onClick={() => { setArea(ar); setSelectedStandard(null); }}
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${isActive ? 'bg-emerald-600 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:border-emerald-400'}`}>
+                      {ar}
                     </button>
                   );
                 })}
               </div>
-            </div>
-          )}
+            )}
+            {gradeGroupsForSubjectArea.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {gradeGroupsForSubjectArea.map((gg) => {
+                  const isActive = gradeGroup === gg;
+                  return (
+                    <button key={gg} type="button" onClick={() => { setGradeGroup(gg); setSelectedStandard(null); }}
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${isActive ? 'bg-emerald-600 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:border-emerald-400'}`}>
+                      {gg}학년군
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
 
-          {/* 문장 후보 — 수준별 분기 */}
-          {(() => {
-            const candidates = getSentencesByLevel(subject, area, level);
-            const isLevelSpecific = hasLevelVariants(subject, area);
-            if (candidates.length === 0) {
-              return <p className="text-xs text-gray-400 mb-2">이 영역의 문장 후보 라이브러리가 아직 준비되지 않았어요. 직접 메모를 활용해 주세요.</p>;
-            }
-            return (
-              <div className="mb-2.5">
-                <p className="text-[10px] font-medium text-gray-500 mb-1">
-                  문장 후보 {isLevelSpecific ? `· ${level} 수준` : ''}<span className="ml-1 text-gray-400">(클릭 시 결과에 추가)</span>
-                </p>
-                <div className="space-y-1">
-                  {candidates.map((s) => {
-                    const on = selectedSentences.includes(s);
-                    return (
-                      <button key={s} type="button" onClick={() => addSentence(s)}
-                        disabled={on}
-                        className={`block w-full text-left rounded-md border px-2 py-1.5 text-xs leading-relaxed transition ${on ? 'bg-purple-50 border-purple-200 text-purple-800 cursor-not-allowed' : 'bg-white border-gray-200 hover:border-purple-300 hover:bg-purple-50/40'}`}>
-                        {on && <span className="mr-1 text-purple-600">+추가됨</span>}{s}
+          {/* 성취기준 카드 */}
+          <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-2.5 sm:p-3">
+            <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-1.5">② 성취기준</p>
+            {isAchLoading && (
+              <div className="space-y-1">{[0,1,2].map(i => (<div key={i} className="h-10 rounded-md bg-gray-100 animate-pulse" />))}</div>
+            )}
+            {!isAchLoading && achievements.length === 0 && (
+              <p className="text-xs text-blue-700 py-2">성취기준을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p>
+            )}
+            {!isAchLoading && achievements.length > 0 && standardsForCurrent.length === 0 && (
+              <p className="text-xs text-gray-500 py-2">선택한 조건에 맞는 성취기준이 없어요.</p>
+            )}
+            <div className="space-y-1 max-h-[16rem] overflow-y-auto pr-1">
+              {standardsForCurrent.map((item) => {
+                const isSelected = selectedStandard?.id === item.id;
+                return (
+                  <div key={item.id}
+                    className={`rounded-md border p-1.5 transition ${isSelected ? 'border-blue-400 bg-blue-50/50 ring-1 ring-blue-300' : 'border-gray-200 bg-white hover:border-blue-200'}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <span className="inline-flex items-center rounded bg-blue-100 px-1 py-0.5 text-[9px] font-bold text-blue-800 mr-1">{item.code}</span>
+                        <span className="text-[11px] sm:text-xs text-gray-900 leading-snug">{item.standard}</span>
+                      </div>
+                      <button type="button" onClick={() => {
+                        if (isSelected) {
+                          setSelectedStandard(null);
+                          setSelectedKeywords([]);
+                          setSelectedSentences([]);
+                          setTeacherNote('');
+                          setLevel('중');
+                        } else {
+                          setSelectedStandard(item);
+                        }
+                      }}
+                        className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold transition ${isSelected ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>
+                        {isSelected ? '✕' : '선택'}
                       </button>
-                    );
-                  })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* 문장 후보 (성취기준 선택 시) */}
+          {selectedStandard && (
+            <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-2.5 sm:p-3">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <p className="text-[10px] font-semibold text-purple-700 uppercase tracking-wider">③ 평가문장 후보</p>
+                <div className="inline-flex rounded-full bg-purple-50 p-0.5 text-[10px] font-medium">
+                  {['상', '중', '하'].map((lv) => (
+                    <button key={lv} type="button"
+                      onClick={() => { setLevel(lv); setSelectedSentences([]); }}
+                      className={`rounded-full px-2 py-0 transition ${level === lv ? 'bg-purple-600 text-white shadow-sm' : 'text-purple-700 hover:text-purple-900'}`}>
+                      {lv}
+                    </button>
+                  ))}
                 </div>
               </div>
-            );
-          })()}
 
-          {/* 결과 조합 */}
-          <div className="rounded-lg bg-emerald-50/40 border border-emerald-200 p-2.5 space-y-1.5">
-            <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider">결과 (선택한 문장)</p>
-            {selectedSentences.length === 0 ? (
-              <p className="text-xs text-emerald-700/60">위에서 문장 후보를 눌러 결과를 만들어 주세요.</p>
+              {/* 키워드 칩 (보조) */}
+              {library?.keywords?.length > 0 && (
+                <div className="mb-1.5">
+                  <p className="text-[9px] font-medium text-gray-400 mb-0.5">평가 포인트 (보조)</p>
+                  <div className="flex flex-wrap gap-1">
+                    {library.keywords.map((kw) => {
+                      const on = selectedKeywords.includes(kw);
+                      return (
+                        <button key={kw} type="button" onClick={() => toggleKeyword(kw)}
+                          className={`rounded-full px-1.5 py-0 text-[10px] font-medium transition ${on ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'}`}>
+                          {on ? '✓ ' : ''}{kw}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 문장 후보 */}
+              {(() => {
+                const candidates = getSentencesByLevel(subject, area, level);
+                const isLevelSpecific = hasLevelVariants(subject, area);
+                if (candidates.length === 0) {
+                  return <p className="text-[11px] text-gray-400 py-1">이 영역의 문장 후보가 아직 없어요. 오른쪽 메모로 작성해 주세요.</p>;
+                }
+                return (
+                  <>
+                    <p className="text-[9px] font-medium text-gray-400 mb-0.5">
+                      문장 후보 {isLevelSpecific ? `· ${level} 수준` : ''} (클릭 → 결과창에 추가)
+                    </p>
+                    <div className="space-y-1">
+                      {candidates.map((s) => {
+                        const on = selectedSentences.includes(s);
+                        return (
+                          <button key={s} type="button" onClick={() => addSentence(s)} disabled={on}
+                            className={`block w-full text-left rounded-md border px-2 py-1 text-[11px] leading-snug transition ${on ? 'bg-purple-50 border-purple-200 text-purple-800 cursor-not-allowed' : 'bg-white border-gray-200 hover:border-purple-300 hover:bg-purple-50/40'}`}>
+                            {on && <span className="mr-1 text-purple-600 text-[10px]">+추가됨</span>}{s}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
+            </section>
+          )}
+        </div>
+
+        {/* ─── 오른쪽: 결과/저장 ─── */}
+        <div className="space-y-2.5 lg:sticky lg:top-3 lg:self-start lg:max-h-[calc(100vh-1.5rem)] lg:overflow-y-auto">
+
+          {/* 결과 조합창 */}
+          <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-2.5 sm:p-3">
+            <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mb-1.5">④ 평가문장 결과</p>
+
+            {!selectedStandard ? (
+              <div className="rounded-md bg-gray-50 border border-gray-200 px-2.5 py-4 text-center">
+                <p className="text-[11px] text-gray-500">왼쪽에서 성취기준을 선택하면<br />결과창이 활성화됩니다</p>
+              </div>
             ) : (
-              <ul className="space-y-1">
-                {selectedSentences.map((s, idx) => (
-                  <li key={idx} className="flex items-start gap-2 rounded bg-white border border-emerald-100 px-2 py-1">
-                    <span className="flex-1 text-xs text-gray-800 leading-relaxed">{s}</span>
-                    <button type="button" onClick={() => removeSentence(idx)} className="shrink-0 text-[11px] text-rose-500 hover:text-rose-700">✕</button>
+              <>
+                <div className="rounded-md bg-blue-50/50 border border-blue-100 p-1.5 mb-1.5">
+                  <p className="text-[9px] font-semibold text-blue-700 uppercase tracking-wider">선택한 기준</p>
+                  <p className="mt-0.5 text-[11px] text-blue-900 leading-snug line-clamp-2">
+                    <span className="font-mono font-bold mr-1">[{selectedStandard.code}]</span>
+                    {selectedStandard.standard}
+                  </p>
+                </div>
+
+                {selectedSentences.length === 0 && !teacherNote.trim() ? (
+                  <p className="text-[11px] text-gray-400 py-2 text-center">왼쪽에서 문장 후보를 눌러 결과를 만들어 주세요</p>
+                ) : (
+                  <ul className="space-y-1 mb-1.5">
+                    {selectedSentences.map((s, idx) => (
+                      <li key={idx} className="flex items-start gap-1.5 rounded bg-white border border-emerald-100 px-1.5 py-1">
+                        <span className="flex-1 text-[11px] text-gray-800 leading-snug">{s}</span>
+                        <button type="button" onClick={() => removeSentence(idx)} className="shrink-0 text-[10px] text-rose-500 hover:text-rose-700">✕</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <textarea value={teacherNote} onChange={(e) => setTeacherNote(e.target.value)} rows={2}
+                  placeholder="교사 메모/보완 의견 (선택)"
+                  className="block w-full rounded-md border border-gray-200 px-2 py-1 text-[11px] text-gray-800 placeholder:text-gray-400 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300 resize-none mb-1.5" />
+
+                {finalText && (
+                  <div className="rounded-md bg-emerald-50/60 border border-emerald-200 p-1.5 mb-1.5">
+                    <p className="text-[9px] font-semibold text-emerald-700 uppercase tracking-wider mb-0.5">최종 문장</p>
+                    <p className="text-[11px] text-gray-900 leading-relaxed">{finalText}</p>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-1">
+                  <button type="button" onClick={handleSave} disabled={!selectedStudent || (!selectedSentences.length && !teacherNote.trim())}
+                    className="rounded-md bg-purple-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-purple-700 disabled:opacity-50 transition">
+                    {hasExistingRecord ? '수정 저장' : '저장'}
+                  </button>
+                  <button type="button" onClick={handleCopy} disabled={!finalText}
+                    className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[10px] font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition">복사</button>
+                  {hasExistingRecord && (
+                    <button type="button" onClick={handleDelete}
+                      className="rounded-md border border-rose-200 bg-white px-2 py-1 text-[10px] font-medium text-rose-600 hover:bg-rose-50 transition">삭제</button>
+                  )}
+                  {copyMsg && <span className="text-[10px] text-emerald-700 font-medium">{copyMsg}</span>}
+                </div>
+                {hasExistingRecord && <p className="mt-1 text-[10px] text-amber-600">기존 저장 불러옴 · 수정 가능</p>}
+              </>
+            )}
+          </section>
+
+          {/* 최근 저장 (압축) */}
+          <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-2.5 sm:p-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[10px] font-semibold text-rose-700 uppercase tracking-wider">⑤ 최근 저장</p>
+              {records.length > 0 && <span className="text-[9px] text-gray-400">총 {records.length}건</span>}
+            </div>
+            {studentChips.length > 0 && (
+              <div className="flex flex-wrap gap-0.5 mb-1.5">
+                <button type="button" onClick={() => setBoardStudentFilter('')}
+                  className={`rounded-full px-1.5 py-0 text-[9px] font-medium transition ${boardStudentFilter === '' ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'}`}>
+                  전체
+                </button>
+                {studentChips.map((c) => (
+                  <button key={c.key} type="button" onClick={() => setBoardStudentFilter(c.key)}
+                    className={`rounded-full px-1.5 py-0 text-[9px] font-medium transition ${boardStudentFilter === c.key ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'}`}>
+                    {c.label} {c.count}
+                  </button>
+                ))}
+              </div>
+            )}
+            {records.length === 0 ? (
+              <p className="text-[11px] text-gray-400 text-center py-2">저장된 기록이 없어요</p>
+            ) : (
+              <ul className="space-y-0.5 max-h-[14rem] overflow-y-auto pr-1">
+                {visibleRecords.slice(0, 8).map((r) => (
+                  <li key={r.id}
+                    className="rounded-md border border-gray-200 bg-white p-1.5 hover:border-rose-200 cursor-pointer transition"
+                    onClick={() => loadRecord(r)}>
+                    <div className="flex flex-wrap items-center gap-x-1 text-[10px]">
+                      <span className="font-semibold text-gray-900">{r.studentNumber ? `${r.studentNumber}번 ` : ''}{r.studentName}</span>
+                      <span className="text-gray-400">·</span>
+                      <span className="text-gray-600">{r.subject}</span>
+                      <span className="font-mono text-blue-700 ml-auto text-[9px]">{r.standardCode}</span>
+                    </div>
+                    <p className="mt-0.5 text-[10px] text-gray-700 leading-snug line-clamp-1">{r.finalText}</p>
                   </li>
                 ))}
               </ul>
             )}
-            <textarea value={teacherNote} onChange={(e) => setTeacherNote(e.target.value)} rows={2}
-              placeholder="교사 메모/보완 의견 (선택, 결과 마지막에 덧붙여짐)"
-              className="block w-full rounded border border-emerald-200 bg-white px-2 py-1 text-xs text-gray-800 placeholder:text-emerald-700/40 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300 resize-none" />
-            {finalText && (
-              <div className="rounded bg-white border border-emerald-200 p-2 text-xs text-gray-900 leading-relaxed">
-                <p className="text-[10px] font-semibold text-emerald-700 mb-0.5">최종 문장</p>
-                {finalText}
-              </div>
+            {records.length > 0 && (
+              <p className="mt-1 text-[9px] text-gray-400">클릭 → 불러와 수정</p>
             )}
-          </div>
-
-          {/* 액션 */}
-          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            <button type="button" onClick={handleSave} disabled={!selectedStudent || (!selectedSentences.length && !teacherNote.trim())}
-              className="rounded-md bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 disabled:opacity-50 transition">
-              {hasExistingRecord ? '수정 저장' : '학생 기록에 저장'}
-            </button>
-            <button type="button" onClick={handleCopy} disabled={!finalText}
-              className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition">복사</button>
-            {hasExistingRecord && (
-              <button type="button" onClick={handleDelete}
-                className="rounded-md border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 transition">삭제</button>
-            )}
-            {copyMsg && <span className="text-[11px] text-emerald-700 font-medium">{copyMsg}</span>}
-            {hasExistingRecord && <span className="text-[11px] text-amber-600">기존 저장 불러옴</span>}
-          </div>
-        </section>
-      )}
-
-      {/* 학생별 평가 기록 */}
-      <section className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 sm:p-4">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div>
-            <p className="text-[10px] font-semibold text-rose-700 uppercase tracking-wider">⑥ 학생별 교과평가 기록</p>
-            <h2 className="mt-0.5 text-sm sm:text-base font-bold text-gray-900">저장된 평가</h2>
-          </div>
-          {records.length > 0 && <span className="text-[10px] text-gray-400">총 {records.length}건</span>}
+          </section>
         </div>
-        {studentChips.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1 mb-2">
-            <button type="button" onClick={() => setBoardStudentFilter('')}
-              className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${boardStudentFilter === '' ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'}`}>
-              전체 {records.length}
-            </button>
-            {studentChips.map((c) => (
-              <button key={c.key} type="button" onClick={() => setBoardStudentFilter(c.key)}
-                className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${boardStudentFilter === c.key ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'}`}>
-                {c.label} {c.count}
-              </button>
-            ))}
-          </div>
-        )}
-        {records.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-3">저장된 기록이 없어요. 위에서 평가문장을 만들고 저장해 보세요.</p>
-        ) : (
-          <ul className="space-y-1 max-h-[18rem] overflow-y-auto pr-1">
-            {visibleRecords.map((r) => (
-              <li key={r.id}
-                className="rounded-md border border-gray-200 bg-white p-2 hover:border-rose-200 cursor-pointer transition"
-                onClick={() => loadRecord(r)}>
-                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px]">
-                  <span className="font-semibold text-gray-900">{r.studentNumber ? `${r.studentNumber}번 ` : ''}{r.studentName}</span>
-                  <span className="text-gray-400">·</span>
-                  <span className="text-gray-600">{r.subject}</span>
-                  <span className="text-gray-400">·</span>
-                  <span className="text-gray-600">{r.area}</span>
-                  <span className="text-gray-400">·</span>
-                  <span className="font-mono text-blue-700">{r.standardCode}</span>
-                  <span className="text-gray-400">·</span>
-                  <span className="text-gray-400">{new Date(r.updatedAt || r.createdAt).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric' })}</span>
-                </div>
-                <p className="mt-0.5 text-[11px] text-gray-700 leading-snug line-clamp-2">{r.finalText}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-        {records.length > 0 && (
-          <p className="mt-1.5 text-[10px] text-gray-400">기록을 클릭하면 작성 패널에 불러와 수정할 수 있어요.</p>
-        )}
-      </section>
+      </div>
     </div>
   );
 }
