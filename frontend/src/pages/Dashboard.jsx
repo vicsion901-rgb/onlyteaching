@@ -93,6 +93,43 @@ function extractStudentNumber(text) {
   return null;
 }
 
+// 다중 학생 추출 — "2,4번" / "2번, 4번" / "2번 4번" / "2번이랑 4번" / "2번과 4번"
+function extractStudentNumbers(text) {
+  if (!text) return [];
+  const nums = new Set();
+  // 모든 "N번" 패턴
+  const matches = text.matchAll(/(\d+)\s*번/g);
+  for (const m of matches) {
+    const n = parseInt(m[1], 10);
+    if (n > 0 && n <= 50) nums.add(n);
+  }
+  // "2,4번" 또는 "2,4,5번" 콤마 묶음 패턴
+  const commaMatch = text.match(/(\d+(?:\s*,\s*\d+)+)\s*번/);
+  if (commaMatch) {
+    commaMatch[1].split(',').forEach((s) => {
+      const n = parseInt(s.trim(), 10);
+      if (n > 0 && n <= 50) nums.add(n);
+    });
+  }
+  return [...nums].sort((a, b) => a - b);
+}
+
+function hasMultipleStudents(text) {
+  if (!text) return false;
+  const nums = extractStudentNumbers(text);
+  if (nums.length >= 2) return true;
+  if (/(\d+)\s*명|여러\s*학생|학생들|모든\s*학생|반\s*전체/.test(text)) {
+    // "1명"은 단일이라 제외 — 2명 이상만 다중으로 간주
+    const mn = text.match(/(\d+)\s*명/);
+    if (mn) {
+      const n = parseInt(mn[1], 10);
+      return n >= 2;
+    }
+    return true;
+  }
+  return false;
+}
+
 function hasStudentRosterSource(text) {
   return /학생명부|명부|학생\s*기록|기록된/.test(text || '');
 }
@@ -151,6 +188,12 @@ function extractKeywords(text) {
     '친구', '학우', '아이',
     // 시간/소속
     '오늘', '이번', '저번', '지난', '오늘의',
+    // 수량/단위/형식
+    '명', '한명', '두명', '세명', '네명', '한 명', '두 명', '세 명', '네 명',
+    '1명', '2명', '3명', '4명', '5명', '6명', '7명', '8명', '9명', '10명',
+    '씩', '줄씩', '한줄씩', '두줄씩', '세줄씩', '네줄씩', '한 줄씩', '두 줄씩', '세 줄씩',
+    '1줄씩', '2줄씩', '3줄씩', '4줄씩', '5줄씩',
+    '개', '각각', '여러', '여러분', '모든', '반', '반전체', '반 전체',
   ]);
   const isScoreWord = (w) => {
     if (!w) return true;
@@ -253,7 +296,14 @@ const SUBJECT_EVAL_TEMPLATES = {
 
 const SUBJECT_NAMES = ['국어', '수학', '사회', '과학', '영어', '도덕', '체육', '음악', '미술', '실과', '통합교과'];
 
-function generateSubjectEvalDraft(text, lineCount) {
+function generateSubjectEvalDraft(text, lineCount, multiStudents) {
+  if (multiStudents) {
+    return [
+      'ℹ️ 여러 학생의 교과평가는 교과평가 탭에서 학생별로 나눠 작성하는 것이 정확해요.',
+      '[교과평가 열기] 버튼으로 학생을 한 명씩 선택해 작성해 주세요.',
+      '예시: "12번 학생 국어 평가문장 2줄 써줘"',
+    ].join('\n');
+  }
   const target = lineCount || 2;
   const matched = SUBJECT_NAMES.find((s) => text.includes(s));
   // 교과명도 없으면 안내
@@ -302,7 +352,15 @@ function pickLifeRecordLine(kw) {
   return `${kw}${josa(kw, '을를')} 바탕으로 수업에 성실히 참여하며 긍정적인 변화를 보임.`;
 }
 
-function generateLifeRecordDraft(keywords, lineCount, studentName) {
+function generateLifeRecordDraft(keywords, lineCount, studentName, multiStudents) {
+  // 다중 학생 요청 — 단일 direct 부적합, 탭 fallback 안내
+  if (multiStudents) {
+    return [
+      'ℹ️ 여러 학생의 생활기록부는 학생별로 나눠 작성하는 것이 더 정확해요.',
+      '[생활기록부 열기] 버튼으로 학생을 한 명씩 선택해 작성해 주세요.',
+      '예시: "3번 학생 발표력, 책임감으로 생활기록부 3줄 작성해"',
+    ].join('\n');
+  }
   // 의미 키워드가 전혀 없으면 안내 (억지 generic 생성 금지)
   if (keywords.length === 0) {
     const who = studentName ? `${studentName} 학생` : '학생';
@@ -348,7 +406,13 @@ function pickCounselingLine(kw) {
   return `${kw} 관련 상황이 관찰되어 지속적인 관찰과 지원이 필요함.`;
 }
 
-function generateCounselingDraft(keywords, lineCount) {
+function generateCounselingDraft(keywords, lineCount, multiStudents) {
+  if (multiStudents) {
+    return [
+      'ℹ️ 여러 학생의 관찰/상담 기록은 학생별로 따로 작성하는 것이 정확해요.',
+      '[관찰일지 열기] 버튼으로 학생별로 작성해 주세요.',
+    ].join('\n');
+  }
   // 의미 키워드 없음 → 안내
   if (keywords.length === 0) {
     return [
@@ -416,9 +480,10 @@ async function generateLocalDraftAsync(text, primary) {
 
   const withNote = (body) => lookupNote ? `${lookupNote}\n\n${body}` : body;
 
-  if (id === 'subject-evaluation') return generateSubjectEvalDraft(text, lineCount);
-  if (id === 'life-records') return withNote(generateLifeRecordDraft(keywords, lineCount, studentName));
-  if (id === 'counseling') return generateCounselingDraft(keywords, lineCount);
+  const multiStudents = hasMultipleStudents(text);
+  if (id === 'subject-evaluation') return generateSubjectEvalDraft(text, lineCount, multiStudents);
+  if (id === 'life-records') return withNote(generateLifeRecordDraft(keywords, lineCount, studentName, multiStudents));
+  if (id === 'counseling') return generateCounselingDraft(keywords, lineCount, multiStudents);
   if (id === 'newsletter') return generateNewsletterDraft(keywords, lineCount);
   if (id === 'autobiography-compilation') {
     const k = keywords[0] || '오늘';
