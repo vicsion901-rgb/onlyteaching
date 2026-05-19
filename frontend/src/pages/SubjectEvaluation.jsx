@@ -409,9 +409,20 @@ function SubjectEvaluation() {
                     <span className="inline-flex items-center rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-800 mr-1.5">{item.code}</span>
                     <span className="text-xs sm:text-sm text-gray-900">{item.standard}</span>
                   </div>
-                  <button type="button" onClick={() => setSelectedStandard(item)}
-                    className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-semibold transition ${isSelected ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>
-                    {isSelected ? '선택됨 ✓' : '선택'}
+                  <button type="button" onClick={() => {
+                    if (isSelected) {
+                      // 토글 해제 — 성취기준에 종속된 작성 상태만 정리
+                      setSelectedStandard(null);
+                      setSelectedKeywords([]);
+                      setSelectedSentences([]);
+                      setTeacherNote('');
+                      setLevel('중');
+                    } else {
+                      setSelectedStandard(item);
+                    }
+                  }}
+                    className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-semibold transition ${isSelected ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>
+                    {isSelected ? '✕ 선택 해제' : '선택'}
                   </button>
                 </div>
               </div>
