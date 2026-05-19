@@ -42,6 +42,17 @@ async function ensureTableAndSeed(db: Pool): Promise<EnsureReport> {
     return report;
   }
 
+  // 옛 테이블이 이미 존재해서 code 컬럼 UNIQUE 제약이 없을 수 있음 → 보강
+  try {
+    await db.query(`ALTER TABLE achievement_standards ADD CONSTRAINT achievement_standards_code_key UNIQUE (code)`);
+  } catch (err: any) {
+    // 이미 있거나 데이터 중복으로 못 거는 경우 — 무시 (errors에 기록만)
+    const msg = String(err?.message || err);
+    if (!msg.includes('already exists') && !msg.includes('이미 존재')) {
+      report.errors.push(`ALTER UNIQUE: ${msg.slice(0, 200)}`);
+    }
+  }
+
   try {
     const before = await db.query('SELECT COUNT(*)::int AS cnt FROM achievement_standards');
     report.rowCountBefore = before.rows[0].cnt;
