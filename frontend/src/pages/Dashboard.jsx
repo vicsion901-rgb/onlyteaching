@@ -14,6 +14,7 @@ const DIRECT_OUTPUT_IDS = new Set([
   'newsletter',
   'autobiography-compilation',
   'exam-grading',
+  'subject-evaluation',
 ]);
 
 const GENERATION_VERBS = [
@@ -104,6 +105,95 @@ function josa(word, type) {
   const hasFinal = isKorean ? jong !== 0 : false;
   if (type === '을를') return hasFinal ? '을' : '를';
   return hasFinal ? '이' : '가';
+}
+
+const SUBJECT_EVAL_TEMPLATES = {
+  '국어': [
+    '국어 활동에서 자신의 생각을 또렷하게 표현하며 수업에 꾸준히 참여함.',
+    '친구의 말을 경청하고 상황에 맞게 의견을 말하며 의사소통 능력을 길러 가고 있음.',
+    '글의 내용을 정확히 파악하며 자신의 경험과 관련지어 이해하는 능력을 보임.',
+    '읽기와 쓰기 활동에 적극 참여하며 표현의 폭을 넓혀 가고 있음.',
+  ],
+  '수학': [
+    '수와 연산의 의미를 이해하며 다양한 방법으로 문제를 해결함.',
+    '풀이 과정을 논리적으로 설명하며 수학적 사고력을 보임.',
+    '도형과 측정 활동에 흥미를 가지고 적극적으로 참여함.',
+    '실생활 문제 상황에서 식을 세우고 답을 구하는 능력이 향상됨.',
+  ],
+  '영어': [
+    '영어 듣기·말하기 활동에 자신감 있게 참여하며 표현하려 노력함.',
+    '낯선 표현도 맥락을 살려 의미를 추측하며 사용하는 모습을 보임.',
+    '간단한 문장을 정확히 읽고 쓰는 능력이 안정적으로 향상됨.',
+    '바른 발음과 억양으로 영어를 즐겁게 익히는 태도를 보임.',
+  ],
+  '과학': [
+    '관찰과 실험 활동에 적극적으로 참여하며 과학적 의문을 가짐.',
+    '실험 결과를 정리하고 자신의 언어로 설명하는 능력을 보임.',
+    '자연 현상에 관심을 가지고 탐구하는 태도를 꾸준히 보임.',
+    '결과를 친구들과 공유하며 과학적으로 의사소통함.',
+  ],
+  '사회': [
+    '사회 현상에 관심을 가지고 자신의 생각을 표현하며 수업에 참여함.',
+    '자료를 활용해 다양한 관점에서 사고하는 능력을 기름.',
+    '공동체 활동에 적극 참여하며 시민 의식을 키워 감.',
+    '역사·지리 학습 내용을 자신의 언어로 정리하여 발표함.',
+  ],
+  '도덕': [
+    '바른 생활 태도를 일상에서 실천하며 또래에게 좋은 모범이 됨.',
+    '도덕적 판단의 의미를 이해하고 자신의 행동을 돌아보는 자세를 보임.',
+    '친구를 배려하고 공동체 규칙을 지키려 노력함.',
+    '감사·존중의 가치를 일상에서 실천함.',
+  ],
+  '체육': [
+    '신체 활동에 즐겁게 참여하며 체력과 협동심을 길러 감.',
+    '규칙을 지키며 상대를 존중하는 스포츠맨십을 보임.',
+    '도전 과제에 끈기 있게 참여하며 자기 관리 능력을 기름.',
+    '안전 수칙을 잘 지키며 활동에 임함.',
+  ],
+  '음악': [
+    '음악 활동에 흥미를 가지고 다양한 표현 방법을 시도함.',
+    '음악 요소를 이해하며 노래와 연주에 적극 참여함.',
+    '친구들과 어울려 합창·합주 활동에 즐겁게 참여함.',
+    '감상한 음악의 느낌을 자신의 언어로 표현함.',
+  ],
+  '미술': [
+    '자신의 느낌과 생각을 다양한 방법으로 자유롭게 표현함.',
+    '재료와 기법을 탐색하며 창의적인 결과물을 만듦.',
+    '친구의 작품을 존중하며 감상하는 태도를 보임.',
+    '주제에 맞는 표현 방법을 고민하며 작품을 완성함.',
+  ],
+  '실과': [
+    '실생활 활동에 적극적으로 참여하며 책임감 있게 과제를 수행함.',
+    '도구와 재료를 안전하게 사용하는 태도를 보임.',
+    '가정·기술 활동에서 자기 관리 능력을 기름.',
+    '실습 결과를 정리하고 친구와 공유하는 모습을 보임.',
+  ],
+  '통합교과': [
+    '학교생활에 즐겁게 적응하며 기본 생활 습관을 익혀 감.',
+    '주변을 관찰하고 호기심을 가지고 탐구함.',
+    '다양한 놀이와 표현 활동에 적극 참여함.',
+    '바른 생활 규칙을 알고 일상에서 실천함.',
+  ],
+};
+
+const SUBJECT_NAMES = ['국어', '수학', '사회', '과학', '영어', '도덕', '체육', '음악', '미술', '실과', '통합교과'];
+
+function generateSubjectEvalDraft(text, lineCount) {
+  const target = lineCount || 2;
+  const matched = SUBJECT_NAMES.find((s) => text.includes(s));
+  const lines = matched && SUBJECT_EVAL_TEMPLATES[matched]
+    ? [...SUBJECT_EVAL_TEMPLATES[matched]]
+    : [
+        '교과 활동에 성실히 참여하며 자신의 배움을 적극적으로 표현함.',
+        '수업 활동을 통해 새로운 내용을 능동적으로 받아들이는 태도를 보임.',
+        '학습 결과를 자신의 언어로 정리해 표현하는 능력을 보임.',
+        '교과 학습에 꾸준히 노력하며 안정적인 성장을 보임.',
+      ];
+  const out = lines.slice(0, target);
+  while (out.length < target) {
+    out.push('학습 활동에 꾸준히 참여하며 안정적인 태도를 보임.');
+  }
+  return out.map((s) => `- ${s}`).join('\n');
 }
 
 const LIFE_RECORD_TEMPLATES = [
@@ -228,6 +318,7 @@ async function generateLocalDraftAsync(text, primary) {
 
   const withNote = (body) => lookupNote ? `${lookupNote}\n\n${body}` : body;
 
+  if (id === 'subject-evaluation') return generateSubjectEvalDraft(text, lineCount);
   if (id === 'life-records') return withNote(generateLifeRecordDraft(keywords, lineCount, studentName));
   if (id === 'counseling') return generateCounselingDraft(keywords, lineCount);
   if (id === 'newsletter') return generateNewsletterDraft(keywords, lineCount);
@@ -373,8 +464,8 @@ const KEYWORD_MAP = [
     aliases: ['생기브', '생긱부', '행바', '행발문장', '생기부써', '생기부써줘'] },
   { id: 'counseling', title: '관찰일지', emoji: '🗨️', route: '/counseling',
     reason: '학생 관찰/상담 내용을 정리할 수 있어요',
-    labels: ['관찰일지', '상담 기록', '상담기록', '상담'],
-    keywords: ['상담', '학부모', '갈등', '관찰', '관찰일지', '생활지도', '또래', '친구관계', '정서', '문제행동'],
+    labels: ['관찰일지', '관찰 일지', '상담 기록', '상담기록'],
+    keywords: ['관찰일지', '관찰기록', '관찰 내용', '상담기록', '학부모', '갈등', '생활지도', '문제행동', '친구관계', '또래'],
     aliases: ['상듬', '학생관계', '친구갈등', '학부모상담', '지도기록'] },
   { id: 'today-meal', title: '오늘의 급식', emoji: '🍱', route: '/today-meal',
     reason: '학교별 급식 사진과 응원 순위를 볼 수 있어요',
@@ -397,10 +488,12 @@ const KEYWORD_MAP = [
     keywords: ['학사', '일정', '스케줄', '회의'],
     aliases: ['스케쥴', '일정등록', '일정정리'] },
   { id: 'subject-evaluation', title: '교과평가', emoji: '📊', route: '/subject-evaluation',
-    reason: '교과별 성취와 평가를 정리할 수 있어요',
-    labels: ['교과평가', '교과 평가'],
-    keywords: ['교과', '성적', '성취'],
-    aliases: ['교과성적', '평가정리'] },
+    reason: '교과별 성취기준 기반 평가문장을 만들 수 있어요',
+    labels: ['교과평가', '교과 평가', '평가문장'],
+    keywords: ['교과평가', '교과', '성취기준', '학년군', '영역', '평가문장', '성취', '수행수준',
+      '국어', '수학', '사회', '과학', '영어', '도덕', '체육', '음악', '미술', '실과', '통합교과',
+      '듣기말하기', '듣기·말하기', '읽기', '쓰기', '수와 연산'],
+    aliases: ['교과성적', '평가정리', '평가문장써', '교과평가써'] },
   { id: 'creative-activities', title: '창의적 체험활동', emoji: '🎨', route: '/creative-activities',
     reason: '창체 활동 기록을 관리할 수 있어요',
     labels: ['창의적 체험활동', '창의적체험활동', '창체'],
