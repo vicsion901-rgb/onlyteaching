@@ -82,9 +82,11 @@ function Layout({ children }) {
     }
   };
 
-  const [isMotivationOpen, setIsMotivationOpen] = useState(false);
-  const [isWorkTimeOpen, setIsWorkTimeOpen] = useState(false);
-  const [isBreakTimeOpen, setIsBreakTimeOpen] = useState(false);
+  // 최상위 3개 섹션은 첫 진입 시 펼침 — 사용자가 전체 구조를 한눈에 보도록
+  const [isMotivationOpen, setIsMotivationOpen] = useState(true);
+  const [isWorkTimeOpen, setIsWorkTimeOpen] = useState(true);
+  const [isBreakTimeOpen, setIsBreakTimeOpen] = useState(true);
+  // 업무 시간 안의 학생/행정/수업 보조 도구는 1단계 라벨까지만 — 내부 메뉴는 닫힘
   const [isToolOpen, setIsToolOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isStudentOpen, setIsStudentOpen] = useState(false);
