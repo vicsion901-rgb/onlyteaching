@@ -1,6 +1,26 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import client from '../api/client';
+import { getProfile } from '../utils/profile';
+
+function buildTeacherLabel(profile) {
+  const nick = (profile.nickname || '').trim();
+  if (nick) return `${nick} 선생님`;
+  return '선생님';
+}
+
+function buildClassLabel(profile) {
+  const parts = [];
+  if (Number.isFinite(profile.gradeLevel) && profile.gradeLevel > 0) parts.push(`${profile.gradeLevel}학년`);
+  if (Number.isFinite(profile.classNumber) && profile.classNumber > 0) parts.push(`${profile.classNumber}반`);
+  return parts.join(' ');
+}
+
+function buildStudentCountLabel(count) {
+  if (count == null) return '';
+  if (count === 0) return '학생명부 미등록';
+  return `학생 ${count}명 대상`;
+}
 
 const ACTIVITY_OPTIONS = [
   { id: '', label: '학생이 직접 활동 고르기' },
@@ -23,16 +43,23 @@ function QrDistribution({ onClose }) {
   const [classInfo, setClassInfo] = useState({ name: '', id: '' });
 
   const teacherId = localStorage.getItem('userId') || localStorage.getItem('user_id') || 'teacher';
+  const profile = useMemo(() => getProfile(), []);
+  const teacherLabel = useMemo(() => buildTeacherLabel(profile), [profile]);
+  const classLabel = useMemo(() => buildClassLabel(profile), [profile]);
+  const studentCountLabel = useMemo(() => buildStudentCountLabel(studentCount), [studentCount]);
+  const headerLine = useMemo(
+    () => [teacherLabel, classLabel].filter(Boolean).join(' · '),
+    [teacherLabel, classLabel]
+  );
 
   useEffect(() => {
     client.get('/api/students', { params: { userId: teacherId } })
       .then(res => {
-        const list = res.data || [];
+        const list = Array.isArray(res.data) ? res.data : [];
         setStudentCount(list.length);
-        if (list.length > 0) {
-          const schoolCode = localStorage.getItem('schoolCode') || '';
-          setClassInfo({ name: schoolCode || `${list.length}명 학급`, id: '' });
-        }
+        // qr-session API에 넘길 class identifier — 표시용은 아니지만 호환 위해 유지
+        const fallbackId = localStorage.getItem('schoolCode') || teacherId;
+        setClassInfo({ name: fallbackId, id: '' });
       })
       .catch(() => setStudentCount(0));
   }, [teacherId]);
@@ -138,9 +165,26 @@ function QrDistribution({ onClose }) {
           {onClose && <button onClick={onClose} className="text-xs text-gray-400 hover:text-gray-600">닫기</button>}
         </div>
 
-        <div className="bg-gray-50 rounded-lg p-3">
-          <p className="text-[10px] text-gray-400 mb-0.5">대상 학급</p>
-          <p className="text-sm font-semibold text-gray-800">{classInfo.name || '학급 정보 로딩 중...'}</p>
+        <div className="bg-purple-50/60 border border-purple-100 rounded-lg p-3">
+          <p className="text-[10px] font-semibold tracking-wider text-purple-600 uppercase mb-1">대상 학급</p>
+          <p className="text-sm font-semibold text-gray-900 leading-snug break-keep">
+            <span>{teacherLabel}</span>
+            {classLabel && (
+              <>
+                <span className="text-gray-400 mx-1.5">·</span>
+                <span>{classLabel}</span>
+              </>
+            )}
+          </p>
+          <p className="mt-0.5 text-xs text-gray-600">
+            {studentCount == null ? '학생 수 확인 중...' : studentCountLabel}
+          </p>
+          {!classLabel && (
+            <p className="mt-1 text-[10px] text-purple-700/80">
+              학년/반 정보를 입력하면 더 명확하게 표시돼요.{' '}
+              <a href="/account-settings" className="underline font-medium">프로필 입력</a>
+            </p>
+          )}
         </div>
 
         <div>
@@ -214,7 +258,12 @@ function QrDistribution({ onClose }) {
         </div>
 
         <div className="space-y-1 text-xs text-gray-500">
-          {session.class_name && <p>반: {session.class_name}</p>}
+          <p className="text-gray-700">
+            <span className="font-semibold">{headerLine}</span>
+            {studentCount != null && (
+              <span className="text-gray-400"> · {studentCountLabel}</span>
+            )}
+          </p>
           {session.activity_type && <p>활동: {ACTIVITY_OPTIONS.find(o => o.id === session.activity_type)?.label || session.activity_type}</p>}
           <p>만료: {new Date(session.expires_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</p>
         </div>
