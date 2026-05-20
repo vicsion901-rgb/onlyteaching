@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getBookableActivities, getTypeInfo, buildActivityMap } from '../utils/activityUtils';
+import { getBookableActivities, getTypeInfo, buildActivityMap, getBadges } from '../utils/activityUtils';
 import useActivities from '../hooks/useActivities';
 import { generateBookPdf } from '../utils/bookPdfGenerator';
-import { fetchCollections, fetchCollectionById } from '../utils/collectionApi';
+import { fetchCollections, fetchCollectionById, createCollection } from '../utils/collectionApi';
 
 const BOOK_TYPES = [
   { id: 'poem',   emoji: '📜', label: '내 시집',       desc: '필사한 시와 내가 쓴 문장 모음', hint: '필사 결과가 들어갑니다' },
@@ -22,13 +22,22 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
   const [bookSubtitle, setBookSubtitle] = useState('');
   const [authorName, setAuthorName] = useState('');
 
-  const [useCollection, setUseCollection] = useState(false);
+  // step 2 모드 — 'recommended' | 'all' | 'collection'
+  // - recommended: bookType별 자동 추천 글
+  // - all: 전체 글에서 직접 고르기 (옛 창작 편찬실의 핵심 흐름 흡수)
+  // - collection: 미리 만들어 둔 편찬실 묶음 사용
+  const [selectMode, setSelectMode] = useState('recommended');
   const [selectedCollectionId, setSelectedCollectionId] = useState(null);
   const [selectedCollection, setSelectedCollection] = useState(null);
   const [collections, setCollections] = useState(() => {
     try { return JSON.parse(localStorage.getItem('mb_collections') || '[]'); } catch { return []; }
   });
   const [collectionsLoaded, setCollectionsLoaded] = useState(false);
+  // all 모드 전용 — 필터 + 묶음 저장 입력
+  const [allSourceFilter, setAllSourceFilter] = useState('all');
+  const [stashCollectionTitle, setStashCollectionTitle] = useState('');
+  const [stashSavedMsg, setStashSavedMsg] = useState('');
+  const useCollection = selectMode === 'collection';
 
   useEffect(() => {
     fetchCollections()
@@ -45,7 +54,7 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
     if (initialCollectionId !== null && initialCollectionId !== undefined) {
       fetchCollectionById(initialCollectionId).then(found => {
         if (found) {
-          setUseCollection(true);
+          setSelectMode('collection');
           setSelectedCollectionId(found.id);
           setSelectedCollection(found);
           const items = found.items || [];
@@ -54,7 +63,7 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
       }).catch(() => {
         const local = collections.find(c => c.id === initialCollectionId);
         if (local) {
-          setUseCollection(true);
+          setSelectMode('collection');
           setSelectedCollectionId(local.id);
           setSelectedCollection(local);
           setSelectedIds(new Set((local.items || []).map(item => item._id || (local.items || []).indexOf(item))));
@@ -64,11 +73,43 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
     }
   }, [initialCollectionId]);
 
+  // step 2 본문 리스트 — 모드별로 다른 소스
   const recommendedActivities = useMemo(() => {
     if (!bookType) return [];
-    if (useCollection && selectedCollection) return selectedCollection.items || [];
+    if (selectMode === 'collection' && selectedCollection) return selectedCollection.items || [];
+    if (selectMode === 'all') {
+      // 전체 글에서 책에 사용 가능한 모든 항목 (옛 창작 편찬실 화면과 동일 기준)
+      const all = allActivityData.filter((a) => {
+        if (a.status !== 'submitted' && a.sourceType !== 'manuscript') return false;
+        return a.canUseInBook;
+      });
+      if (allSourceFilter === 'morning') return all.filter((a) => a.sourceType === 'morning');
+      if (allSourceFilter === 'manuscript') return all.filter((a) => a.sourceType === 'manuscript');
+      return all;
+    }
     return getBookableActivities(bookType.id);
-  }, [bookType, useCollection, selectedCollection]);
+  }, [bookType, selectMode, selectedCollection, allActivityData, allSourceFilter]);
+
+  // 전체 모드 전용 — 선택된 글들을 별도 묶음으로도 저장 (책에는 그대로 사용)
+  const handleStashAsCollection = async () => {
+    if (selectedIds.size === 0) return;
+    const items = recommendedActivities.filter((a, i) => {
+      const id = a._id || i;
+      return selectedIds.has(id);
+    });
+    if (items.length === 0) return;
+    const title = stashCollectionTitle.trim() || `내 글 모음 - ${new Date().toLocaleDateString('ko-KR')}`;
+    try {
+      const result = await createCollection({ title, items });
+      setCollections((prev) => [result, ...prev]);
+      setStashCollectionTitle('');
+      setStashSavedMsg(`"${result.title}" 묶음으로 저장됨`);
+      setTimeout(() => setStashSavedMsg(''), 2500);
+    } catch {
+      setStashSavedMsg('묶음 저장에 실패했어요');
+      setTimeout(() => setStashSavedMsg(''), 2500);
+    }
+  };
 
   const activityMap = useMemo(() => buildActivityMap(recommendedActivities), [recommendedActivities]);
 
@@ -159,20 +200,54 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
             )}
           </div>
 
-          {collections.length > 0 && (
-            <div className="flex gap-1">
-              <button onClick={() => { setUseCollection(false); setSelectedIds(new Set()); }}
-                className={`text-[10px] px-2.5 py-1 rounded-full font-medium ${!useCollection ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                직접 선택
+          {/* 모드 토글 — 추천 / 전체 / 묶음 */}
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: 'recommended', label: '이 책에 맞는 추천 글' },
+              { id: 'all',         label: '전체 글에서 고르기' },
+              ...(collections.length > 0 ? [{ id: 'collection', label: '내가 만든 묶음 사용' }] : []),
+            ].map((m) => (
+              <button
+                key={m.id}
+                onClick={() => { setSelectMode(m.id); setSelectedIds(new Set()); setSelectedCollection(null); setSelectedCollectionId(null); }}
+                className={`text-[11px] px-2.5 py-1 rounded-full font-medium border transition ${
+                  selectMode === m.id
+                    ? 'bg-purple-600 text-white border-purple-600'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300'
+                }`}
+              >
+                {m.label}
               </button>
-              <button onClick={() => { setUseCollection(true); setSelectedIds(new Set()); }}
-                className={`text-[10px] px-2.5 py-1 rounded-full font-medium ${useCollection ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                편찬실 묶음 사용
-              </button>
+            ))}
+          </div>
+
+          {selectMode === 'all' && (
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-gray-500">소스:</span>
+                {[
+                  { id: 'all', label: '전체' },
+                  { id: 'morning', label: '아침 활동' },
+                  { id: 'manuscript', label: '원고지' },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => { setAllSourceFilter(f.id); setSelectedIds(new Set()); }}
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                      allSourceFilter === f.id ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-gray-400">
+                책에 바로 넣을 글을 고르거나, 선택한 글을 묶음으로 저장해 나중에 다시 쓸 수 있어요.
+              </p>
             </div>
           )}
 
-          {useCollection && selectedCollection && (
+          {selectMode === 'collection' && selectedCollection && (
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-purple-700">선택된 묶음: {selectedCollection.title}</p>
@@ -183,7 +258,7 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
             </div>
           )}
 
-          {useCollection && !selectedCollection && (
+          {selectMode === 'collection' && !selectedCollection && (
             <div className="space-y-2">
               {collections.map((c, i) => (
                 <label key={c.id || i} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${selectedCollectionId === (c.id || i) ? 'border-purple-400 bg-purple-50' : 'border-gray-100'}`}>
@@ -214,11 +289,12 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
             </div>
           )}
 
-          {!useCollection && (
+          {selectMode !== 'collection' && (
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
               {recommendedActivities.map((a, i) => {
                 const info = getTypeInfo(a);
                 const aid = a._id || i;
+                const badges = selectMode === 'all' ? getBadges(a) : [];
                 return (
                   <label key={aid} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${selectedIds.has(aid) ? 'border-purple-400 bg-purple-50' : 'border-gray-100 hover:bg-gray-50'}`}>
                     <input type="checkbox" checked={selectedIds.has(aid)} onChange={() => toggleSelect(a)} className="mt-1 h-4 w-4 rounded" />
@@ -228,6 +304,13 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
                         <p className="text-sm font-medium text-gray-800 truncate">{a.title || '제목 없음'}</p>
                       </div>
                       <p className="text-xs text-gray-400">{info.label} · {new Date(a.createdAt).toLocaleDateString('ko-KR')}</p>
+                      {badges.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {badges.map((b, j) => (
+                            <span key={j} className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${b.color}`}>{b.label}</span>
+                          ))}
+                        </div>
+                      )}
                       {a.content && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{a.content}</p>}
                     </div>
                   </label>
@@ -240,10 +323,33 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
               )}
               {recommendedActivities.length === 0 && !activitiesLoading && (
                 <div className="text-center py-8 text-gray-400">
-                  <p className="text-sm">{bookType.id === 'growth' ? '대표 글을 넣으려면 활동을 먼저 해 보세요' : '이 유형에 맞는 글이 아직 없습니다'}</p>
+                  <p className="text-sm">{bookType.id === 'growth' ? '대표 글을 넣으려면 활동을 먼저 해 보세요' : selectMode === 'all' ? '아직 책에 쓸 수 있는 글이 없어요' : '이 유형에 맞는 글이 아직 없습니다'}</p>
                   <button onClick={() => onSwitchTab ? onSwitchTab('today') : navigate('/morning-activity')} className="mt-2 text-purple-600 text-xs underline">활동하러 가기</button>
                 </div>
               )}
+            </div>
+          )}
+
+          {selectMode === 'all' && selectedIds.size > 0 && (
+            <div className="border-t border-gray-100 pt-3 mt-2 space-y-2">
+              <p className="text-[11px] font-semibold text-gray-600">선택한 글을 묶음으로도 저장 (선택)</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={stashCollectionTitle}
+                  onChange={(e) => setStashCollectionTitle(e.target.value)}
+                  placeholder="묶음 제목 (예: 봄에 쓴 글 모음)"
+                  className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={handleStashAsCollection}
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-purple-200 text-purple-700 hover:bg-purple-50"
+                >
+                  묶음으로 저장
+                </button>
+              </div>
+              {stashSavedMsg && <p className="text-[11px] text-emerald-600">{stashSavedMsg}</p>}
             </div>
           )}
 

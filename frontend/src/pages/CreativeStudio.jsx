@@ -6,6 +6,15 @@ import useActivities from '../hooks/useActivities';
 
 function CreativeStudio({ embedded, onSwitchTab, onGoToBookWithCollection }) {
   const navigate = useNavigate();
+
+  // 단독 라우트(/creative-studio)로 진입하면 내 책 만들기 흐름으로 자동 이동.
+  // embedded 모드(MorningActivity / StudentActivity 내부)에서는 기존 화면 유지.
+  useEffect(() => {
+    if (!embedded) {
+      navigate('/my-book', { replace: true });
+    }
+  }, [embedded, navigate]);
+
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [collectionTitle, setCollectionTitle] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
