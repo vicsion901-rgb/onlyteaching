@@ -18,7 +18,6 @@ function GrowthView({ embedded, onSwitchTab }) {
     const total = activities.length;
     const submitted = activities.filter(a => a.status === 'submitted').length;
     const types = {};
-    const months = {};
     let totalLength = 0;
 
     const manuscriptModes = {};
@@ -28,8 +27,6 @@ function GrowthView({ embedded, onSwitchTab }) {
     activities.forEach(a => {
       const label = getTypeInfo(a).label;
       types[label] = (types[label] || 0) + 1;
-      const month = new Date(a.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
-      months[month] = (months[month] || 0) + 1;
       totalLength += (a.content || '').length;
       if (a.sourceType === 'manuscript') {
         const mode = a.type.replace('manuscript-', '');
@@ -47,7 +44,7 @@ function GrowthView({ embedded, onSwitchTab }) {
     const manuscriptTotal = Object.values(manuscriptModes).reduce((s, v) => s + v, 0);
 
     return {
-      stats: { total, submitted, types, months, topType, avgLength, manuscriptTotal, manuscriptModes, avgAccuracy },
+      stats: { total, submitted, types, topType, avgLength, manuscriptTotal, manuscriptModes, avgAccuracy },
       recentActivities: activities.slice(0, 5),
     };
   }, [activities]);
@@ -261,23 +258,6 @@ function GrowthView({ embedded, onSwitchTab }) {
               )}
             </div>
           )}
-        </div>
-      )}
-
-      {Object.keys(stats.months).length > 0 && (
-        <div className="bg-white shadow rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">월별 활동</h2>
-          <div className="space-y-2">
-            {Object.entries(stats.months).map(([month, count]) => (
-              <div key={month} className="flex items-center gap-3">
-                <span className="text-sm text-gray-600 w-28">{month}</span>
-                <div className="flex-1 bg-gray-100 rounded-full h-4">
-                  <div className="bg-emerald-500 rounded-full h-4 transition-all" style={{ width: `${Math.min(100, (count / Math.max(...Object.values(stats.months))) * 100)}%` }} />
-                </div>
-                <span className="text-xs text-gray-500 w-8 text-right">{count}</span>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
