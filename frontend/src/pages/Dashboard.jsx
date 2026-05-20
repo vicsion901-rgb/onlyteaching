@@ -21,6 +21,63 @@ const UNIMPLEMENTED_IDS = new Set([
   'counseling',
 ]);
 
+// workspace형 탭 안내 문구 — 단순 "이동"이 아니라 왜 그 화면에서 이어가는지 설명
+const WORKSPACE_HINTS = {
+  'autobiography-compilation': {
+    why: '자서전은 편찬실에서 챕터를 고르고 질문·재료를 모아 차근차근 쓰는 작업이에요.',
+    cta: '자서전 편찬 열기',
+  },
+  'creative-studio': {
+    why: '편찬실에서 학생용/교사용 챕터와 질문을 살펴보며 작품을 이어 만들 수 있어요.',
+    cta: '편찬실 열기',
+  },
+  'qr-distribution': {
+    why: 'QR 배포는 전용 화면에서 활동 방식과 시간을 정해 코드/링크를 만드는 작업이에요.',
+    cta: 'QR 배포 열기',
+  },
+  'student-records': {
+    why: '학생명부에서 번호·이름·학년/반을 한눈에 볼 수 있어요. 특정 학생만 빠르게 보고 싶다면 "5번 학생 보여줘"처럼 입력해 보세요.',
+    cta: '학생명부 열기',
+  },
+  'today-meal': {
+    why: '최근 학교별 급식 사진과 응원 순위, 주간 화제를 한곳에서 볼 수 있어요.',
+    cta: '오늘의 급식 열기',
+  },
+  'newsletter': {
+    why: '가정통신문은 전용 화면에서 제목·본문·첨부를 정리해 보내는 작업이에요.',
+    cta: '가정통신문 열기',
+  },
+  'my-book': {
+    why: '내 책 만들기는 전용 편집 화면에서 챕터를 묶고 표지/디자인을 정해 마무리하는 작업이에요.',
+    cta: '내 책 만들기 열기',
+  },
+  'exam-grading': {
+    why: '시험 채점은 답안 사진과 정답을 업로드해 자동/수동 채점을 이어가는 화면에서 진행돼요.',
+    cta: '시험 채점 열기',
+  },
+  'schedule': {
+    why: '학사일정은 월간 흐름과 등록 항목을 함께 보며 정리하는 화면에서 다루는 게 좋아요.',
+    cta: '학사일정 열기',
+  },
+  'care-classroom': {
+    why: '돌봄교실 기록은 감정·투두·행사 영역으로 나눠 정리하는 화면에서 이어가요.',
+    cta: '돌봄교실 열기',
+  },
+  'presenter-picker': {
+    why: '발표자/자리/1인 1역 등 즉석 추첨 도구는 수업 보조 도구 화면에서 이어 사용할 수 있어요.',
+    cta: '발표자 정하기 열기',
+  },
+};
+
+// 미구현 탭 안내 — 차가운 "준비 중"이 아니라 어떤 방향으로 연결될지 짧게
+const UNIMPLEMENTED_HINTS = {
+  counseling: {
+    headline: '관찰일지·상담 기록은 곧 만나볼 수 있어요',
+    body: '학생별 관찰 내용과 상담 흐름을 한 화면에서 정리할 수 있도록 만들고 있어요. 완성되면 이 도우미에서도 키워드만으로 바로 도와드릴 수 있어요.',
+    cta: '관찰일지 화면 미리 보기',
+  },
+};
+
 // LLM intent → 카테고리 id 매핑
 const INTENT_TO_CATEGORY = {
   'student-record': 'life-records',
@@ -68,46 +125,104 @@ function intentToRouteInfo(llmIntent) {
   };
 }
 
-const GENERATION_VERBS = [
-  '써줘', '써주세요', '작성해줘', '작성해주세요', '작성',
-  '만들어줘', '만들어주세요', '만들어', '만들',
-  '정리해줘', '정리해주세요', '정리해',
-  '요약해줘', '요약해주세요', '요약',
-  '초안', '문장', '4줄', '3줄', '5줄', '두줄', '한줄',
-  '추천해줘', '뽑아줘', '뽑아주세요', '써',
+// 구조적 입력 파서 — stop word 땜질 대신 입력 전체를 한 번에 해석.
+// 결과: { domain, action, targetStudents, studentNames, subject, area,
+//        lineCount, contentKeywords, fillerWords, confidence, multiStudent }
+
+const SUBJECT_LEXICON = ['국어', '수학', '사회', '과학', '영어', '도덕', '체육', '음악', '미술', '실과', '통합교과'];
+const AREA_LEXICON = [
+  '듣기·말하기', '듣기말하기', '듣기 말하기',
+  '읽기', '쓰기', '문법', '문학',
+  '수와 연산', '수와연산', '도형', '측정', '규칙성', '자료와 가능성', '자료와가능성',
 ];
 
-function hasGenerationIntent(normalized) {
-  return GENERATION_VERBS.some((v) => {
-    const k = v.toLowerCase().replace(/\s+/g, '');
-    return k && normalized.includes(k);
-  });
+// 패턴은 위에 있는 것이 더 강한 우선순위
+const DOMAIN_RULES = [
+  { id: 'presenter-picker',         regex: /(발표자.*뽑|랜덤.*발표|발표\s*뽑|추첨\s*해|발표자.*정해)/ },
+  { id: 'qr-distribution',          regex: /(qr|큐알)/i },
+  { id: 'counseling',               regex: /(관찰\s*일지|상담\s*기록|관찰\s*기록)/ },
+  { id: 'autobiography-compilation',regex: /(자서전|편찬실|편찬)/ },
+  { id: 'today-meal',               regex: /(급식|영양\s*선생님|급식상|식판|식단)/ },
+  { id: 'student-records',          regex: /(학생\s*명부|학생\s*목록|^\s*명부|\s명부|명단)/ },
+  { id: 'life-records',             regex: /(생활\s*기록부|생기부|행발|생활\s*기록)/ },
+  { id: 'subject-evaluation',       regex: /(교과\s*평가|평가\s*문장|성취\s*기준)/ },
+  { id: 'creative-activities',      regex: /(창체|창의적\s*체험\s*활동|동아리\s*활동|봉사\s*활동|진로\s*활동|자율\s*활동)/ },
+];
+
+const ACTION_RULES = [
+  { id: 'help',     regex: /(키워드.*알려|뭐\s*있|뭐\s*쓸|어떻게\s*하|방법\s*알려|무슨.*키워드)/ },
+  { id: 'navigate', regex: /(열어\s*줘|들어가|가\s*고\s*싶|들어가고\s*싶)/ },
+  { id: 'lookup',   regex: /(보여\s*줘|보여\s*주세요|확인\s*해|볼래|보고\s*싶|확인\s*하|보여)/ },
+  { id: 'generate', regex: /(써\s*줘|써\s*주세요|작성\s*해|작성\s*하|만들\s*어|만들기|정리\s*해|요약\s*해|초안)/ },
+];
+
+const FILLER_TOKEN_SET = new Set([
+  // 군더더기/감탄
+  '그냥', '좀', '대충', '일단', '글쎄', '아마', '대략', '음', '아', '어', '뭐',
+  // 연결어/지시어
+  '관련', '관련해서', '관련한', '관해', '관해서', '대해', '대한', '대해서',
+  '그래서', '그리고', '근데', '또', '그럼', '아니',
+  // 등급/성취
+  '상', '중', '하', '상중하', '상중', '중하', '최상', '최하',
+  '우수', '미흡', '보통',
+  // 명령/지시어
+  '써', '써줘', '써주세요', '써봐', '써봐요', '쓰자', '쓰기', '써라',
+  '작성', '작성해', '작성해줘', '작성해주세요', '작성합', '작성하기',
+  '만들', '만들어', '만들어줘', '만들어주세요', '만들기',
+  '정리', '정리해', '정리해줘', '정리해주세요', '정리하기',
+  '요약', '요약해', '요약해줘', '요약해주세요',
+  '해줘', '해주세요', '해', '하기',
+  '부탁', '부탁해', '부탁드려요', '부탁드립니다',
+  '보여줘', '보여', '보고', '볼래', '보여주세요',
+  '알려줘', '알려', '알려주세요',
+  '주세요', '주실',
+  '뽑아', '뽑아줘', '뽑아주세요', '추첨', '추첨해', '추첨해줘',
+  '실행', '실행해', '실행해줘',
+  '열어', '열어줘', '열어주세요', '들어가', '들어가고', '가고',
+  // 형식어
+  '초안', '문장', '문구', '구절', '예', '예시', '샘플',
+  '한줄', '두줄', '세줄', '네줄', '한문장', '두문장', '세문장',
+  '씩', '명', '한명', '두명', '세명', '네명',
+  '명씩', '한명씩', '두명씩', '세명씩',
+  '줄씩', '한줄씩', '두줄씩', '세줄씩', '네줄씩',
+  '각각', '여러', '여러분', '모든', '반', '반전체',
+  // 도메인 어휘 (content 아님)
+  '학생', '학생들', '학생명부', '명부', '명단',
+  '기록', '기록된', '기록부', '기록물',
+  '있는', '있어', '있어요', '있는데', '있고',
+  '생기부', '생활기록부', '생활기록', '행발',
+  '교과평가', '교과', '평가', '평가문장', '성취기준', '학년군',
+  '안내문', '가정통신문', '통신문',
+  '자서전', '편찬', '편찬실',
+  '친구', '학우', '아이',
+  '발표자', '랜덤', 'qr', '큐알', '큐알코드', 'qr코드',
+  '관찰일지', '관찰', '관찰기록', '상담', '상담기록',
+  '오늘의', '오늘', '이번', '저번', '지난',
+  '창체', '동아리', '봉사', '체험활동',
+  '키워드',
+  // subject
+  '국어', '수학', '사회', '과학', '영어', '도덕', '체육', '음악', '미술', '실과', '통합교과',
+]);
+
+// 자주 등장하는 조사 — 토큰 끝에서 한 번 떼어내 어간을 추출
+const JOSA_RE = /(으로서|으로|로서|로써|에서는|에서도|에서|에게서|에게|에는|에도|에만|에|을|를|이|가|은|는|도|만|과|와|랑|이랑|의|까지|부터|마저|밖에|보다)$/;
+
+function stripJosa(word) {
+  if (!word) return '';
+  return word.replace(JOSA_RE, '') || word;
 }
 
-// 옛 NestJS prompts.service.ts에서 가져온 키워드 추출 + 1단계 마무리 보강
-function extractLineCount(text) {
-  const m = (text || '').match(/(\d+)\s*줄/);
-  if (m) return Math.max(1, Math.min(8, parseInt(m[1], 10)));
-  return null;
-}
+function normalize(s) { return (s || '').replace(/[\s·]/g, '').toLowerCase(); }
 
-function extractStudentNumber(text) {
-  const m = (text || '').match(/(\d+)\s*번/);
-  if (m) return parseInt(m[1], 10);
-  return null;
-}
+const NUMERIC_FILLER_RE = /^\d+(번|줄|줄씩|명|명씩|등급|점)?$/;
 
-// 다중 학생 추출 — "2,4번" / "2번, 4번" / "2번 4번" / "2번이랑 4번" / "2번과 4번"
-function extractStudentNumbers(text) {
+function extractStudentNumbersInternal(text) {
   if (!text) return [];
   const nums = new Set();
-  // 모든 "N번" 패턴
-  const matches = text.matchAll(/(\d+)\s*번/g);
-  for (const m of matches) {
+  for (const m of text.matchAll(/(\d+)\s*번/g)) {
     const n = parseInt(m[1], 10);
     if (n > 0 && n <= 50) nums.add(n);
   }
-  // "2,4번" 또는 "2,4,5번" 콤마 묶음 패턴
   const commaMatch = text.match(/(\d+(?:\s*,\s*\d+)+)\s*번/);
   if (commaMatch) {
     commaMatch[1].split(',').forEach((s) => {
@@ -118,22 +233,119 @@ function extractStudentNumbers(text) {
   return [...nums].sort((a, b) => a - b);
 }
 
-function hasMultipleStudents(text) {
-  if (!text) return false;
-  const nums = extractStudentNumbers(text);
-  if (nums.length >= 2) return true;
-  if (/(\d+)\s*명|여러\s*학생|학생들|모든\s*학생|반\s*전체/.test(text)) {
-    // "1명"은 단일이라 제외 — 2명 이상만 다중으로 간주
-    const mn = text.match(/(\d+)\s*명/);
-    if (mn) {
-      const n = parseInt(mn[1], 10);
-      return n >= 2;
-    }
-    return true;
-  }
-  return false;
+function parseLineCount(text) {
+  if (!text) return null;
+  const m = text.match(/(\d+)\s*줄/);
+  if (m) return Math.max(1, Math.min(8, parseInt(m[1], 10)));
+  if (/한\s*줄/.test(text)) return 1;
+  if (/두\s*줄/.test(text)) return 2;
+  if (/세\s*줄/.test(text)) return 3;
+  if (/네\s*줄/.test(text)) return 4;
+  if (/다섯\s*줄/.test(text)) return 5;
+  return null;
 }
 
+function findDomain(text) {
+  for (const r of DOMAIN_RULES) if (r.regex.test(text)) return r.id;
+  return null;
+}
+
+function findAction(text) {
+  for (const r of ACTION_RULES) if (r.regex.test(text)) return r.id;
+  return null;
+}
+
+function parseUserInput(text) {
+  const raw = (text || '').trim();
+  const targetStudents = extractStudentNumbersInternal(raw);
+  const studentNames = [];
+  for (const m of raw.matchAll(/([가-힣]{2,4})\s*학생/g)) studentNames.push(m[1]);
+
+  const subject = SUBJECT_LEXICON.find((s) => raw.includes(s)) || null;
+  const area = AREA_LEXICON.find((a) => normalize(raw).includes(normalize(a))) || null;
+  const lineCount = parseLineCount(raw);
+
+  let domain = findDomain(raw);
+  let domainConfidence = domain ? 0.8 : 0;
+  if (!domain && subject) { domain = 'subject-evaluation'; domainConfidence = 0.6; }
+
+  let action = findAction(raw);
+  if (domain === 'presenter-picker' && /(뽑아|추첨|랜덤)/.test(raw)) action = 'execute';
+  if (!action) action = 'navigate';
+
+  let multiStudent = targetStudents.length >= 2;
+  if (!multiStudent) {
+    const mn = raw.match(/(\d+)\s*명/);
+    if (mn && parseInt(mn[1], 10) >= 2) multiStudent = true;
+    if (/여러\s*학생|학생들|모든\s*학생|반\s*전체/.test(raw)) multiStudent = true;
+  }
+
+  // 토큰화 → content / filler 분리
+  const cleaned = raw.replace(/[^\w가-힣\s,]/g, ' ');
+  const parts = cleaned.split(/[\s,]+/).map((p) => p.trim()).filter(Boolean);
+  const contentKeywords = [];
+  const fillerWords = [];
+  const seen = new Set();
+  for (const p of parts) {
+    const lower = p.toLowerCase();
+    if (NUMERIC_FILLER_RE.test(lower) || /^\d+$/.test(lower)) { fillerWords.push(p); continue; }
+    const stripped = stripJosa(p);
+    if (!stripped || stripped.length < 2) { fillerWords.push(p); continue; }
+    const slow = stripped.toLowerCase();
+    if (FILLER_TOKEN_SET.has(slow) || FILLER_TOKEN_SET.has(lower)) { fillerWords.push(p); continue; }
+    if (SUBJECT_LEXICON.includes(stripped)) { fillerWords.push(p); continue; }
+    if (/^[a-z0-9]$/.test(slow)) { fillerWords.push(p); continue; }
+    if (seen.has(slow)) continue;
+    seen.add(slow);
+    contentKeywords.push(stripped);
+  }
+
+  let confidence = domainConfidence;
+  if (action !== 'navigate') confidence += 0.1;
+  if (lineCount) confidence += 0.05;
+  if (contentKeywords.length > 0) confidence += 0.1;
+  if (targetStudents.length > 0) confidence += 0.05;
+  if (subject) confidence += 0.05;
+  confidence = Math.min(1, confidence);
+
+  return {
+    domain, action, targetStudents, studentNames,
+    subject, area, lineCount,
+    contentKeywords, fillerWords,
+    confidence, multiStudent,
+  };
+}
+
+// direct 생성 허용 조건 — 파싱 결과로만 판정
+function canDirectGenerate(parsed) {
+  if (!parsed || !DIRECT_OUTPUT_IDS.has(parsed.domain)) return false;
+  if (parsed.action !== 'generate') return false;
+  if (parsed.multiStudent) return false;
+  if (parsed.domain === 'subject-evaluation') return !!parsed.subject;
+  return parsed.contentKeywords.length >= 1;
+}
+
+function directBlockReason(parsed) {
+  if (!parsed) return null;
+  if (parsed.multiStudent) return 'multiStudent';
+  if (parsed.domain && !DIRECT_OUTPUT_IDS.has(parsed.domain)) return 'nonDirectDomain';
+  if (parsed.action !== 'generate') return 'nonGenerateAction';
+  if (parsed.domain === 'subject-evaluation' && !parsed.subject) return 'noSubject';
+  if (parsed.contentKeywords.length === 0) return 'noContent';
+  return null;
+}
+
+// ── 기존 시그니처 호환 wrapper (CAPABILITY_REGISTRY / generateLocalDraftAsync 등에서 호출)
+function extractKeywords(text) { return parseUserInput(text).contentKeywords; }
+function extractLineCount(text) { return parseLineCount(text); }
+function extractStudentNumber(text) {
+  const arr = extractStudentNumbersInternal(text);
+  return arr.length ? arr[0] : null;
+}
+function hasMultipleStudents(text) { return parseUserInput(text).multiStudent; }
+function hasGenerationIntent(normalized) {
+  return /(써줘|써주세요|작성|만들|정리해|초안|뽑아|뽑기)/.test(normalized);
+}
 function hasStudentRosterSource(text) {
   return /학생명부|명부|학생\s*기록|기록된/.test(text || '');
 }
@@ -148,74 +360,6 @@ async function fetchStudentByNumber(num) {
     const list = Array.isArray(res.data) ? res.data : [];
     return list.find((s) => Number(s.number) === Number(num)) || null;
   } catch { return null; }
-}
-
-function extractKeywords(text) {
-  const cleaned = (text || '').replace(/[^\w가-힣\s,]/g, ' ');
-  const parts = cleaned.split(/[\s,]+/).map((p) => p.trim()).filter(Boolean);
-  const stop = new Set([
-    // 등급/성취 표기
-    '상', '중', '하', '상중하', '상중', '중하', '최상', '최하',
-    'a', 'b', 'c', 'd', 'f', 's', 'p', 'np',
-    '우수', '미흡', '보통',
-    '1등급', '2등급', '3등급', '4등급', '5등급', '6등급', '7등급', '8등급', '9등급',
-    // 명령어/지시어
-    '써', '써줘', '써주세요', '써봐', '써봐요', '쓰자', '쓰기',
-    '작성', '작성해', '작성해줘', '작성해주세요', '작성합', '작성하기',
-    '만들', '만들어', '만들어줘', '만들어주세요', '만들기',
-    '정리', '정리해', '정리해줘', '정리해주세요', '정리하기',
-    '요약', '요약해', '요약해줘', '요약해주세요',
-    '해줘', '해주세요', '해', '하기',
-    '부탁', '부탁해', '부탁드려요', '부탁드립니다',
-    '보여줘', '보여', '보고', '볼래', '보여주세요',
-    '알려줘', '알려', '알려주세요',
-    '주세요', '주실',
-    // 연결어
-    '관련', '관련해서', '관련한', '관해', '관해서',
-    '으로', '로', '에', '에서', '에는', '에게',
-    '대해', '대한', '대해서',
-    // 형식어
-    '초안', '문장', '문구', '구절',
-    '한줄', '두줄', '세줄', '네줄', '한 줄', '두 줄',
-    '한문장', '두문장', '세문장',
-    '2줄', '3줄', '4줄', '5줄', '6줄', '7줄', '8줄',
-    '예', '예시', '샘플',
-    // 탭명/대상 식별자
-    '학생', '학생들', '학생명부', '명부', '명단',
-    '기록', '기록된', '기록부', '기록물',
-    '있는', '있어', '있어요', '있는데', '있고',
-    '생기부', '생활기록부', '생활기록',
-    '상담', '상담기록', '관찰일지', '관찰', '관찰기록',
-    '교과평가', '교과', '평가', '평가문장',
-    '안내문', '가정통신문', '통신문',
-    '자서전', '편찬', '편찬실',
-    '친구', '학우', '아이',
-    // 시간/소속
-    '오늘', '이번', '저번', '지난', '오늘의',
-    // 수량/단위/형식
-    '명', '한명', '두명', '세명', '네명', '한 명', '두 명', '세 명', '네 명',
-    '1명', '2명', '3명', '4명', '5명', '6명', '7명', '8명', '9명', '10명',
-    '씩', '줄씩', '한줄씩', '두줄씩', '세줄씩', '네줄씩', '한 줄씩', '두 줄씩', '세 줄씩',
-    '1줄씩', '2줄씩', '3줄씩', '4줄씩', '5줄씩',
-    '개', '각각', '여러', '여러분', '모든', '반', '반전체', '반 전체',
-  ]);
-  const isScoreWord = (w) => {
-    if (!w) return true;
-    if (stop.has(w.toLowerCase())) return true;
-    if (/^\d+점$/.test(w)) return true;
-    if (/^\d+등급$/.test(w)) return true;
-    if (/^\d+번$/.test(w)) return true;
-    if (/^\d+줄$/.test(w)) return true;
-    if (w.length === 1) return true;
-    return false;
-  };
-  const seen = new Set();
-  const uniq = [];
-  for (const p of parts) {
-    if (isScoreWord(p)) continue;
-    if (!seen.has(p)) { seen.add(p); uniq.push(p); }
-  }
-  return uniq;
 }
 
 function josa(word, type) {
@@ -452,17 +596,18 @@ function generateCreativeActivityDraft(keywords, lineCount, multiStudents) {
   return lines.slice(0, target).map((s) => `- ${s}`).join('\n');
 }
 
-async function generateLocalDraftAsync(text, primary) {
+async function generateLocalDraftAsync(text, primary, parsed) {
   if (!primary) return '';
-  const lineCount = extractLineCount(text);
-  const studentNum = extractStudentNumber(text);
-  const wantStudent = hasStudentRosterSource(text);
-  const keywords = extractKeywords(text);
+  const p = parsed || parseUserInput(text);
   const id = primary.id;
+  const lineCount = p.lineCount;
+  const keywords = p.contentKeywords;
+  const studentNum = p.targetStudents[0] || null;
+  const wantStudent = hasStudentRosterSource(text);
 
   let studentName = null;
   let lookupNote = '';
-  if (wantStudent && studentNum) {
+  if (wantStudent && studentNum && !p.multiStudent) {
     const info = await fetchStudentByNumber(studentNum);
     if (info?.name) studentName = info.name;
     else lookupNote = `ℹ️ 학생명부에서 ${studentNum}번 학생 정보를 찾지 못해 일반 초안으로 작성했어요.`;
@@ -470,11 +615,47 @@ async function generateLocalDraftAsync(text, primary) {
 
   const withNote = (body) => lookupNote ? `${lookupNote}\n\n${body}` : body;
 
-  const multiStudents = hasMultipleStudents(text);
   // direct generation 허용 3개 탭만 — 나머지는 빈 문자열 → ResultPanel에서 탭 안내 fallback
-  if (id === 'subject-evaluation') return generateSubjectEvalDraft(text, lineCount, multiStudents);
-  if (id === 'life-records') return withNote(generateLifeRecordDraft(keywords, lineCount, studentName, multiStudents));
-  if (id === 'creative-activities') return generateCreativeActivityDraft(keywords, lineCount, multiStudents);
+  if (id === 'subject-evaluation') return generateSubjectEvalDraft(text, lineCount, p.multiStudent);
+  if (id === 'life-records') return withNote(generateLifeRecordDraft(keywords, lineCount, studentName, p.multiStudent));
+  if (id === 'creative-activities') return generateCreativeActivityDraft(keywords, lineCount, p.multiStudent);
+  return '';
+}
+
+// direct 차단 사유에 따른 안내 메시지 (generic 문장 대신)
+function directBlockMessage(parsed, primary) {
+  const reason = directBlockReason(parsed);
+  if (!reason) return '';
+  const title = primary?.title || '관련 화면';
+  if (reason === 'multiStudent') {
+    return [
+      `ℹ️ 여러 학생을 한 번에 작성하면 결과가 부정확해질 수 있어요.`,
+      `[${title} 열기] 버튼에서 학생을 한 명씩 선택해 작성해 주세요.`,
+    ].join('\n');
+  }
+  if (reason === 'noContent') {
+    if (parsed.domain === 'life-records') {
+      const who = parsed.targetStudents[0] ? `${parsed.targetStudents[0]}번 학생` : '학생';
+      return [
+        `ℹ️ ${who}에 대한 관찰 키워드를 함께 입력하면 더 정확한 생활기록부 문장을 만들 수 있어요.`,
+        '예: 발표력, 책임감, 정리정돈, 협동, 예의범절',
+        `[${title} 열기]에서 학생별로 이어 작성할 수도 있어요.`,
+      ].join('\n');
+    }
+    if (parsed.domain === 'creative-activities') {
+      return [
+        'ℹ️ 어떤 활동/덕목 중심으로 만들지 키워드를 함께 입력해 주세요.',
+        '예: 협동, 배려, 자율활동, 동아리, 봉사, 진로, 리더십',
+      ].join('\n');
+    }
+    return 'ℹ️ 어떤 내용으로 만들지 키워드를 함께 입력해 주세요.';
+  }
+  if (reason === 'noSubject') {
+    return [
+      'ℹ️ 어느 교과의 평가문장을 만들지 알려주세요.',
+      '예: 국어, 수학, 사회, 과학, 영어, 도덕, 체육, 음악, 미술, 실과, 통합교과',
+    ].join('\n');
+  }
   return '';
 }
 
@@ -840,36 +1021,47 @@ function Dashboard() {
     const normalized = text.toLowerCase().replace(/\s+/g, '');
 
     try {
-      // 1) LLM intent parse 시도
+      // 1) 구조적 파싱 — 입력을 한 번에 domain/action/keywords/multiStudent 등으로 분해
+      const parsed = parseUserInput(text);
+
+      // 2) 라우팅 — LLM intent 우선, 실패 시 키워드 매칭 fallback
       const llmIntent = await parseIntentWithLLM(text);
       let route;
       if (llmIntent) {
         const fromLLM = intentToRouteInfo(llmIntent);
         if (fromLLM?.primary) route = fromLLM;
       }
-      // 2) LLM 실패/unknown → 키워드 매칭 fallback
       if (!route || !route.primary) {
         route = detectRoutesFromPrompt(text);
       }
+      // parsed.domain이 명확한데 라우팅이 비었거나 다르면 parsed 우선 (한국어 패턴은 LLM보다 결정적)
+      if (parsed.domain && parsed.domain !== route.primary?.id) {
+        const overridden = KEYWORD_MAP.find((e) => e.id === parsed.domain);
+        if (overridden) {
+          route = {
+            primary: { ...overridden, score: Math.max(route.primary?.score || 0, parsed.confidence * 10) },
+            secondary: route.secondary || [],
+            confidence: parsed.confidence >= 0.7 ? 'high' : parsed.confidence >= 0.4 ? 'medium' : 'low',
+          };
+        }
+      }
       setRouteInfo(route);
 
-      // 3) mode 결정 — LLM mode 우선, 없으면 카테고리 기반 추정
-      const llmMode = llmIntent?.mode;
       const isDirectCategory = route.primary && DIRECT_OUTPUT_IDS.has(route.primary.id);
       const isUnimplemented = route.primary && UNIMPLEMENTED_IDS.has(route.primary.id);
-      const wantsGen = llmMode === 'generate' || (!llmMode && hasGenerationIntent(normalized) && isDirectCategory);
-      const wantsExec = llmMode === 'execute' || llmMode === 'lookup';
-      const wantsHelp = llmMode === 'help' || llmMode === 'navigate';
+      const allowedDirect = canDirectGenerate(parsed);
+      const llmMode = llmIntent?.mode;
+      const wantsExec = parsed.action === 'execute' || parsed.action === 'lookup' || llmMode === 'execute' || llmMode === 'lookup';
 
-      // 4) 실행 분기 — 우선순위:
-      //    a) 미구현 탭이면 direct/capability 모두 차단 → ResultPanel 보수 안내
-      //    b) direct 허용 탭(3개)이고 generate 의도 → direct generation
-      //    c) capability 가능 → capability 실행
-      //    d) 그 외 → ResultPanel에서 탭 안내 fallback
+      // 3) 실행 분기 — 파싱 기반 우선순위:
+      //    a) 미구현 탭이면 결과창 보수 안내만
+      //    b) direct 조건 모두 충족 → direct generation
+      //    c) direct 도메인인데 조건 미달 → 안내 메시지(generic 생성 금지)
+      //    d) capability 가능 → 실행
+      //    e) 그 외 → ResultPanel workspace/탭 안내
       if (isUnimplemented) {
-        // 미구현 탭 — 어떤 의도여도 결과창에서 보수 안내만
-      } else if (wantsGen && isDirectCategory) {
-        // direct generation (AI + 로컬 폴백) — 3개 탭에 한해서만
+        // 미구현 — 어떤 입력이어도 안내만
+      } else if (allowedDirect) {
         let aiResult = '';
         try {
           const res = await client.post('/api/prompts', { content: text, ai_model: selectedModel });
@@ -882,19 +1074,21 @@ function Dashboard() {
           console.error('directAnswer failed', err);
         }
         if (!aiResult.trim()) {
-          const local = await generateLocalDraftAsync(text, route.primary);
+          const local = await generateLocalDraftAsync(text, route.primary, parsed);
           if (local) { setResponse(local); setUsedModel('local-template'); }
         }
+      } else if (isDirectCategory && parsed.action === 'generate') {
+        // direct 도메인 + 생성 의도지만 조건 미달 (내용 키워드/교과/단일학생 결여)
+        const msg = directBlockMessage(parsed, route.primary);
+        if (msg) { setResponse(msg); setUsedModel('local-guidance'); }
       } else if (wantsExec) {
-        // capability 실행 (발표자 추첨, 학생 조회, 급식 미리보기, 자서전 챕터 등)
         const cap = await tryInvokeCapability(route, normalized, text);
         if (cap) setCapabilityResult(cap);
-      } else if (!wantsHelp && !isDirectCategory) {
-        // mode 정보 없고 비 direct → capability 시도
+      } else if (!isDirectCategory && parsed.action !== 'help' && parsed.action !== 'navigate') {
         const cap = await tryInvokeCapability(route, normalized, text);
         if (cap) setCapabilityResult(cap);
       }
-      // wantsHelp 또는 capability 실패 → navigate fallback은 ResultPanel에서 자동
+      // 그 외 → ResultPanel이 workspace/탭 안내로 fallback
     } finally {
       setIsLoading(false);
     }
@@ -1203,34 +1397,6 @@ function detectRoutesFromPrompt(text) {
   return { primary, secondary, confidence };
 }
 
-function RecommendationCard({ primary, secondary, onSelect }) {
-  return (
-    <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3 space-y-2">
-      <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">추천 작업</p>
-      <button type="button" onClick={() => onSelect(primary)}
-        className="w-full text-left flex items-center gap-3 rounded-lg bg-white border border-indigo-200 p-3 hover:border-indigo-400 hover:shadow-sm transition">
-        <span className="text-2xl shrink-0">{primary.emoji}</span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-gray-900">{primary.title}</p>
-          <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{primary.reason}</p>
-        </div>
-        <span className="text-indigo-600 text-sm font-semibold shrink-0">이동 →</span>
-      </button>
-      {secondary && secondary.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-          <span className="text-[11px] text-gray-500">비슷한 작업:</span>
-          {secondary.map((s) => (
-            <button key={s.id} type="button" onClick={() => onSelect(s)}
-              className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:border-indigo-300 hover:text-indigo-700 transition">
-              <span>{s.emoji}</span>{s.title}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function DidYouMeanCard({ primary, secondary, onSelect }) {
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 space-y-2">
@@ -1259,17 +1425,38 @@ function DidYouMeanCard({ primary, secondary, onSelect }) {
   );
 }
 
-function CapabilityResult({ result }) {
+function CapabilityResult({ result, primary, onSelect }) {
   if (!result) return null;
+  const FollowUp = ({ label, color = 'gray' }) => {
+    if (!primary || !onSelect) return null;
+    const palette = {
+      purple: 'border-purple-200 text-purple-700 hover:border-purple-400 hover:text-purple-800',
+      blue: 'border-blue-200 text-blue-700 hover:border-blue-400 hover:text-blue-800',
+      amber: 'border-amber-200 text-amber-700 hover:border-amber-400 hover:text-amber-800',
+      gray: 'border-gray-200 text-gray-700 hover:border-indigo-300 hover:text-indigo-700',
+    }[color] || 'border-gray-200 text-gray-700';
+    return (
+      <button
+        type="button"
+        onClick={() => onSelect(primary)}
+        className={`mt-2 inline-flex items-center gap-1 rounded-full bg-white border px-3 py-1 text-xs font-medium transition ${palette}`}
+      >
+        <span>{primary.emoji}</span>{label || `${primary.title} 열기`} →
+      </button>
+    );
+  };
+
   if (result.type === 'random-presenter') {
     const s = result.student || {};
+    const who = `${s.number ? `${s.number}번 ` : ''}${s.name || '학생'}`;
     return (
       <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-3">
         <p className="text-[11px] font-semibold tracking-wider text-purple-700 uppercase">실행 결과 · 발표자 추첨</p>
         <p className="mt-2 text-base sm:text-lg font-bold text-purple-900">
-          🎤 오늘 발표자: {s.number ? `${s.number}번 ` : ''}{s.name || '학생'}
+          🎤 오늘 발표자는 {who}이에요.
         </p>
-        <p className="mt-1 text-[11px] text-purple-700/70">{result.total}명 중 무작위 추첨</p>
+        <p className="mt-1 text-[11px] text-purple-700/70">{result.total}명 중 무작위로 뽑았어요. 다시 뽑거나 수업 보조 도구로 이어서 사용할 수 있어요.</p>
+        <FollowUp label="발표자 정하기 열기" color="purple" />
       </div>
     );
   }
@@ -1277,11 +1464,13 @@ function CapabilityResult({ result }) {
     const s = result.student;
     if (!s) {
       const q = result.queried || {};
+      const who = `${q.num ? `${q.num}번 ` : ''}${q.name ? `${q.name} ` : ''}`.trim();
       return (
         <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-3">
           <p className="text-[11px] font-semibold tracking-wider text-blue-700 uppercase">실행 결과 · 학생 조회</p>
-          <p className="mt-2 text-sm text-blue-900">{q.num ? `${q.num}번 ` : ''}{q.name ? `${q.name} ` : ''}학생을 찾지 못했어요.</p>
+          <p className="mt-2 text-sm text-blue-900">{who ? `${who} 학생을 찾지 못했어요.` : '해당 학생을 찾지 못했어요.'}</p>
           <p className="mt-1 text-[11px] text-blue-700/70">학생명부에서 등록 여부를 확인할 수 있어요. (전체 {result.total}명)</p>
+          <FollowUp label="학생명부 열기" color="blue" />
         </div>
       );
     }
@@ -1294,6 +1483,8 @@ function CapabilityResult({ result }) {
           {s.class && <span>반 {s.class}</span>}
           {s.gender && <span>{s.gender}</span>}
         </div>
+        <p className="mt-1.5 text-[11px] text-blue-700/70">학생명부에서 전체 명단과 출결을 같이 볼 수 있어요.</p>
+        <FollowUp label="학생명부 열기" color="blue" />
       </div>
     );
   }
@@ -1301,6 +1492,7 @@ function CapabilityResult({ result }) {
     return (
       <div className="rounded-xl border border-purple-200 bg-purple-50/40 p-3 space-y-2">
         <p className="text-[11px] font-semibold tracking-wider text-purple-700 uppercase">실행 결과 · 학생용 챕터 질문</p>
+        <p className="text-[11px] text-purple-800/70 leading-relaxed">편찬실에서 챕터를 고르고 학생과 함께 질문에 답을 채워 가며 이어 쓸 수 있어요.</p>
         <ul className="space-y-1.5">
           {result.items.map((it, idx) => (
             <li key={`${it.chapter}-${idx}`} className="rounded-lg bg-white border border-purple-100 px-2.5 py-1.5">
@@ -1309,6 +1501,7 @@ function CapabilityResult({ result }) {
             </li>
           ))}
         </ul>
+        <FollowUp label="자서전 편찬 열기" color="purple" />
       </div>
     );
   }
@@ -1316,6 +1509,7 @@ function CapabilityResult({ result }) {
     return (
       <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3 space-y-2">
         <p className="text-[11px] font-semibold tracking-wider text-amber-700 uppercase">실행 결과 · 이번 주 인기 급식</p>
+        <p className="text-[11px] text-amber-800/70 leading-relaxed">최근 급식 사진과 학교별 응원 순위를 함께 볼 수 있어요.</p>
         <div className="grid grid-cols-3 gap-2">
           {result.items.map((it, idx) => (
             <div key={`${it.schoolCode}-${idx}`} className="rounded-lg bg-white border border-amber-100 overflow-hidden">
@@ -1333,6 +1527,7 @@ function CapabilityResult({ result }) {
             </div>
           ))}
         </div>
+        <FollowUp label="오늘의 급식 전체 보기" color="amber" />
       </div>
     );
   }
@@ -1345,7 +1540,7 @@ function ResultPanel({ submitted, routeInfo, response, capabilityResult, isLoadi
     return (
       <p className="text-sm text-gray-400 leading-relaxed">
         업무 요청을 입력하고 <span className="font-medium text-gray-600">생성하기</span>를 누르면,
-        바로 답변하거나 관련 작업으로 안내해드려요.
+        바로 초안을 만들거나 알맞은 작업 화면으로 이어드려요.
       </p>
     );
   }
@@ -1356,7 +1551,7 @@ function ResultPanel({ submitted, routeInfo, response, capabilityResult, isLoadi
       <div className="space-y-3">
         <RequestEcho text={submitted} primary={routeInfo.primary} />
         <div className="rounded-xl bg-gray-50 border border-gray-200 px-3 py-4 text-center text-sm text-gray-500">
-          답변을 만들고 있어요...
+          요청을 살펴보고 알맞은 결과를 준비하고 있어요...
         </div>
       </div>
     );
@@ -1365,6 +1560,10 @@ function ResultPanel({ submitted, routeInfo, response, capabilityResult, isLoadi
   const hasResponse = !!(response && response.trim());
   const hasCapability = !!capabilityResult;
   const hasMainResult = hasResponse || hasCapability;
+  const primaryTitle = routeInfo.primary?.title || '관련 탭';
+  const isDirect = !!routeInfo.primary && DIRECT_OUTPUT_IDS.has(routeInfo.primary.id);
+  const workspaceHint = routeInfo.primary ? WORKSPACE_HINTS[routeInfo.primary.id] : null;
+  const unimplementedHint = routeInfo.primary ? UNIMPLEMENTED_HINTS[routeInfo.primary.id] : null;
 
   return (
     <div className="space-y-3">
@@ -1372,27 +1571,41 @@ function ResultPanel({ submitted, routeInfo, response, capabilityResult, isLoadi
 
       {hasResponse && (
         <div className="space-y-1.5">
-          <p className="text-[11px] font-semibold tracking-wider text-emerald-700 uppercase">바로 결과</p>
-          <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-3">
+          <p className="text-[11px] font-semibold tracking-wider text-emerald-700 uppercase">초안이 준비됐어요</p>
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-3 space-y-2">
             <ResultRenderer text={response} />
+            {isDirect && routeInfo.primary && (
+              <p className="text-[11px] text-emerald-700/70 leading-relaxed">
+                필요하면 <span className="font-medium">{primaryTitle}</span> 탭에서 학생별로 이어서 다듬을 수 있어요.
+              </p>
+            )}
           </div>
         </div>
       )}
 
-      {hasCapability && <CapabilityResult result={capabilityResult} />}
+      {hasCapability && (
+        <CapabilityResult
+          result={capabilityResult}
+          primary={routeInfo.primary}
+          onSelect={onSelect}
+        />
+      )}
 
       {!hasMainResult && routeInfo.primary && UNIMPLEMENTED_IDS.has(routeInfo.primary.id) && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-3 space-y-2">
-          <p className="text-[11px] font-semibold tracking-wider text-gray-600 uppercase">준비 중인 화면</p>
-          <p className="text-sm text-gray-700 leading-relaxed">
-            {routeInfo.primary.title} 기능은 아직 준비 중이에요. 지금은 화면 안내만 도와드릴 수 있어요.
+        <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 space-y-2">
+          <p className="text-[11px] font-semibold tracking-wider text-gray-600 uppercase">아직 준비 중이에요</p>
+          <p className="text-sm text-gray-800 font-medium leading-snug">
+            {unimplementedHint?.headline || `${primaryTitle} 기능은 아직 준비 중이에요`}
           </p>
+          {unimplementedHint?.body && (
+            <p className="text-xs text-gray-600 leading-relaxed">{unimplementedHint.body}</p>
+          )}
           <button
             type="button"
             onClick={() => onSelect(routeInfo.primary)}
             className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:border-indigo-300 hover:text-indigo-700 transition"
           >
-            <span>{routeInfo.primary.emoji}</span>{routeInfo.primary.title} 화면 열기 →
+            <span>{routeInfo.primary.emoji}</span>{unimplementedHint?.cta || `${primaryTitle} 화면 열기`} →
           </button>
         </div>
       )}
@@ -1402,9 +1615,11 @@ function ResultPanel({ submitted, routeInfo, response, capabilityResult, isLoadi
         const relatedSecondary = (routeInfo.secondary || [])
           .filter((s) => (s.score || 0) >= threshold)
           .slice(0, 1);
+        // direct 결과는 이미 결과 박스 안에서 안내 → 중복 방지로 표시 안 함
+        if (isDirect && relatedSecondary.length === 0) return null;
         return (
           <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">관련 작업</p>
+            <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">이어서 할 수 있는 작업</p>
             <div className="flex flex-wrap gap-1.5">
               <button type="button" onClick={() => onSelect(routeInfo.primary)}
                 className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-semibold text-indigo-800 hover:bg-indigo-100 transition">
@@ -1421,11 +1636,30 @@ function ResultPanel({ submitted, routeInfo, response, capabilityResult, isLoadi
         );
       })()}
 
-      {!hasMainResult && routeInfo.confidence === 'high' && routeInfo.primary && (
-        <div className="space-y-1.5">
-          <p className="text-[11px] font-semibold tracking-wider text-gray-500 uppercase">추천 작업</p>
-          <p className="text-[11px] text-gray-400 leading-relaxed">여기서는 바로 처리하기 어려워서 관련 작업으로 안내드릴게요.</p>
-          <RecommendationCard primary={routeInfo.primary} secondary={routeInfo.secondary} onSelect={onSelect} />
+      {!hasMainResult && routeInfo.confidence === 'high' && routeInfo.primary && !UNIMPLEMENTED_IDS.has(routeInfo.primary.id) && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3 space-y-2">
+          <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">전용 화면에서 이어가요</p>
+          <p className="text-sm text-gray-800 leading-relaxed">
+            {workspaceHint?.why || routeInfo.primary.reason}
+          </p>
+          <button
+            type="button"
+            onClick={() => onSelect(routeInfo.primary)}
+            className="inline-flex items-center gap-1 rounded-full bg-white border border-indigo-200 px-3 py-1 text-xs font-semibold text-indigo-800 hover:border-indigo-400 transition"
+          >
+            <span>{routeInfo.primary.emoji}</span>{workspaceHint?.cta || `${routeInfo.primary.title} 열기`} →
+          </button>
+          {routeInfo.secondary && routeInfo.secondary.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span className="text-[11px] text-gray-500">비슷한 작업:</span>
+              {routeInfo.secondary.slice(0, 3).map((s) => (
+                <button key={s.id} type="button" onClick={() => onSelect(s)}
+                  className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:border-indigo-300 hover:text-indigo-700 transition">
+                  <span>{s.emoji}</span>{s.title}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -1435,7 +1669,9 @@ function ResultPanel({ submitted, routeInfo, response, capabilityResult, isLoadi
 
       {!routeInfo.primary && !hasResponse && (
         <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 space-y-2">
-          <p className="text-xs text-amber-800">요청을 정확히 하나로 좁히지 못했어요. 혹시 아래 작업을 찾으시나요?</p>
+          <p className="text-xs text-amber-900 leading-relaxed">
+            요청을 어느 작업으로 보낼지 정하지 못했어요. 자주 쓰는 작업 중에서 골라 보시거나, 키워드를 조금 더 구체적으로 적어 보세요.
+          </p>
           <div className="flex flex-wrap gap-1.5">
             {KEYWORD_MAP.slice(0, 6).map((s) => (
               <button key={s.id} type="button" onClick={() => onSelect(s)}
