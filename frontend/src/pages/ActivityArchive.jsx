@@ -141,7 +141,6 @@ function ActivityArchive({ embedded, onSwitchTab }) {
             <h1 className="text-3xl font-bold text-gray-900">📂 활동 보관함</h1>
             <p className="mt-1 text-sm text-gray-500">내가 한 모든 활동을 모아봅니다</p>
           </div>
-          <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium">← 홈으로</button>
         </div>
       )}
 

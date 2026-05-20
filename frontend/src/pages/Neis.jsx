@@ -35,12 +35,6 @@ function Neis() {
           <h1 className="text-3xl font-bold text-gray-900">💼 NEIS 업무</h1>
           <p className="mt-1 text-sm text-gray-500">NEIS 관련 업무를 관리합니다</p>
         </div>
-        <button 
-          onClick={() => navigate('/dashboard')}
-          className="text-primary-600 hover:text-primary-900 font-medium"
-        >
-          &larr; 홈으로
-        </button>
       </div>
 
       {/* AI Prompt Section */}

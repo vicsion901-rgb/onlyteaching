@@ -182,7 +182,6 @@ function TodayMeal() {
         {/* 헤더 */}
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-semibold tracking-[0.2em] text-amber-700 uppercase">Today · 급식</p>
-          <button onClick={() => navigate('/dashboard')} className="text-xs font-medium text-amber-700 hover:text-amber-900">← 홈으로</button>
         </div>
 
         {errorMsg && (

@@ -490,12 +490,6 @@ function Schedule() {
             </div>
           </div>
         </div>
-        <button 
-          onClick={() => navigate('/dashboard')}
-          className="text-primary-600 hover:text-primary-900 font-medium"
-        >
-          &larr; 홈으로
-        </button>
       </div>
 
       <div className="bg-white shadow rounded-lg p-4 border-l-4 border-primary-500">

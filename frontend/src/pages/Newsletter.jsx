@@ -35,12 +35,6 @@ function Newsletter() {
           <h1 className="text-3xl font-bold text-gray-900">📋 가정통신문</h1>
           <p className="mt-1 text-sm text-gray-500">가정통신문, 안내문, 학급 소식지를 작성합니다</p>
         </div>
-        <button 
-          onClick={() => navigate('/dashboard')}
-          className="text-primary-600 hover:text-primary-900 font-medium"
-        >
-          &larr; 홈으로
-        </button>
       </div>
 
       {/* AI Prompt Section */}

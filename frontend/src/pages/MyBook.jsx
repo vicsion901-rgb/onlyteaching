@@ -117,7 +117,6 @@ function MyBook({ embedded, onSwitchTab, initialCollectionId, onClearInitialColl
           <h1 className="text-3xl font-bold text-gray-900">📕 내 책 만들기</h1>
           <p className="mt-1 text-sm text-gray-500">내가 쓴 글을 한 권의 책으로 만들어보세요</p>
         </div>
-        <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium">← 홈으로</button>
       </div>)}
 
       <div className="flex items-center gap-2 text-xs text-gray-400">

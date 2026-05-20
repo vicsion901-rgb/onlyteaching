@@ -152,7 +152,6 @@ function TeacherActivityDashboard() {
           <h1 className="text-2xl font-bold text-gray-900">학생 활동 관리</h1>
           <p className="mt-0.5 text-sm text-gray-500">수업 세션별 제출 현황을 확인합니다</p>
         </div>
-        <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium text-sm">← 홈으로</button>
       </div>
 
       <div className="grid grid-cols-3 gap-3">

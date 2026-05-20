@@ -323,12 +323,6 @@ function LifeRecords() {
           <h1 className="text-3xl font-bold text-gray-900">📝 생활기록부</h1>
           <p className="mt-1 text-sm text-gray-500">키워드를 선택하면 학생별 맞춤 생활기록부 문장을 생성합니다</p>
         </div>
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="text-primary-600 hover:text-primary-900 font-medium"
-        >
-          &larr; 홈으로
-        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -585,12 +585,6 @@ function StudentRecords() {
         <div className="flex items-start gap-3 ml-auto">
           <span className="text-sm text-gray-600 min-w-[130px] text-right pt-2">{saveMessage}</span>
           <div className="flex flex-col items-end gap-2 mt-8">
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="text-primary-600 hover:text-primary-900 font-medium"
-          >
-            &larr; 홈으로
-          </button>
             <button
               onClick={handleSave}
               disabled={isSaving}

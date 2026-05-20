@@ -75,7 +75,6 @@ function CreativeStudio({ embedded, onSwitchTab, onGoToBookWithCollection }) {
           <h1 className="text-3xl font-bold text-gray-900">📖 창작 편찬실</h1>
           <p className="mt-1 text-sm text-gray-500">편찬 가능한 글을 모아 묶음을 만들어보세요</p>
         </div>
-        <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium">← 홈으로</button>
       </div>)}
 
       {pendingItems.length > 0 && (

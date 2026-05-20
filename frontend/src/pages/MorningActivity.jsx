@@ -59,7 +59,6 @@ function MorningActivity() {
             <h1 className="text-2xl font-bold text-gray-900">✏️ 아침 활동</h1>
             <p className="mt-0.5 text-sm text-gray-500">문해력 성장 · 창작 편찬</p>
           </div>
-          <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium text-sm">← 홈으로</button>
         </div>
         <div className="bg-white shadow rounded-xl p-8 text-center space-y-4">
           <div className="text-5xl">👥</div>
@@ -85,7 +84,6 @@ function MorningActivity() {
           <h1 className="text-2xl font-bold text-gray-900">✏️ 아침 활동</h1>
           <p className="mt-0.5 text-sm text-gray-500">문해력 성장 · 창작 편찬</p>
         </div>
-        <button onClick={() => navigate('/dashboard')} className="text-primary-600 hover:text-primary-900 font-medium text-sm">← 홈으로</button>
       </div>
 
       <div className="flex gap-1 bg-white shadow rounded-lg p-1">

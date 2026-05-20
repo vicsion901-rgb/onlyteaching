@@ -527,12 +527,6 @@ function CareClassroom() {
             </div>
           </div>
         </div>
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="shrink-0 font-medium text-primary-600 hover:text-primary-900"
-        >
-          &larr; 홈으로
-        </button>
       </div>
 
       <div>

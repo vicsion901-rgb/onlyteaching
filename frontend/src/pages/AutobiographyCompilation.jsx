@@ -820,12 +820,6 @@ function AutobiographyCompilation() {
             입력된 자료를 참고하여 자서전을 편찬합니다.
           </div>
         </div>
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="text-primary-600 hover:text-primary-900 font-medium shrink-0"
-        >
-          &larr; 홈으로
-        </button>
       </div>
 
       {/* 탭 헤더 */}

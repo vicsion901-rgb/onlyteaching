@@ -278,7 +278,6 @@ function SubjectEvaluation() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">📊 교과평가</h1>
           <p className="mt-0.5 text-[11px] text-gray-500">학생 선택 → 교과·영역·성취기준 → 문장 조합 → 학생별 저장</p>
         </div>
-        <button onClick={() => navigate('/dashboard')} className="shrink-0 text-xs font-medium text-primary-600 hover:text-primary-900">← 홈으로</button>
       </div>
 
       {/* 학생 선택 + 작업 경로 (한 줄) */}
