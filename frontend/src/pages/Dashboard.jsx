@@ -8,13 +8,17 @@ import QrDistribution from '../components/QrDistribution';
 
 const GREETING_TEXT = 'On1yTeaching';
 
+// direct generation 허용 탭 — 3개로 제한
+// 생활기록부 / 교과평가 / 창의적 체험활동
 const DIRECT_OUTPUT_IDS = new Set([
   'life-records',
-  'counseling',
-  'newsletter',
-  'autobiography-compilation',
-  'exam-grading',
   'subject-evaluation',
+  'creative-activities',
+]);
+
+// 아직 구현되지 않은 탭 — direct/capability 모두 차단, 보수적 안내만
+const UNIMPLEMENTED_IDS = new Set([
+  'counseling',
 ]);
 
 // LLM intent → 카테고리 id 매핑
@@ -393,73 +397,59 @@ function generateLifeRecordDraft(keywords, lineCount, studentName, multiStudents
   return final.map((s) => `- ${s}`).join('\n');
 }
 
-const COUNSELING_TEMPLATES = [
-  { match: /갈등/, line: '또래 관계에서의 갈등 상황이 학생의 정서에 부담으로 작용하고 있음이 관찰됨.' },
-  { match: /관계|친구/, line: '또래 관계에서 어려움을 느끼고 있어 정서 지원이 필요해 보임.' },
-  { match: /집중|수업/, line: '수업 시간 집중에 영향이 있어 학습 지속을 함께 살펴볼 필요가 있음.' },
-  { match: /스트레스|불안/, line: '스트레스/불안 표현이 관찰되어 정서적 안전감을 확보할 시간이 필요함.' },
-  { match: /학부모|부모/, line: '학부모와의 상담을 통해 가정과 학교가 함께 학생을 지원할 방향을 공유함.' },
+const CREATIVE_ACT_TEMPLATES = [
+  { match: /협동|협력|모둠/, line: '모둠 활동에서 친구들과 협력하며 맡은 역할을 끝까지 수행하는 모습을 보임.' },
+  { match: /배려/, line: '친구의 입장을 살피며 따뜻한 말과 행동으로 배려를 실천함.' },
+  { match: /자율|자율활동/, line: '학급 자율 활동에 주도적으로 참여하며 공동체 의식을 길러 감.' },
+  { match: /동아리/, line: '동아리 활동에 꾸준히 참여하며 흥미와 적성을 깊이 있게 탐색함.' },
+  { match: /봉사/, line: '봉사 활동에 자발적으로 참여하며 나눔과 책임의 가치를 실천함.' },
+  { match: /진로/, line: '진로 활동에 적극 참여하며 자신의 흥미와 강점을 살펴보는 기회를 가짐.' },
+  { match: /체험/, line: '체험 활동에 호기심을 가지고 적극적으로 참여하며 새로운 경험을 자신의 언어로 정리함.' },
+  { match: /리더|리더십/, line: '활동에서 또래를 이끌며 자연스러운 리더십과 책임감을 보임.' },
+  { match: /발표|표현/, line: '활동 결과를 친구들 앞에서 자신감 있게 발표하며 표현력을 길러 감.' },
+  { match: /성실|노력/, line: '활동에 성실하게 임하며 꾸준한 노력으로 점차 성장하는 모습을 보임.' },
 ];
 
-function pickCounselingLine(kw) {
-  for (const t of COUNSELING_TEMPLATES) if (t.match.test(kw)) return t.line;
-  return `${kw} 관련 상황이 관찰되어 지속적인 관찰과 지원이 필요함.`;
+const CREATIVE_ACT_FILLERS = [
+  '창의적 체험활동 전반에서 적극적이고 안정된 태도를 꾸준히 보임.',
+  '활동 과정에서 친구들과 협력하며 공동체 의식을 길러 감.',
+  '맡은 역할에 책임을 다하며 활동을 끝까지 마무리하는 자세를 보임.',
+];
+
+function pickCreativeActivityLine(kw) {
+  for (const t of CREATIVE_ACT_TEMPLATES) if (t.match.test(kw)) return t.line;
+  return `${kw}${josa(kw, '을를')} 중심으로 창의적 체험활동에 적극 참여하며 의미 있는 성장을 보임.`;
 }
 
-function generateCounselingDraft(keywords, lineCount, multiStudents) {
+function generateCreativeActivityDraft(keywords, lineCount, multiStudents) {
   if (multiStudents) {
     return [
-      'ℹ️ 여러 학생의 관찰/상담 기록은 학생별로 따로 작성하는 것이 정확해요.',
-      '[관찰일지 열기] 버튼으로 학생별로 작성해 주세요.',
+      'ℹ️ 여러 학생의 창체 평가문장은 창의적 체험활동 탭에서 학생별로 나눠 작성하는 것이 정확해요.',
+      '[창의적 체험활동 열기] 버튼으로 학생을 한 명씩 선택해 작성해 주세요.',
+      '예시: "3번 학생 협동, 배려 중심 창체 평가문장 4줄 써줘"',
     ].join('\n');
   }
-  // 의미 키워드 없음 → 안내
   if (keywords.length === 0) {
     return [
-      'ℹ️ 어떤 관찰/상담 상황인지 키워드를 함께 입력하면 더 정확한 기록을 만들 수 있어요.',
-      '예: 친구관계, 갈등, 집중, 학부모 상담, 정서, 문제행동',
+      'ℹ️ 어떤 활동/덕목 중심의 창체 평가문장을 만들지 키워드를 함께 입력해 주세요.',
+      '예: 협동, 배려, 자율활동, 동아리, 봉사, 진로, 리더십',
     ].join('\n');
   }
-  const target = lineCount || 3;
+  const target = lineCount || 4;
   const seen = new Set();
   const lines = [];
   for (const kw of keywords) {
-    const s = pickCounselingLine(kw);
+    const s = pickCreativeActivityLine(kw);
     if (seen.has(s)) continue;
     seen.add(s); lines.push(s);
     if (lines.length >= target) break;
   }
-  const FILLERS = [
-    '학교 내 정서 안정과 활동 참여를 함께 지원할 필요가 있음.',
-    '교사·또래·가정의 협력으로 학생의 안정감을 형성해 나갈 계획임.',
-    '학생의 강점을 살릴 수 있는 활동 기회를 우선적으로 제공할 예정임.',
-  ];
   let fi = 0;
-  while (lines.length < target && fi < FILLERS.length) {
-    if (!seen.has(FILLERS[fi])) { seen.add(FILLERS[fi]); lines.push(FILLERS[fi]); }
-    fi++;
+  while (lines.length < target && fi < CREATIVE_ACT_FILLERS.length) {
+    const f = CREATIVE_ACT_FILLERS[fi++];
+    if (!seen.has(f)) { seen.add(f); lines.push(f); }
   }
-  if (lines.length === 0) lines.push('학생의 학교생활 상황에 대한 관찰과 지원이 필요함.');
   return lines.slice(0, target).map((s) => `- ${s}`).join('\n');
-}
-
-function generateNewsletterDraft(keywords, lineCount) {
-  // 안내 주제 없음 → 안내
-  if (keywords.length === 0) {
-    return [
-      'ℹ️ 어떤 내용의 안내문인지 주제를 함께 입력하면 더 정확한 초안을 만들 수 있어요.',
-      '예: 봄소풍, 학사일정, 안전교육, 학부모 면담, 방학 안내',
-    ].join('\n');
-  }
-  const topic = keywords[0] || '학교 안내';
-  const body = [
-    `이번 안내는 ${topic} 관련 내용입니다.`,
-    '자세한 사항은 담임 선생님께 문의해 주시면 안내드리겠습니다.',
-    '가정의 협조에 늘 감사드립니다.',
-  ];
-  const target = lineCount || 3;
-  const trimmed = body.slice(0, target);
-  return ['안녕하세요. 학부모님께 안내 말씀 드립니다.', '', ...trimmed, '', '감사합니다.'].join('\n');
 }
 
 async function generateLocalDraftAsync(text, primary) {
@@ -481,23 +471,10 @@ async function generateLocalDraftAsync(text, primary) {
   const withNote = (body) => lookupNote ? `${lookupNote}\n\n${body}` : body;
 
   const multiStudents = hasMultipleStudents(text);
+  // direct generation 허용 3개 탭만 — 나머지는 빈 문자열 → ResultPanel에서 탭 안내 fallback
   if (id === 'subject-evaluation') return generateSubjectEvalDraft(text, lineCount, multiStudents);
   if (id === 'life-records') return withNote(generateLifeRecordDraft(keywords, lineCount, studentName, multiStudents));
-  if (id === 'counseling') return generateCounselingDraft(keywords, lineCount, multiStudents);
-  if (id === 'newsletter') return generateNewsletterDraft(keywords, lineCount);
-  if (id === 'autobiography-compilation') {
-    const k = keywords[0] || '오늘';
-    return [
-      `- ${k}${josa(k, '을를')} 중심으로 이번 시기의 기록을 정리합니다.`,
-      '- 이 시기를 지나며 느낀 점과 배운 점을 짧게 정리해 챕터에 담아봅니다.',
-    ].slice(0, lineCount || 2).join('\n');
-  }
-  if (id === 'exam-grading') {
-    return [
-      '- 시험지 채점은 [시험 채점] 탭에서 사진/답안 업로드로 진행할 수 있어요.',
-      '- 자동 채점 결과를 확인하고 수동 보정도 가능합니다.',
-    ].slice(0, lineCount || 2).join('\n');
-  }
+  if (id === 'creative-activities') return generateCreativeActivityDraft(keywords, lineCount, multiStudents);
   return '';
 }
 
@@ -879,13 +856,20 @@ function Dashboard() {
       // 3) mode 결정 — LLM mode 우선, 없으면 카테고리 기반 추정
       const llmMode = llmIntent?.mode;
       const isDirectCategory = route.primary && DIRECT_OUTPUT_IDS.has(route.primary.id);
+      const isUnimplemented = route.primary && UNIMPLEMENTED_IDS.has(route.primary.id);
       const wantsGen = llmMode === 'generate' || (!llmMode && hasGenerationIntent(normalized) && isDirectCategory);
       const wantsExec = llmMode === 'execute' || llmMode === 'lookup';
       const wantsHelp = llmMode === 'help' || llmMode === 'navigate';
 
-      // 4) 실행 분기
-      if (wantsGen && isDirectCategory) {
-        // direct generation (AI + 로컬 폴백)
+      // 4) 실행 분기 — 우선순위:
+      //    a) 미구현 탭이면 direct/capability 모두 차단 → ResultPanel 보수 안내
+      //    b) direct 허용 탭(3개)이고 generate 의도 → direct generation
+      //    c) capability 가능 → capability 실행
+      //    d) 그 외 → ResultPanel에서 탭 안내 fallback
+      if (isUnimplemented) {
+        // 미구현 탭 — 어떤 의도여도 결과창에서 보수 안내만
+      } else if (wantsGen && isDirectCategory) {
+        // direct generation (AI + 로컬 폴백) — 3개 탭에 한해서만
         let aiResult = '';
         try {
           const res = await client.post('/api/prompts', { content: text, ai_model: selectedModel });
@@ -902,11 +886,11 @@ function Dashboard() {
           if (local) { setResponse(local); setUsedModel('local-template'); }
         }
       } else if (wantsExec) {
-        // capability 실행
+        // capability 실행 (발표자 추첨, 학생 조회, 급식 미리보기, 자서전 챕터 등)
         const cap = await tryInvokeCapability(route, normalized, text);
         if (cap) setCapabilityResult(cap);
       } else if (!wantsHelp && !isDirectCategory) {
-        // mode 정보 없고 비 direct → capability 시도 (기존 behavior 유지)
+        // mode 정보 없고 비 direct → capability 시도
         const cap = await tryInvokeCapability(route, normalized, text);
         if (cap) setCapabilityResult(cap);
       }
@@ -1396,6 +1380,22 @@ function ResultPanel({ submitted, routeInfo, response, capabilityResult, isLoadi
       )}
 
       {hasCapability && <CapabilityResult result={capabilityResult} />}
+
+      {!hasMainResult && routeInfo.primary && UNIMPLEMENTED_IDS.has(routeInfo.primary.id) && (
+        <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-3 space-y-2">
+          <p className="text-[11px] font-semibold tracking-wider text-gray-600 uppercase">준비 중인 화면</p>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {routeInfo.primary.title} 기능은 아직 준비 중이에요. 지금은 화면 안내만 도와드릴 수 있어요.
+          </p>
+          <button
+            type="button"
+            onClick={() => onSelect(routeInfo.primary)}
+            className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:border-indigo-300 hover:text-indigo-700 transition"
+          >
+            <span>{routeInfo.primary.emoji}</span>{routeInfo.primary.title} 화면 열기 →
+          </button>
+        </div>
+      )}
 
       {hasMainResult && routeInfo.primary && (() => {
         const threshold = Math.max(4, (routeInfo.primary.score || 0) * 0.5);
