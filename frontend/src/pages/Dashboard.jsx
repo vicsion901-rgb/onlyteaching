@@ -137,6 +137,7 @@ const AREA_LEXICON = [
 ];
 
 // 패턴은 위에 있는 것이 더 강한 우선순위
+// "창체"는 "평가문장"보다 더 강한 도메인 시그널 — 위쪽에 둠
 const DOMAIN_RULES = [
   { id: 'presenter-picker',         regex: /(발표자.*뽑|랜덤.*발표|발표\s*뽑|추첨\s*해|발표자.*정해)/ },
   { id: 'qr-distribution',          regex: /(qr|큐알)/i },
@@ -144,9 +145,9 @@ const DOMAIN_RULES = [
   { id: 'autobiography-compilation',regex: /(자서전|편찬실|편찬)/ },
   { id: 'today-meal',               regex: /(급식|영양\s*선생님|급식상|식판|식단)/ },
   { id: 'student-records',          regex: /(학생\s*명부|학생\s*목록|^\s*명부|\s명부|명단)/ },
+  { id: 'creative-activities',      regex: /(창체|창의적\s*체험\s*활동|동아리\s*활동|봉사\s*활동|진로\s*활동|자율\s*활동)/ },
   { id: 'life-records',             regex: /(생활\s*기록부|생기부|행발|생활\s*기록)/ },
   { id: 'subject-evaluation',       regex: /(교과\s*평가|평가\s*문장|성취\s*기준)/ },
-  { id: 'creative-activities',      regex: /(창체|창의적\s*체험\s*활동|동아리\s*활동|봉사\s*활동|진로\s*활동|자율\s*활동)/ },
 ];
 
 const ACTION_RULES = [
@@ -270,6 +271,7 @@ function parseUserInput(text) {
   if (!domain && subject) { domain = 'subject-evaluation'; domainConfidence = 0.6; }
 
   let action = findAction(raw);
+  const actionExplicit = action !== null;
   if (domain === 'presenter-picker' && /(뽑아|추첨|랜덤)/.test(raw)) action = 'execute';
   if (!action) action = 'navigate';
 
@@ -309,29 +311,30 @@ function parseUserInput(text) {
   confidence = Math.min(1, confidence);
 
   return {
-    domain, action, targetStudents, studentNames,
+    domain, action, actionExplicit, targetStudents, studentNames,
     subject, area, lineCount,
     contentKeywords, fillerWords,
     confidence, multiStudent,
   };
 }
 
-// direct 생성 허용 조건 — 파싱 결과로만 판정
+// direct 생성 허용 조건 — direct 3개 도메인은 우선순위로 시도.
+// 명시적 비-generate 의도(보여줘/뭐 있지/열어줘 등)가 있을 때만 차단.
 function canDirectGenerate(parsed) {
   if (!parsed || !DIRECT_OUTPUT_IDS.has(parsed.domain)) return false;
-  if (parsed.action !== 'generate') return false;
   if (parsed.multiStudent) return false;
-  if (parsed.domain === 'subject-evaluation') return !!parsed.subject;
-  return parsed.contentKeywords.length >= 1;
+  // 명시적으로 비-generate 의도가 매치된 경우만 차단 (lookup/help/navigate/execute가 명시 어휘로 매치)
+  if (parsed.actionExplicit && parsed.action !== 'generate') return false;
+  // subject-evaluation: 교과 미지정 시 안내 메시지가 자체 출력되므로 항상 direct 시도
+  // life-records / creative-activities: 키워드 비어도 안전한 generic 템플릿으로 채움
+  return true;
 }
 
 function directBlockReason(parsed) {
   if (!parsed) return null;
   if (parsed.multiStudent) return 'multiStudent';
   if (parsed.domain && !DIRECT_OUTPUT_IDS.has(parsed.domain)) return 'nonDirectDomain';
-  if (parsed.action !== 'generate') return 'nonGenerateAction';
-  if (parsed.domain === 'subject-evaluation' && !parsed.subject) return 'noSubject';
-  if (parsed.contentKeywords.length === 0) return 'noContent';
+  if (parsed.actionExplicit && parsed.action !== 'generate') return 'nonGenerateAction';
   return null;
 }
 
@@ -509,15 +512,7 @@ function generateLifeRecordDraft(keywords, lineCount, studentName, multiStudents
       '예시: "3번 학생 발표력, 책임감으로 생활기록부 3줄 작성해"',
     ].join('\n');
   }
-  // 의미 키워드가 전혀 없으면 안내 (억지 generic 생성 금지)
-  if (keywords.length === 0) {
-    const who = studentName ? `${studentName} 학생` : '학생';
-    return [
-      `ℹ️ ${who}에 대한 관찰 키워드를 함께 입력하면 더 정확한 생활기록부 문장을 만들 수 있어요.`,
-      '예: 발표력, 정리정돈, 책임감, 협동, 예의범절',
-      '[생활기록부 열기] 버튼으로 학생별 정보를 보며 작성할 수도 있어요.',
-    ].join('\n');
-  }
+  // 키워드 비어 있어도 direct 우선 정책 — fillers로 안전한 generic 문장 채움
   const target = lineCount || 4;
   const seen = new Set();
   const lines = [];
@@ -573,12 +568,7 @@ function generateCreativeActivityDraft(keywords, lineCount, multiStudents) {
       '예시: "3번 학생 협동, 배려 중심 창체 평가문장 4줄 써줘"',
     ].join('\n');
   }
-  if (keywords.length === 0) {
-    return [
-      'ℹ️ 어떤 활동/덕목 중심의 창체 평가문장을 만들지 키워드를 함께 입력해 주세요.',
-      '예: 협동, 배려, 자율활동, 동아리, 봉사, 진로, 리더십',
-    ].join('\n');
-  }
+  // 키워드 비어 있어도 direct 우선 정책 — fillers로 안전한 generic 문장 채움
   const target = lineCount || 4;
   const seen = new Set();
   const lines = [];
@@ -1571,14 +1561,9 @@ function ResultPanel({ submitted, routeInfo, response, capabilityResult, isLoadi
 
       {hasResponse && (
         <div className="space-y-1.5">
-          <p className="text-[11px] font-semibold tracking-wider text-emerald-700 uppercase">초안이 준비됐어요</p>
-          <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-3 space-y-2">
+          <p className="text-[11px] font-semibold tracking-wider text-emerald-700 uppercase">바로 결과</p>
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-3">
             <ResultRenderer text={response} />
-            {isDirect && routeInfo.primary && (
-              <p className="text-[11px] text-emerald-700/70 leading-relaxed">
-                필요하면 <span className="font-medium">{primaryTitle}</span> 탭에서 학생별로 이어서 다듬을 수 있어요.
-              </p>
-            )}
           </div>
         </div>
       )}
@@ -1615,11 +1600,9 @@ function ResultPanel({ submitted, routeInfo, response, capabilityResult, isLoadi
         const relatedSecondary = (routeInfo.secondary || [])
           .filter((s) => (s.score || 0) >= threshold)
           .slice(0, 1);
-        // direct 결과는 이미 결과 박스 안에서 안내 → 중복 방지로 표시 안 함
-        if (isDirect && relatedSecondary.length === 0) return null;
         return (
           <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">이어서 할 수 있는 작업</p>
+            <p className="text-[11px] font-semibold tracking-wider text-indigo-700 uppercase">관련 작업</p>
             <div className="flex flex-wrap gap-1.5">
               <button type="button" onClick={() => onSelect(routeInfo.primary)}
                 className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-semibold text-indigo-800 hover:bg-indigo-100 transition">
