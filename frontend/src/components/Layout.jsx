@@ -502,8 +502,12 @@ function Layout({ children }) {
         </div>
       </aside>
 
-      {/* ===== Main content ===== */}
-      <main className="flex-1 min-w-0 p-2 sm:p-4 pt-16 md:p-8 md:pt-8 pb-12 transition-all duration-300 overflow-x-hidden">
+      {/* ===== Main content =====
+          우측 패딩을 프로필 버튼 영역만큼 확보:
+          - 프로필 버튼: fixed top-4 right-8, 너비 40px (= right 32px + 40px = 우측 72px 점유)
+          - main 우측 padding 96px(md:pr-24)로 페이지 콘텐츠가 자동으로 왼쪽 정렬됨
+          - 전 페이지의 "← 홈으로" 버튼이 별도 수정 없이 프로필과 분리됨 */}
+      <main className="flex-1 min-w-0 p-2 sm:p-4 pt-16 md:p-8 md:pt-8 pb-12 pr-16 sm:pr-20 md:pr-24 transition-all duration-300 overflow-x-hidden">
         <div className="max-w-7xl mx-auto w-full">
           {children}
         </div>
